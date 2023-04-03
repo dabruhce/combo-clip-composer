@@ -1,0 +1,71 @@
+[
+  {
+      "video_type": "combo",
+      "game_information": {
+        "game_name": "Tekken 7",
+        "characters": [""],
+        "mechanics_used": ["TAILSPIN", "WALLS", "WALL_BOUNCE"],
+        "video_source": "./assets/tests/full/video.mp4",
+        "local_transformation_destination": ""
+      },
+      "combo_information": {
+        "character_name": "Kunimitsu",
+        "mechanics_used": ["LAUNCHER","SPIN"],
+        "damage": 80,
+        "combo_title": "Divekick Series #1",
+        "difficulty_level": 9,
+        "combo_type": "Normal",
+        "restriction_tags": [
+          "Doesn't work on Jack7"
+        ],
+        "usage_tags": [
+          "OKI",
+          "BREAD_AND_BUTTER"
+        ]
+      },
+      "video_transformations": {
+        "overlays": [
+          {
+              "name": "intro", 
+              "render_type": "text_display", 
+              "render_detail": {
+                  "coordinates": {
+                       "x": 100,
+                       "y": 50
+                     },   
+                  "start_time": 10.5,
+                  "duration": 5,
+                  "detail": "Kunimitsu" 
+              }
+           },
+           {
+              "name": "intro", 
+              "render_type": "combo_notation_display", 
+              "render_detail": {
+                  "coordinates": {
+                       "x": 100,
+                       "y": 900
+                     },   
+                     "start_time": 1,
+                     "duration": 5,
+                     "detail": "df 2, f 4 f, set 2" 
+              }
+           } 
+        ],
+        "audio_effects": []
+      },
+      "distribution": {
+        "platforms": ["youtube", "twitch"],
+        "youtube": {
+          "title": "Kunimitsu Divekick Series #1",
+          "description": "Kunimitsu Divekick Series #1",
+          "tags": ["Kunimitsu", "Divekick", "Series", "#1"]
+        },
+        "twitch": {
+          "title": "Kunimitsu Divekick Series #1",
+          "description": "Kunimitsu Divekick Series #1",
+          "tags": ["Kunimitsu", "Divekick", "Series", "#1"]
+        }
+      }
+    }
+  ]
