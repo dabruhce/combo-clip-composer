@@ -110,7 +110,6 @@ async function checkAndConvertCase(arr) {
     if (str.length < 3 && str.toUpperCase() === str && !(/^\d+$/.test(str))) {
       mappedArr.push(shortcuts[str]);
     } else {
-      console.log('e ' + str)
       mappedArr.push(str);
     }
   }
