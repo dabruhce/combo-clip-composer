@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { createTextCanvasOfSize } = require('../src/image/canvas.js');
-const { createDirectory } = require('../src/utils/createDirectory');
+const { recreateDirectory } = require('../src/utils/createDirectory');
 
 describe('createTextCanvas', () => {
 
@@ -8,7 +8,7 @@ describe('createTextCanvas', () => {
         
     // Delete the directory if it exists
     const dirPath = './artifacts/canvas';
-    await createDirectory(dirPath);
+    await recreateDirectory(dirPath);
     
   });
 

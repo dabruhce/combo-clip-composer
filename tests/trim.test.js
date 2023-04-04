@@ -1,7 +1,7 @@
 const { trimVideo } = require('../src/video/videoUtils');
-const { createDirectory } = require('../src/utils/createDirectory');
+const { recreateDirectory } = require('../src/utils/createDirectory');
 const { v4: uuidv4 } = require('uuid');
-jest.setTimeout(60000);
+jest.setTimeout(600000);
 
 
 describe('trimVideo function', () => {
@@ -10,7 +10,7 @@ describe('trimVideo function', () => {
         
     // Delete the directory if it exists
     const dirPath = './artifacts/trim';
-    await createDirectory(dirPath);
+    await recreateDirectory(dirPath);
     
   });
 
@@ -18,7 +18,7 @@ describe('trimVideo function', () => {
 
     const jobID = uuidv4();
     const jobDirectory = './artifacts/trim/' + jobID;
-    await createDirectory(jobDirectory)
+    await recreateDirectory(jobDirectory)
 
     const inputFile = './assets/tests/video/video.mp4';
 

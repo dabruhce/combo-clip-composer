@@ -17,7 +17,7 @@ const extractFrames = require('ffmpeg-extract-frames')
 const { v4: uuidv4 } = require('uuid');
 const { searchAndCopyFiles, findFileInDirectory, expandShortcuts, checkAndConvertCase } = require('../image/imageGen');
 const { createTextCanvasOfSize, estimateTextSize } = require('../image/canvas');
-const { createDirectory } = require('../utils/createDirectory');
+const { recreateDirectory } = require('../utils/createDirectory');
 
 registerFont('./assets/fonts/THEBOLDFONT/THEBOLDFONT.ttf', { family: 'THEBOLDFONT' });
 
@@ -49,12 +49,12 @@ ffmpeg.setFfprobePath(ffprobePath);
     const imagesDirectory = jobDirectoryWithID + '/images/'  
 
 
-    await createDirectory(jobDirectoryWithID);
-    await createDirectory(targetDirectory);
-    await createDirectory(initialFramesDirectory);
-    await createDirectory(updatedFramesDirectory);
-    await createDirectory(audioOutputDirectory);
-    await createDirectory(imagesDirectory);
+    await recreateDirectory(jobDirectoryWithID);
+    await recreateDirectory(targetDirectory);
+    await recreateDirectory(initialFramesDirectory);
+    await recreateDirectory(updatedFramesDirectory);
+    await recreateDirectory(audioOutputDirectory);
+    await recreateDirectory(imagesDirectory);
 
     const directories = ['./assets/games/Tekken7/images', './assets/games/common/images'];
     await searchAndCopyFiles(text, directories, imagesDirectory);
@@ -105,11 +105,11 @@ ffmpeg.setFfprobePath(ffprobePath);
     const audioOutputDirectory = jobDirectory + '/audio/'
     const audioOutputFile = jobDirectory + '/audio/output-audio.aac'  
   
-    await createDirectory(jobDirectory);
-    await createDirectory(targetDirectory);
-    await createDirectory(initialFramesDirectory);
-    await createDirectory(updatedFramesDirectory);
-    await createDirectory(audioOutputDirectory);
+    await recreateDirectory(jobDirectory);
+    await recreateDirectory(targetDirectory);
+    await recreateDirectory(initialFramesDirectory);
+    await recreateDirectory(updatedFramesDirectory);
+    await recreateDirectory(audioOutputDirectory);
   
     // Extract audio from video
     await extractAudioFromVideo(inputFile, audioOutputFile);
@@ -266,8 +266,6 @@ async function drawInputImages(context, inputs, xOffset, yOffset, imageJobPath) 
   const trimmedItem = item.trim();
 
     const file = `${trimmedItem}.svg`
-    console.log('file is ' + file)
-    console.log('jobp is ' + imageJobPath)
     const imageFilePath = await findFileInDirectory(imageJobPath, file)
     const imageFile = await loadImage(imageFilePath);
     const inputPosition = xOffset + (i * 50);

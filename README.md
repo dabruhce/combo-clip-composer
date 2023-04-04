@@ -99,6 +99,8 @@ This shows the before and after of running a job which
 
 If you want to contribute to Combo Clip Composer, please read the [contributing guidelines](CONTRIBUTING.md) first.
 
+Arrow & Button Images from https://github.com/dabruhce/tk7movespretty
+
 ## License
 
 Combo Clip Composer is released under the [MIT License](LICENSE).

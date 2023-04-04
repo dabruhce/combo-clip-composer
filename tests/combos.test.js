@@ -1,5 +1,5 @@
 const { processComboVideo, processVideo } = require('../src/video/videoUtils');
-const { createDirectory } = require('../src/utils/createDirectory');
+const { recreateDirectory } = require('../src/utils/createDirectory');
 const { readFile } = require('../src/utils/readFile');
 
 jest.setTimeout(20000000);
@@ -10,7 +10,7 @@ describe('do 2 videos in a row', () => {
         
     // Delete the directory if it exists
     const dirPath = './artifacts/out';
-    await createDirectory(dirPath); 
+    await recreateDirectory(dirPath); 
     
   });
   

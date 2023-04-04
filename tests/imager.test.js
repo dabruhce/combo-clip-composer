@@ -1,5 +1,5 @@
 const { searchAndCopyFiles } = require('../src/image/imageGen');
-const { createDirectory } = require('../src/utils/createDirectory');
+const { recreateDirectory } = require('../src/utils/createDirectory');
 const { checkFileExists } = require('../src/utils/copyFileToDirectory');
 const { v4: uuidv4 } = require('uuid');
 
@@ -11,7 +11,7 @@ describe('util functions', () => {
         
     // Delete the directory if it exists
     const dirPath = './artifacts/imager/';
-    await createDirectory(dirPath);   
+    await recreateDirectory(dirPath);   
     
   });
   
@@ -21,7 +21,7 @@ describe('util functions', () => {
 
     const jobID = uuidv4();
     const jobDirectory = './artifacts/imager/' + jobID;
-    await createDirectory(jobDirectory)
+    await recreateDirectory(jobDirectory)
   //assets\games\Tekken7\inputs
     try {
       await searchAndCopyFiles(text, directories, jobDirectory);
@@ -37,7 +37,7 @@ describe('util functions', () => {
 
     const jobID = uuidv4();
     const jobDirectory = './artifacts/imager/' + jobID;
-    await createDirectory(jobDirectory)
+    await recreateDirectory(jobDirectory)
     try {
       await searchAndCopyFiles(text, directories, jobDirectory);
    //   console.log('All files copied successfully!');
@@ -53,7 +53,7 @@ describe('util functions', () => {
 
     const jobID = uuidv4();
     const jobDirectory = './artifacts/imager/' + jobID;
-    await createDirectory(jobDirectory)
+    await recreateDirectory(jobDirectory)
 
     const targetWrongFile = jobDirectory + '/smilea.svg'
     const targetCorrectFile = jobDirectory + '/smile.svg'

@@ -1,5 +1,5 @@
 const { downloadVideo } = require('../src/video/youtube');
-const { createDirectory } = require('../src/utils/createDirectory');
+const { recreateDirectory } = require('../src/utils/createDirectory');
 jest.setTimeout(600000);
 
 describe('fetchVideoData', () => {
@@ -8,7 +8,7 @@ describe('fetchVideoData', () => {
         
     // Delete the directory if it exists
     const dirPath = './artifacts/youtube';
-    await createDirectory(dirPath);   
+    await recreateDirectory(dirPath);   
   });
 
   test('should download the video and save it to a local file', async () => {

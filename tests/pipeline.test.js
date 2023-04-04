@@ -1,5 +1,5 @@
 const { processComboVideo, processVideo } = require('../src/video/videoUtils');
-const { createDirectory } = require('../src/utils/createDirectory');
+const { recreateDirectory } = require('../src/utils/createDirectory');
 const { downloadVideo, downloadHighestQualityVideo, fetchVideoInfo } = require('../src/video/youtube');
 const { readFile } = require('../src/utils/readFile');
 
@@ -11,7 +11,7 @@ describe('do 2 videos in a row', () => {
         
     // Delete the directory if it exists
     const dirPath = './artifacts/pipeline';
-    await createDirectory(dirPath); 
+    await recreateDirectory(dirPath); 
     
   });
   
