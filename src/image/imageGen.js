@@ -18,7 +18,8 @@ async function findFileInDirectory(targetDir, fileName) {
     }
   }
  // return null;
-   throw new Error('image not available');
+//   console.log(file)
+   throw new Error(`image not available`);
 }
 
 async function searchAndCopyFiles(text, directories, targetDirectory) {
@@ -36,8 +37,10 @@ async function searchAndCopyFiles(text, directories, targetDirectory) {
       return splittedInput;
     });
 
-    const splitInputs = await expandShortcuts(splitInput);
-   // console.log(splitInputs)
+    const expandInputs = await expandShortcuts(splitInput);
+    const splitInputs = await checkAndConvertCase(expandInputs);
+    //console.log(expandInputs)
+    //console.log(splitInputs)
 
     for (const char of splitInputs) {
         if (char === ' ') {
@@ -87,5 +90,32 @@ async function expandShortcuts(arr) {
   return expandedArr;
 }
 
+async function checkAndConvertCase(arr) {
+  const shortcuts = {
+    B: "bp",
+    DB: "dbp",
+    D: "dp",
+    DF: "dfp",
+    F: "fp",
+    UF: "ufp",
+    U: "up",
+    UB: "ubp"
+  };
 
-module.exports = { searchAndCopyFiles, findFileInDirectory, expandShortcuts };
+  const mappedArr = [];
+
+  for (let i = 0; i < arr.length; i++) {
+    const str = arr[i];
+    //console.log(str, /^\d+$/.test(str))
+    if (str.length < 3 && str.toUpperCase() === str && !(/^\d+$/.test(str))) {
+      mappedArr.push(shortcuts[str]);
+    } else {
+      console.log('e ' + str)
+      mappedArr.push(str);
+    }
+  }
+
+  return mappedArr;
+}
+
+module.exports = { searchAndCopyFiles, findFileInDirectory, expandShortcuts, checkAndConvertCase };

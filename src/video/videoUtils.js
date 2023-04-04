@@ -15,7 +15,7 @@ const sizeOf = require('image-size');
 const path = require('path');
 const extractFrames = require('ffmpeg-extract-frames')
 const { v4: uuidv4 } = require('uuid');
-const { searchAndCopyFiles, findFileInDirectory} = require('../image/imageGen');
+const { searchAndCopyFiles, findFileInDirectory, expandShortcuts, checkAndConvertCase } = require('../image/imageGen');
 const { createTextCanvasOfSize, estimateTextSize } = require('../image/canvas');
 const { createDirectory } = require('../utils/createDirectory');
 
@@ -191,7 +191,7 @@ async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comb
     const inputs = comboText.split(",").map(input => input.trimStart());
     const wordSeparator = "sep";
   
-    const splitInputs = inputs.flatMap((input, index, array) => {
+    const splitInput = inputs.flatMap((input, index, array) => {
     const splittedInput = input.split(" ");
 
       if (index < array.length - 1) {
@@ -200,6 +200,9 @@ async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comb
   
       return splittedInput;
     });
+
+    const expandInputs = await expandShortcuts(splitInput);
+    const splitInputs = await checkAndConvertCase(expandInputs);
 
     const filename = path.basename(initialFrames);
 
@@ -263,6 +266,8 @@ async function drawInputImages(context, inputs, xOffset, yOffset, imageJobPath) 
   const trimmedItem = item.trim();
 
     const file = `${trimmedItem}.svg`
+    console.log('file is ' + file)
+    console.log('jobp is ' + imageJobPath)
     const imageFilePath = await findFileInDirectory(imageJobPath, file)
     const imageFile = await loadImage(imageFilePath);
     const inputPosition = xOffset + (i * 50);
