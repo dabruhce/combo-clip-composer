@@ -4,7 +4,7 @@ Combo Clip Composer is a tool that allows users to create combo videos, highligh
 
 ## Overview
 
-Combo Clip Composer is a command-line tool that utilizes text inputs to create video clips. It provides an easy way for users to create instructional content for fighting games by overlaying combo inputs on top of gameplay footage.
+Combo Clip Composer is a command-line tool that uses text inputs to create video clips. It provides an easy way for users to create instructional content for fighting games by overlaying combo inputs on top of gameplay footage.
 
 ## Features
 
