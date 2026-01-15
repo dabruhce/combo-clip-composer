@@ -21,3 +21,18 @@
   - Tests may not run due to build tool requirements
   - Syntax validation via `node --check` can substitute for full test runs when deps fail
 ---
+
+## Iteration 2 - US-002: Extract FPS Dynamically from Video Metadata
+- What was implemented:
+  - Added `parseFrameRate()` helper function to parse r_frame_rate strings (handles "numerator/denominator" format)
+  - Updated `getVideoMetadata()` to use `parseFrameRate(video.r_frame_rate, 30)` instead of hardcoded `const fps = 30`
+  - Fixed `createVideoFromFrames()` to use dynamic framerate: `.inputOptions(\`-framerate ${frameRate}\`)` instead of hardcoded `-framerate 30`
+- Files changed:
+  - `src/video/videoUtils.js` (lines 362-394) - added parseFrameRate() function with JSDoc
+  - `src/video/videoUtils.js` (line 417) - getVideoMetadata now calls parseFrameRate()
+  - `src/video/videoUtils.js` (line 309) - createVideoFromFrames uses dynamic frameRate parameter
+- Learnings for future iterations:
+  - Can test pure JS functions by writing a temp file and running with `node` directly
+  - r_frame_rate is typically in format "30000/1001" for NTSC 29.97fps or "60000/1001" for 59.94fps
+  - ffmpeg accepts framerate as integer or decimal (29.97 works fine)
+---

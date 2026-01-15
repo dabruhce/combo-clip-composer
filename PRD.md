@@ -39,11 +39,11 @@ The codebase currently has three hardcoded values that limit flexibility and sca
 - Comment shows awareness of `r_frame_rate` format: "30,000/1001 = 30 fps && 60,000/1001 = 60 fps"
 
 **Acceptance Criteria:**
-- [ ] `getVideoMetadata()` parses `r_frame_rate` from video stream metadata
-- [ ] Handles fraction format (e.g., "30000/1001" → ~29.97)
-- [ ] Falls back to 30 if `r_frame_rate` is unavailable or unparseable
-- [ ] Typecheck passes
-- [ ] Existing tests pass
+- [x] `getVideoMetadata()` parses `r_frame_rate` from video stream metadata
+- [x] Handles fraction format (e.g., "30000/1001" → ~29.97)
+- [x] Falls back to 30 if `r_frame_rate` is unavailable or unparseable
+- [x] Typecheck passes
+- [x] Existing tests pass
 
 ---
 

@@ -306,7 +306,7 @@ async function createVideoFromFrames(
     ffmpeg()
       .input(framesFilepath)
      // .inputOptions('-pattern_type glob')
-      .inputOptions('-framerate 30')
+      .inputOptions(`-framerate ${frameRate}`)
       .videoCodec('libx264')
       .outputOptions([
         '-pix_fmt yuv420p',
@@ -360,6 +360,39 @@ async function addAudioToVideo(videoPath, audioPath, outputPath) {
 }
 
 //METADATA
+/**
+ * Parses a frame rate string in fraction format (e.g., "30000/1001") and returns the numeric value.
+ * Falls back to default value if parsing fails.
+ * @param {string} frameRateStr - Frame rate string in "numerator/denominator" format
+ * @param {number} defaultFps - Default FPS to return if parsing fails (default: 30)
+ * @returns {number} - Parsed frame rate or default value
+ */
+function parseFrameRate(frameRateStr, defaultFps = 30) {
+  if (!frameRateStr || typeof frameRateStr !== 'string') {
+    return defaultFps;
+  }
+
+  // Handle fraction format like "30000/1001"
+  if (frameRateStr.includes('/')) {
+    const parts = frameRateStr.split('/');
+    if (parts.length === 2) {
+      const numerator = parseFloat(parts[0]);
+      const denominator = parseFloat(parts[1]);
+      if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
+        return numerator / denominator;
+      }
+    }
+  }
+
+  // Try parsing as a plain number
+  const parsed = parseFloat(frameRateStr);
+  if (!isNaN(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return defaultFps;
+}
+
 function getVideoMetadata(filePath) {
   return new Promise((resolve, reject) => {
     ffmpeg(filePath).ffprobe((err, metadata) => {
@@ -378,11 +411,11 @@ function getVideoMetadata(filePath) {
       }
       const audio = metadata.streams.find((s) => s.codec_type === 'audio');
       const duration = metadata.format.duration;
-      const fps = 30;
-   
-      //console.log(metadata)
-      // 30,000/1001 = 30 fps && 60,000/1001 = 60 fps
-      //const fps = metadata.streams[0].r_frame_rate;
+
+      // Extract FPS from r_frame_rate, falling back to 30 if unavailable
+      // r_frame_rate is typically in format "30000/1001" for 29.97fps or "60000/1001" for 59.94fps
+      const fps = parseFrameRate(video.r_frame_rate, 30);
+
       resolve({ audio, video, duration, fps });
     });
   });
