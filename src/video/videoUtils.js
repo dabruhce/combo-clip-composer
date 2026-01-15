@@ -29,7 +29,7 @@ ffmpeg.setFfprobePath(ffprobePath);
     return path.basename(filePath);
   }
 
-  async function processComboVideo(inputFile, text, x, y, jobDirectory = './artifacts/out/') {
+  async function processComboVideo(inputFile, text, x, y, jobDirectory = './artifacts/out/', directories = ['./assets/games/Tekken7/images', './assets/games/common/images']) {
     const { audio, video, duration, fps } = await getVideoMetadata(inputFile)
 
     const jobID = uuidv4();
@@ -42,11 +42,11 @@ ffmpeg.setFfprobePath(ffprobePath);
 
     const initialFramesDirectory = jobDirectoryWithID + '/video/frames/initial';
     const updatedFramesDirectory = jobDirectoryWithID + '/video/frames/updated';
-    
+
     const audioOutputDirectory = jobDirectoryWithID + '/audio/'
     const audioOutputFile = jobDirectoryWithID + '/audio/output-audio.aac'
-    
-    const imagesDirectory = jobDirectoryWithID + '/images/'  
+
+    const imagesDirectory = jobDirectoryWithID + '/images/'
 
 
     await recreateDirectory(jobDirectoryWithID);
@@ -56,7 +56,6 @@ ffmpeg.setFfprobePath(ffprobePath);
     await recreateDirectory(audioOutputDirectory);
     await recreateDirectory(imagesDirectory);
 
-    const directories = ['./assets/games/Tekken7/images', './assets/games/common/images'];
     await searchAndCopyFiles(text, directories, imagesDirectory);
 
     // Extract audio from video

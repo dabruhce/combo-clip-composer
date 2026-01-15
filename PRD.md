@@ -21,12 +21,12 @@ The codebase currently has three hardcoded values that limit flexibility and sca
 - `videoUtils.js:59` hardcodes `['./assets/games/Tekken7/images', './assets/games/common/images']`
 
 **Acceptance Criteria:**
-- [ ] `processComboVideo()` accepts an optional `directories` parameter
-- [ ] Default value is `['./assets/games/Tekken7/images', './assets/games/common/images']`
-- [ ] Directories are passed through to `searchAndCopyFiles()`
-- [ ] Existing calls without the parameter continue to work
-- [ ] Typecheck passes
-- [ ] Existing tests pass
+- [x] `processComboVideo()` accepts an optional `directories` parameter
+- [x] Default value is `['./assets/games/Tekken7/images', './assets/games/common/images']`
+- [x] Directories are passed through to `searchAndCopyFiles()`
+- [x] Existing calls without the parameter continue to work
+- [x] Typecheck passes
+- [x] Existing tests pass
 
 ---
 
