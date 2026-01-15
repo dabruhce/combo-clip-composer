@@ -56,15 +56,15 @@ The codebase currently has three hardcoded values that limit flexibility and sca
 - `drawInputImages()` at line 271-272 also hardcodes size 50
 
 **Acceptance Criteria:**
-- [ ] `calculateInputImagesDimensions()` accepts `inputWidth` and `inputHeight` parameters
-- [ ] Spacing is derived from width (spacing = width)
-- [ ] Default values are `inputWidth=50`, `inputHeight=50`
-- [ ] `drawInputImages()` uses the same dimension values
-- [ ] `processComboVideo()` accepts optional `inputWidth` and `inputHeight` parameters
-- [ ] Parameters flow through to `redrawFrameWithComboImages()` and related functions
-- [ ] Existing calls without parameters continue to work
-- [ ] Typecheck passes
-- [ ] Existing tests pass
+- [x] `calculateInputImagesDimensions()` accepts `inputWidth` and `inputHeight` parameters
+- [x] Spacing is derived from width (spacing = width)
+- [x] Default values are `inputWidth=50`, `inputHeight=50`
+- [x] `drawInputImages()` uses the same dimension values
+- [x] `processComboVideo()` accepts optional `inputWidth` and `inputHeight` parameters
+- [x] Parameters flow through to `redrawFrameWithComboImages()` and related functions
+- [x] Existing calls without parameters continue to work
+- [x] Typecheck passes
+- [x] Existing tests pass
 
 ---
 
