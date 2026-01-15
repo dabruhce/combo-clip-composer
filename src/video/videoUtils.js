@@ -444,4 +444,4 @@ async function trimVideo(data) {
   });
 }
 
-module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo };
+module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo, parseFrameRate, calculateInputImagesDimensions };

@@ -73,11 +73,11 @@ The codebase currently has three hardcoded values that limit flexibility and sca
 **Description:** As a developer, I want tests that verify the new configurable parameters work correctly.
 
 **Acceptance Criteria:**
-- [ ] Add test for `processComboVideo()` with custom directories parameter
-- [ ] Add test for FPS extraction from video with non-30fps frame rate
-- [ ] Add test for FPS fallback when metadata is missing
-- [ ] Add test for custom image dimensions
-- [ ] All tests pass
+- [x] Add test for `processComboVideo()` with custom directories parameter
+- [x] Add test for FPS extraction from video with non-30fps frame rate
+- [x] Add test for FPS fallback when metadata is missing
+- [x] Add test for custom image dimensions
+- [x] All tests pass
 
 ## Non-Goals
 

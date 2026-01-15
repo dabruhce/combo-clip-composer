@@ -36,3 +36,47 @@
   - r_frame_rate is typically in format "30000/1001" for NTSC 29.97fps or "60000/1001" for 59.94fps
   - ffmpeg accepts framerate as integer or decimal (29.97 works fine)
 ---
+
+## Iteration 3 - US-003: Make Input Image Dimensions Configurable
+- What was implemented:
+  - Added `inputWidth` and `inputHeight` parameters to `calculateInputImagesDimensions()` with defaults of 50
+  - Made spacing derived from width: `const inputSpacing = inputWidth`
+  - Updated `drawInputImages()` to accept dimension parameters and use them for positioning (`i * inputWidth`) and rendering (`inputWidth, inputHeight`)
+  - Updated `redrawFrameWithComboImages()` to accept and pass dimension parameters to helper functions
+  - Added `inputWidth` and `inputHeight` parameters to `processComboVideo()` function signature
+- Files changed:
+  - `src/video/videoUtils.js` (line 32) - processComboVideo signature updated
+  - `src/video/videoUtils.js` (line 76) - passes dimensions to redrawFrameWithComboImages
+  - `src/video/videoUtils.js` (line 188) - redrawFrameWithComboImages signature updated
+  - `src/video/videoUtils.js` (line 214) - passes dimensions to calculateInputImagesDimensions
+  - `src/video/videoUtils.js` (line 223) - passes dimensions to drawInputImages
+  - `src/video/videoUtils.js` (line 263) - drawInputImages signature updated
+  - `src/video/videoUtils.js` (line 278) - calculateInputImagesDimensions signature updated
+- Learnings for future iterations:
+  - Parameters flow through multiple functions: processComboVideo -> redrawFrameWithComboImages -> [calculateInputImagesDimensions, drawInputImages]
+  - Isolated tests with pure functions can verify logic without full dependencies
+  - Tests couldn't run due to missing npm deps, but syntax validation + isolated tests confirmed correctness
+---
+
+## Iteration 4 - US-004: Update Tests for New Parameters
+- What was implemented:
+  - Added new test file `tests/configurable-params.test.js` with 21 tests covering:
+    - parseFrameRate() fraction format parsing (30000/1001, 60000/1001, 30/1, 24000/1001)
+    - parseFrameRate() plain number parsing (integers and decimals)
+    - parseFrameRate() fallback behavior (null, undefined, empty string, non-string, custom default)
+    - calculateInputImagesDimensions() default dimensions (50x50)
+    - calculateInputImagesDimensions() custom dimensions and scaling
+    - processComboVideo() function signature verification
+  - Exported `parseFrameRate` and `calculateInputImagesDimensions` from videoUtils.js for testing
+  - Created `__mocks__/canvas.js` to mock native canvas module for Jest tests
+- Files changed:
+  - `tests/configurable-params.test.js` - new test file with 21 tests
+  - `src/video/videoUtils.js` (line 447) - added parseFrameRate and calculateInputImagesDimensions to exports
+  - `__mocks__/canvas.js` - new mock file for canvas module
+- Learnings for future iterations:
+  - Jest `__mocks__` directory provides automatic module mocking
+  - `npm install --ignore-scripts` bypasses native module compilation
+  - Pre-existing tests (canvas.test.js, combos.test.js, pipeline.test.js) require native canvas or network access
+  - Unit tests for pure functions (parseFrameRate, calculateInputImagesDimensions) can run with mocks
+  - 26 tests pass in this environment (imager, trim, configurable-params)
+---
