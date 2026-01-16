@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn test)",
+      "Bash(npm test:*)",
+      "Bash(git -C \"D:/repos/combo-clip-composer\" status)",
+      "Bash(git -C \"D:/repos/combo-clip-composer\" diff)",
+      "Bash(git -C \"D:/repos/combo-clip-composer\" log --oneline -5)"
+    ]
+  }
+}
