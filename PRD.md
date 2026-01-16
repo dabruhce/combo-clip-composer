@@ -1,93 +1,122 @@
-# PRD: Fix Hardcoded Values
+# PRD: Frame-Precise Timecode Offsets
 
 ## Introduction
 
-The codebase currently has three hardcoded values that limit flexibility and scalability. This PRD addresses making the asset directories, FPS extraction, and image dimension calculations configurable while maintaining backward compatibility.
+Timecodes alone (e.g., "2:01") are not precise enough for syncing combo overlays with specific moments in gameplay footage. This feature adds frame-level offset support to `trimVideo()`, allowing users to specify start/end times with additional frame adjustments (e.g., start at 2:01 + 20 frames, end at 2:31 - 5 frames).
 
 ## Goals
 
-- Allow users to specify custom asset directories for different games
-- Dynamically extract FPS from video metadata instead of assuming 30fps
-- Make input image dimensions configurable for different overlay sizes
-- Maintain backward compatibility with existing API usage
+- Enable frame-precise control for syncing combo overlays with video content
+- Support frame offsets (+/-) relative to timecodes
+- Clamp offsets to valid FPS range to prevent invalid values
+- Maintain backward compatibility with existing `trimVideo()` usage
+- Support both local and YouTube pipeline workflows
 
 ## User Stories
 
-### US-001: Make Asset Directories Configurable
+### US-001: Add Timecode Parsing Utility
 
-**Description:** As a developer, I want to pass custom asset directories to `processComboVideo()` so that I can use assets from different games without modifying the source code.
-
-**Current State:**
-- `videoUtils.js:59` hardcodes `['./assets/games/Tekken7/images', './assets/games/common/images']`
+**Description:** As a developer, I want a utility function that parses "MM:SS" or "H:MM:SS" timecode strings into seconds so that timecodes can be used consistently throughout the codebase.
 
 **Acceptance Criteria:**
-- [x] `processComboVideo()` accepts an optional `directories` parameter
-- [x] Default value is `['./assets/games/Tekken7/images', './assets/games/common/images']`
-- [x] Directories are passed through to `searchAndCopyFiles()`
-- [x] Existing calls without the parameter continue to work
-- [x] Typecheck passes
-- [x] Existing tests pass
+- [ ] Create `parseTimecode(timecode)` function in `videoUtils.js`
+- [ ] Handles "MM:SS" format (e.g., "2:01" → 121 seconds)
+- [ ] Handles "H:MM:SS" format (e.g., "1:02:01" → 3721 seconds)
+- [ ] Handles "SS" format (e.g., "45" → 45 seconds)
+- [ ] Throws descriptive error for invalid formats
+- [ ] Export function from module
+- [ ] Typecheck passes
 
 ---
 
-### US-002: Extract FPS Dynamically from Video Metadata
+### US-002: Add Frame Offset Calculation Utility
 
-**Description:** As a developer, I want the FPS value to be extracted from the input video metadata so that videos with different frame rates are processed correctly.
-
-**Current State:**
-- `videoUtils.js:382` hardcodes `const fps = 30`
-- Comment shows awareness of `r_frame_rate` format: "30,000/1001 = 30 fps && 60,000/1001 = 60 fps"
+**Description:** As a developer, I want a utility function that calculates the precise time position given a timecode and frame offset so that I can compute exact seek positions.
 
 **Acceptance Criteria:**
-- [x] `getVideoMetadata()` parses `r_frame_rate` from video stream metadata
-- [x] Handles fraction format (e.g., "30000/1001" → ~29.97)
-- [x] Falls back to 30 if `r_frame_rate` is unavailable or unparseable
-- [x] Typecheck passes
-- [x] Existing tests pass
+- [ ] Create `calculateFrameOffsetTime(timecode, frameOffset, fps)` function
+- [ ] Converts timecode string to seconds using `parseTimecode()`
+- [ ] Adds frame offset as fractional seconds (offset / fps)
+- [ ] Clamps frame offset to valid range: `-fps+1` to `+fps-1`
+- [ ] Returns total time in seconds as a number
+- [ ] Example: `calculateFrameOffsetTime("2:01", 20, 30)` → 121.667 seconds
+- [ ] Example: `calculateFrameOffsetTime("2:31", -5, 30)` → 150.833 seconds
+- [ ] Export function from module
+- [ ] Typecheck passes
 
 ---
 
-### US-003: Make Input Image Dimensions Configurable
+### US-003: Enhance trimVideo with Frame Offset Support
 
-**Description:** As a developer, I want to specify input image dimensions so that I can control the size of combo notation overlays.
+**Description:** As a developer, I want `trimVideo()` to accept frame offsets for start and end times so that I can trim videos with frame-level precision.
 
 **Current State:**
-- `videoUtils.js:279-297` hardcodes `inputWidth=50`, `inputSpacing=50`, `inputHeight=50`
-- `drawInputImages()` at line 271-272 also hardcodes size 50
+- `trimVideo()` accepts `data.startTime` and `data.duration`
+- Uses ffmpeg `setStartTime()` and `setDuration()`
+
+**New Parameters:**
+```javascript
+{
+  inputFileLocation: string,
+  outputFileDestination: string,
+  startTime: string,        // "MM:SS" or "H:MM:SS" format
+  startOffset: number,      // frame offset, optional, default 0
+  endTime: string,          // "MM:SS" or "H:MM:SS" format
+  endOffset: number,        // frame offset, optional, default 0
+}
+```
 
 **Acceptance Criteria:**
-- [x] `calculateInputImagesDimensions()` accepts `inputWidth` and `inputHeight` parameters
-- [x] Spacing is derived from width (spacing = width)
-- [x] Default values are `inputWidth=50`, `inputHeight=50`
-- [x] `drawInputImages()` uses the same dimension values
-- [x] `processComboVideo()` accepts optional `inputWidth` and `inputHeight` parameters
-- [x] Parameters flow through to `redrawFrameWithComboImages()` and related functions
-- [x] Existing calls without parameters continue to work
-- [x] Typecheck passes
-- [x] Existing tests pass
+- [ ] `trimVideo()` accepts `startOffset` and `endOffset` parameters (optional, default 0)
+- [ ] `trimVideo()` accepts `endTime` as alternative to `duration`
+- [ ] Fetches video FPS using `getVideoMetadata()` for offset calculations
+- [ ] Calculates precise start position using `calculateFrameOffsetTime()`
+- [ ] Calculates duration from start/end positions
+- [ ] Passes calculated values to ffmpeg
+- [ ] Existing calls using `startTime` + `duration` continue to work
+- [ ] Typecheck passes
+- [ ] Existing tests pass
 
 ---
 
-### US-004: Update Tests for New Parameters
+### US-004: Update Entry Points for Frame Offset Support
 
-**Description:** As a developer, I want tests that verify the new configurable parameters work correctly.
+**Description:** As a developer, I want the CLI entry points to accept frame offset parameters so that users can specify precise trim points from the command line.
 
 **Acceptance Criteria:**
-- [x] Add test for `processComboVideo()` with custom directories parameter
-- [x] Add test for FPS extraction from video with non-30fps frame rate
-- [x] Add test for FPS fallback when metadata is missing
-- [x] Add test for custom image dimensions
-- [x] All tests pass
+- [ ] `main.js` accepts optional `startTime`, `startOffset`, `endTime`, `endOffset` arguments
+- [ ] `main-pipeline.js` accepts optional `startTime`, `startOffset`, `endTime`, `endOffset` arguments
+- [ ] Arguments are passed through to video processing functions
+- [ ] Existing usage without offsets continues to work
+- [ ] Typecheck passes
+
+---
+
+### US-005: Add Tests for Frame Offset Functions
+
+**Description:** As a developer, I want tests that verify timecode parsing and frame offset calculations work correctly.
+
+**Acceptance Criteria:**
+- [ ] Test `parseTimecode()` with "MM:SS" format
+- [ ] Test `parseTimecode()` with "H:MM:SS" format
+- [ ] Test `parseTimecode()` with invalid input (expect error)
+- [ ] Test `calculateFrameOffsetTime()` with positive offset
+- [ ] Test `calculateFrameOffsetTime()` with negative offset
+- [ ] Test `calculateFrameOffsetTime()` clamping when offset exceeds FPS
+- [ ] Test `trimVideo()` with frame offsets
+- [ ] All tests pass
 
 ## Non-Goals
 
-- Adding a configuration file system (parameters are passed directly)
-- Supporting per-input image sizing (all inputs use same dimensions)
-- Changing the default behavior for existing users
-- Modifying `processVideo()` function (only `processComboVideo()` is affected for directories/dimensions)
+- Sub-frame precision (frame offsets are integers)
+- Real-time preview of trim points
+- GUI for selecting trim points
+- Automatic scene detection
 
 ## Technical Considerations
 
-- `r_frame_rate` is a string in format "numerator/denominator" (e.g., "30000/1001")
-- The `createVideoFromFrames()` function at line 310 also has a hardcoded `-framerate 30` that should use the extracted FPS
-- Image dimensions affect multiple functions: `calculateInputImagesDimensions()`, `drawInputImages()`, and `drawBlurredBackground()`
+- ffmpeg's `-ss` flag accepts decimal seconds for sub-second precision
+- FPS must be extracted from video metadata before calculating offsets
+- The `getVideoMetadata()` function already extracts FPS (enhanced in previous PRD)
+- Frame offset clamping formula: `clamp(offset, -(fps-1), fps-1)`
+- Time calculation: `totalSeconds = parseTimecode(timecode) + (clampedOffset / fps)`
