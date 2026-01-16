@@ -391,6 +391,54 @@ function parseFrameRate(frameRateStr, defaultFps = 30) {
   return defaultFps;
 }
 
+/**
+ * Parses a timecode string into total seconds.
+ * Supports formats: "SS", "MM:SS", "H:MM:SS"
+ * @param {string} timecode - Timecode string to parse
+ * @returns {number} - Total seconds
+ * @throws {Error} - If timecode format is invalid
+ */
+function parseTimecode(timecode) {
+  if (typeof timecode !== 'string' || timecode.trim() === '') {
+    throw new Error('Invalid timecode: must be a non-empty string');
+  }
+
+  const parts = timecode.trim().split(':');
+
+  if (parts.length > 3) {
+    throw new Error(`Invalid timecode format: "${timecode}". Expected "SS", "MM:SS", or "H:MM:SS"`);
+  }
+
+  // Validate all parts are valid numbers
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) {
+      throw new Error(`Invalid timecode format: "${timecode}". Each segment must be a non-negative integer`);
+    }
+  }
+
+  const numericParts = parts.map(p => parseInt(p, 10));
+
+  let hours = 0;
+  let minutes = 0;
+  let seconds = 0;
+
+  if (parts.length === 1) {
+    // "SS" format
+    seconds = numericParts[0];
+  } else if (parts.length === 2) {
+    // "MM:SS" format
+    minutes = numericParts[0];
+    seconds = numericParts[1];
+  } else if (parts.length === 3) {
+    // "H:MM:SS" format
+    hours = numericParts[0];
+    minutes = numericParts[1];
+    seconds = numericParts[2];
+  }
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
 function getVideoMetadata(filePath) {
   return new Promise((resolve, reject) => {
     ffmpeg(filePath).ffprobe((err, metadata) => {
@@ -444,4 +492,4 @@ async function trimVideo(data) {
   });
 }
 
-module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo, parseFrameRate, calculateInputImagesDimensions };
+module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo, parseFrameRate, calculateInputImagesDimensions, parseTimecode };

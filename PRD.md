@@ -19,13 +19,13 @@ Timecodes alone (e.g., "2:01") are not precise enough for syncing combo overlays
 **Description:** As a developer, I want a utility function that parses "MM:SS" or "H:MM:SS" timecode strings into seconds so that timecodes can be used consistently throughout the codebase.
 
 **Acceptance Criteria:**
-- [ ] Create `parseTimecode(timecode)` function in `videoUtils.js`
-- [ ] Handles "MM:SS" format (e.g., "2:01" → 121 seconds)
-- [ ] Handles "H:MM:SS" format (e.g., "1:02:01" → 3721 seconds)
-- [ ] Handles "SS" format (e.g., "45" → 45 seconds)
-- [ ] Throws descriptive error for invalid formats
-- [ ] Export function from module
-- [ ] Typecheck passes
+- [x] Create `parseTimecode(timecode)` function in `videoUtils.js`
+- [x] Handles "MM:SS" format (e.g., "2:01" → 121 seconds)
+- [x] Handles "H:MM:SS" format (e.g., "1:02:01" → 3721 seconds)
+- [x] Handles "SS" format (e.g., "45" → 45 seconds)
+- [x] Throws descriptive error for invalid formats
+- [x] Export function from module
+- [x] Typecheck passes
 
 ---
 
