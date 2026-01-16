@@ -34,15 +34,15 @@ Timecodes alone (e.g., "2:01") are not precise enough for syncing combo overlays
 **Description:** As a developer, I want a utility function that calculates the precise time position given a timecode and frame offset so that I can compute exact seek positions.
 
 **Acceptance Criteria:**
-- [ ] Create `calculateFrameOffsetTime(timecode, frameOffset, fps)` function
-- [ ] Converts timecode string to seconds using `parseTimecode()`
-- [ ] Adds frame offset as fractional seconds (offset / fps)
-- [ ] Clamps frame offset to valid range: `-fps+1` to `+fps-1`
-- [ ] Returns total time in seconds as a number
-- [ ] Example: `calculateFrameOffsetTime("2:01", 20, 30)` → 121.667 seconds
-- [ ] Example: `calculateFrameOffsetTime("2:31", -5, 30)` → 150.833 seconds
-- [ ] Export function from module
-- [ ] Typecheck passes
+- [x] Create `calculateFrameOffsetTime(timecode, frameOffset, fps)` function
+- [x] Converts timecode string to seconds using `parseTimecode()`
+- [x] Adds frame offset as fractional seconds (offset / fps)
+- [x] Clamps frame offset to valid range: `-fps+1` to `+fps-1`
+- [x] Returns total time in seconds as a number
+- [x] Example: `calculateFrameOffsetTime("2:01", 20, 30)` → 121.667 seconds
+- [x] Example: `calculateFrameOffsetTime("2:31", -5, 30)` → 150.833 seconds
+- [x] Export function from module
+- [x] Typecheck passes
 
 ---
 

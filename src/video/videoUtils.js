@@ -439,6 +439,28 @@ function parseTimecode(timecode) {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
+/**
+ * Calculates the precise time position given a timecode and frame offset.
+ * The frame offset is clamped to valid range: -(fps-1) to +(fps-1)
+ * @param {string} timecode - Timecode string in "SS", "MM:SS", or "H:MM:SS" format
+ * @param {number} frameOffset - Frame offset (positive or negative)
+ * @param {number} fps - Frames per second of the video
+ * @returns {number} - Total time in seconds
+ */
+function calculateFrameOffsetTime(timecode, frameOffset, fps) {
+  const baseSeconds = parseTimecode(timecode);
+
+  // Clamp frame offset to valid range: -(fps-1) to +(fps-1)
+  const maxOffset = fps - 1;
+  const minOffset = -(fps - 1);
+  const clampedOffset = Math.max(minOffset, Math.min(maxOffset, frameOffset));
+
+  // Calculate fractional seconds from frame offset
+  const offsetSeconds = clampedOffset / fps;
+
+  return baseSeconds + offsetSeconds;
+}
+
 function getVideoMetadata(filePath) {
   return new Promise((resolve, reject) => {
     ffmpeg(filePath).ffprobe((err, metadata) => {
@@ -492,4 +514,4 @@ async function trimVideo(data) {
   });
 }
 
-module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo, parseFrameRate, calculateInputImagesDimensions, parseTimecode };
+module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo, parseFrameRate, calculateInputImagesDimensions, parseTimecode, calculateFrameOffsetTime };
