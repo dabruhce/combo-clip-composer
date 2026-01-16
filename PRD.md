@@ -84,11 +84,11 @@ Timecodes alone (e.g., "2:01") are not precise enough for syncing combo overlays
 **Description:** As a developer, I want the CLI entry points to accept frame offset parameters so that users can specify precise trim points from the command line.
 
 **Acceptance Criteria:**
-- [ ] `main.js` accepts optional `startTime`, `startOffset`, `endTime`, `endOffset` arguments
-- [ ] `main-pipeline.js` accepts optional `startTime`, `startOffset`, `endTime`, `endOffset` arguments
-- [ ] Arguments are passed through to video processing functions
-- [ ] Existing usage without offsets continues to work
-- [ ] Typecheck passes
+- [x] `main.js` accepts optional `startTime`, `startOffset`, `endTime`, `endOffset` arguments
+- [x] `main-pipeline.js` accepts optional `startTime`, `startOffset`, `endTime`, `endOffset` arguments
+- [x] Arguments are passed through to video processing functions
+- [x] Existing usage without offsets continues to work
+- [x] Typecheck passes
 
 ---
 
