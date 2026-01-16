@@ -1,7 +1,7 @@
 const { searchAndCopyFiles } = require('../src/image/imageGen');
 const { recreateDirectory } = require('../src/utils/createDirectory');
 const { checkFileExists } = require('../src/utils/copyFileToDirectory');
-const { v4: uuidv4 } = require('uuid');
+const { generateJobId } = require('../src/utils/generateJobId');
 
 jest.setTimeout(20000000);
 
@@ -19,7 +19,7 @@ describe('util functions', () => {
     const text = 'd df f 1+2 r';
     const directories = ['./assets/games/Tekken7/images', './assets/games/common/images'];
 
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/imager/' + jobID;
     await recreateDirectory(jobDirectory)
   //assets\games\Tekken7\inputs
@@ -35,7 +35,7 @@ describe('util functions', () => {
     const text = 'hcf 1+2 r';
     const directories = ['./assets/games/Tekken7/images', './assets/games/common/images'];
 
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/imager/' + jobID;
     await recreateDirectory(jobDirectory)
     try {
@@ -51,7 +51,7 @@ describe('util functions', () => {
     const text = 'hcf 1+2 r smile';
     const directories = ['./assets/games/Tekken7/images', './assets/games/common/images', './assets/tests/images'];
 
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/imager/' + jobID;
     await recreateDirectory(jobDirectory)
 

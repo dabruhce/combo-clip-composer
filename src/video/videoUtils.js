@@ -14,8 +14,8 @@ const fsp = require('fs').promises;
 const sizeOf = require('image-size');
 const path = require('path');
 const extractFrames = require('ffmpeg-extract-frames')
-const { v4: uuidv4 } = require('uuid');
 const { searchAndCopyFiles, findFileInDirectory, expandShortcuts, checkAndConvertCase } = require('../image/imageGen');
+const { generateJobId } = require('../utils/generateJobId');
 const { createTextCanvasOfSize, estimateTextSize } = require('../image/canvas');
 const { recreateDirectory } = require('../utils/createDirectory');
 
@@ -32,7 +32,7 @@ ffmpeg.setFfprobePath(ffprobePath);
   async function processComboVideo(inputFile, text, x, y, jobDirectory = './artifacts/out/', directories = ['./assets/games/Tekken7/images', './assets/games/common/images'], inputWidth = 50, inputHeight = 50) {
     const { audio, video, duration, fps } = await getVideoMetadata(inputFile)
 
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectoryWithID = jobDirectory + jobID;
 
     const filename = await getFileName(inputFile);
@@ -90,7 +90,7 @@ ffmpeg.setFfprobePath(ffprobePath);
   async function processVideo(inputFile, text, x, y) {
     const { audio, video, duration, fps } = await getVideoMetadata(inputFile)
   
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/out/' + jobID;
   
     const filename = await getFileName(inputFile);

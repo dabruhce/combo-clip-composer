@@ -5,7 +5,7 @@ jest.mock('ffmpeg-extract-frames', () => jest.fn(() => Promise.resolve()));
 
 const { parseTimecode, calculateFrameOffsetTime, trimVideo } = require('../src/video/videoUtils');
 const { recreateDirectory } = require('../src/utils/createDirectory');
-const { v4: uuidv4 } = require('uuid');
+const { generateJobId } = require('../src/utils/generateJobId');
 
 jest.setTimeout(600000);
 
@@ -199,7 +199,7 @@ describe('trimVideo with frame offsets', () => {
   });
 
   test('should trim video with startOffset and endOffset', async () => {
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/trim-offset/' + jobID;
     await recreateDirectory(jobDirectory);
 
@@ -222,7 +222,7 @@ describe('trimVideo with frame offsets', () => {
   });
 
   test('should trim video with only startOffset (no endOffset)', async () => {
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/trim-offset/' + jobID;
     await recreateDirectory(jobDirectory);
 
@@ -241,7 +241,7 @@ describe('trimVideo with frame offsets', () => {
   });
 
   test('should maintain backward compatibility with startTime + duration', async () => {
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/trim-offset/' + jobID;
     await recreateDirectory(jobDirectory);
 
@@ -260,7 +260,7 @@ describe('trimVideo with frame offsets', () => {
   });
 
   test('should reject when end time is before start time', async () => {
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/trim-offset/' + jobID;
     await recreateDirectory(jobDirectory);
 

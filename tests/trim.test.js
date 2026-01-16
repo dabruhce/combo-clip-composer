@@ -1,6 +1,6 @@
 const { trimVideo } = require('../src/video/videoUtils');
 const { recreateDirectory } = require('../src/utils/createDirectory');
-const { v4: uuidv4 } = require('uuid');
+const { generateJobId } = require('../src/utils/generateJobId');
 jest.setTimeout(600000);
 
 
@@ -16,7 +16,7 @@ describe('trimVideo function', () => {
 
   test('should trim video successfully', async () => {
 
-    const jobID = uuidv4();
+    const jobID = generateJobId();
     const jobDirectory = './artifacts/trim/' + jobID;
     await recreateDirectory(jobDirectory)
 
