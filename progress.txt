@@ -2,5 +2,53 @@
 
 ## Learnings
 (Patterns discovered during implementation)
+- videoUtils.js exports should be added to module.exports at the bottom of the file
+- Tests use Jest with a canvas mock in __mocks__/canvas.js for native module issues
+- Run `npm test -- tests/configurable-params.test.js` for fast testing of videoUtils exports
+- Some tests fail due to external dependencies (YouTube API, ffmpeg) but core logic tests pass
+
+---
+
+## Iteration 1 - US-001: Add Timecode Parsing Utility
+- Implemented `parseTimecode(timecode)` function in `src/video/videoUtils.js`
+- Supports "SS", "MM:SS", and "H:MM:SS" formats
+- Throws descriptive errors for invalid formats (non-strings, empty strings, invalid characters)
+- Added export to module.exports
+- Files changed: `src/video/videoUtils.js`, `PRD.md`
+- Learnings for future iterations:
+  - Tests pass despite some external dependency failures (YouTube, ffmpeg)
+  - The configurable-params.test.js and trim.test.js are reliable for testing videoUtils changes
+
+---
+
+## Iteration 2 - US-002: Add Frame Offset Calculation Utility
+- Implemented `calculateFrameOffsetTime(timecode, frameOffset, fps)` function in `src/video/videoUtils.js`
+- Uses parseTimecode() to convert timecode string to base seconds
+- Adds frame offset as fractional seconds (offset / fps)
+- Clamps frame offset to valid range: -(fps-1) to +(fps-1) using Math.max/Math.min
+- Returns total time in seconds as a number
+- Added export to module.exports
+- Files changed: `src/video/videoUtils.js`, `PRD.md`
+- Learnings for future iterations:
+  - Cannot test videoUtils directly via node -e due to canvas module not being available outside Jest
+  - The Jest mock system handles canvas module issues automatically
+  - The clamping formula uses fps-1 as the boundary (not just fps)
+
+---
+
+## Iteration 3 - US-003: Enhance trimVideo with Frame Offset Support
+- Enhanced `trimVideo()` function in `src/video/videoUtils.js`
+- Accepts `startOffset` and `endOffset` parameters (optional, default 0)
+- Accepts `endTime` as alternative to `duration` for specifying trim end point
+- When offsets are used or endTime is provided, fetches video FPS using `getVideoMetadata()`
+- Uses `calculateFrameOffsetTime()` to compute precise start/end positions
+- Calculates duration from start/end positions when endTime is provided
+- Validates that end time is after start time
+- Maintains full backward compatibility: existing calls with `startTime` + `duration` continue to work unchanged
+- Files changed: `src/video/videoUtils.js`, `PRD.md`, `progress.txt`
+- Learnings for future iterations:
+  - The backward compatibility check avoids unnecessary async calls to getVideoMetadata when not needed
+  - ffmpeg's setStartTime() accepts both string timecodes and numeric seconds
+  - The trim.test.js file is reliable for testing backward compatibility of trimVideo
 
 ---

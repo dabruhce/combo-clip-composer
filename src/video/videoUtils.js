@@ -490,17 +490,58 @@ function getVideoMetadata(filePath) {
 }
 
 async function trimVideo(data) {
-  if (!data || typeof data !== 'object' || !data.inputFileLocation || !data.outputFileDestination || !data.startTime || !data.duration) {
+  // Validate required parameters
+  if (!data || typeof data !== 'object' || !data.inputFileLocation || !data.outputFileDestination || !data.startTime) {
+    return Promise.reject(new Error('Invalid input data'));
+  }
+
+  // Must have either duration or endTime
+  if (data.duration === undefined && data.endTime === undefined) {
     return Promise.reject(new Error('Invalid input data'));
   }
 
   const filename = path.basename(data.inputFileLocation);
   const outputFileDestination = path.join(data.outputFileDestination, filename);
 
+  // Default offsets to 0 if not provided
+  const startOffset = data.startOffset || 0;
+  const endOffset = data.endOffset || 0;
+
+  // Check if we need to use frame offset calculations
+  const needsFrameOffsetCalc = startOffset !== 0 || endOffset !== 0 || data.endTime !== undefined;
+
+  let startTimeSeconds;
+  let durationSeconds;
+
+  if (needsFrameOffsetCalc) {
+    // Get video FPS for frame offset calculations
+    const { fps } = await getVideoMetadata(data.inputFileLocation);
+
+    // Calculate precise start time using frame offset
+    startTimeSeconds = calculateFrameOffsetTime(data.startTime, startOffset, fps);
+
+    if (data.endTime !== undefined) {
+      // Calculate precise end time using frame offset
+      const endTimeSeconds = calculateFrameOffsetTime(data.endTime, endOffset, fps);
+      durationSeconds = endTimeSeconds - startTimeSeconds;
+
+      if (durationSeconds <= 0) {
+        return Promise.reject(new Error('End time must be after start time'));
+      }
+    } else {
+      // Use provided duration (no frame offset for duration-based calls)
+      durationSeconds = data.duration;
+    }
+  } else {
+    // Backward compatibility: use startTime as-is and provided duration
+    startTimeSeconds = data.startTime;
+    durationSeconds = data.duration;
+  }
+
   return new Promise((resolve, reject) => {
     ffmpeg(data.inputFileLocation)
-      .setStartTime(data.startTime)
-      .setDuration(data.duration)
+      .setStartTime(startTimeSeconds)
+      .setDuration(durationSeconds)
       .output(outputFileDestination)
       .on('end', function() {
    //     console.log('conversion Done');

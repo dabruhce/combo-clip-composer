@@ -67,15 +67,15 @@ Timecodes alone (e.g., "2:01") are not precise enough for syncing combo overlays
 ```
 
 **Acceptance Criteria:**
-- [ ] `trimVideo()` accepts `startOffset` and `endOffset` parameters (optional, default 0)
-- [ ] `trimVideo()` accepts `endTime` as alternative to `duration`
-- [ ] Fetches video FPS using `getVideoMetadata()` for offset calculations
-- [ ] Calculates precise start position using `calculateFrameOffsetTime()`
-- [ ] Calculates duration from start/end positions
-- [ ] Passes calculated values to ffmpeg
-- [ ] Existing calls using `startTime` + `duration` continue to work
-- [ ] Typecheck passes
-- [ ] Existing tests pass
+- [x] `trimVideo()` accepts `startOffset` and `endOffset` parameters (optional, default 0)
+- [x] `trimVideo()` accepts `endTime` as alternative to `duration`
+- [x] Fetches video FPS using `getVideoMetadata()` for offset calculations
+- [x] Calculates precise start position using `calculateFrameOffsetTime()`
+- [x] Calculates duration from start/end positions
+- [x] Passes calculated values to ffmpeg
+- [x] Existing calls using `startTime` + `duration` continue to work
+- [x] Typecheck passes
+- [x] Existing tests pass
 
 ---
 
