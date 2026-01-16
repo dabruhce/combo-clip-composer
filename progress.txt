@@ -52,3 +52,31 @@
   - The trim.test.js file is reliable for testing backward compatibility of trimVideo
 
 ---
+
+## Iteration 4 - US-004: Update Entry Points for Frame Offset Support
+- Updated `main.js` to accept optional trim parameters: startTime, startOffset, endTime, endOffset (argv[7-10])
+- Updated `main-pipeline.js` to accept optional trim parameters: startTime, startOffset, endTime, endOffset (argv[9-12])
+- Both entry points now call `trimVideo()` before `processComboVideo()` when trim parameters are provided
+- Trim creates a temporary directory for the trimmed video before processing
+- Existing usage without offsets continues to work unchanged (backward compatible)
+- Files changed: `main.js`, `main-pipeline.js`, `PRD.md`
+- Learnings for future iterations:
+  - Entry points use process.argv for CLI arguments; main.js starts at argv[2], main-pipeline.js has more args
+  - Need to import `path` and `createDirectory` utilities when adding trim functionality
+  - The trimmed video is placed in a subdirectory before processing to maintain clean artifact structure
+
+---
+
+## Iteration 5 - US-005: Add Tests for Frame Offset Functions
+- Created `tests/frame-offset.test.js` with 36 tests covering:
+  - `parseTimecode()`: MM:SS format (4 tests), H:MM:SS format (3 tests), SS format (3 tests), invalid input handling (8 tests)
+  - `calculateFrameOffsetTime()`: positive offset (3 tests), negative offset (3 tests), zero offset (1 test), clamping when offset exceeds FPS (4 tests), different FPS values (3 tests)
+  - `trimVideo()` with frame offsets (4 tests): startOffset/endOffset, startOffset only, backward compatibility, end-before-start error
+- All 36 new tests pass
+- Files changed: `tests/frame-offset.test.js`, `PRD.md`, `progress.txt`
+- Learnings for future iterations:
+  - The frame-offset.test.js file is now a reliable test file for testing frame offset functionality
+  - Test suite follows same pattern as configurable-params.test.js with Jest mock for ffmpeg-extract-frames
+  - Tests for trimVideo with frame offsets require the test video at `./assets/tests/video/video.mp4`
+
+---

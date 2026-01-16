@@ -97,14 +97,14 @@ Timecodes alone (e.g., "2:01") are not precise enough for syncing combo overlays
 **Description:** As a developer, I want tests that verify timecode parsing and frame offset calculations work correctly.
 
 **Acceptance Criteria:**
-- [ ] Test `parseTimecode()` with "MM:SS" format
-- [ ] Test `parseTimecode()` with "H:MM:SS" format
-- [ ] Test `parseTimecode()` with invalid input (expect error)
-- [ ] Test `calculateFrameOffsetTime()` with positive offset
-- [ ] Test `calculateFrameOffsetTime()` with negative offset
-- [ ] Test `calculateFrameOffsetTime()` clamping when offset exceeds FPS
-- [ ] Test `trimVideo()` with frame offsets
-- [ ] All tests pass
+- [x] Test `parseTimecode()` with "MM:SS" format
+- [x] Test `parseTimecode()` with "H:MM:SS" format
+- [x] Test `parseTimecode()` with invalid input (expect error)
+- [x] Test `calculateFrameOffsetTime()` with positive offset
+- [x] Test `calculateFrameOffsetTime()` with negative offset
+- [x] Test `calculateFrameOffsetTime()` clamping when offset exceeds FPS
+- [x] Test `trimVideo()` with frame offsets
+- [x] All tests pass
 
 ## Non-Goals
 
