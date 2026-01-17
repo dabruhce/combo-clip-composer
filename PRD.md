@@ -59,12 +59,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to specify custom fonts and sizes so that text matches my video style.
 
 **Acceptance Criteria:**
-- [ ] Update `canvas.js` functions to accept font and fontSize from config
-- [ ] Support loading custom fonts via `registerFont` if font path provided in config
-- [ ] `estimateTextSize` uses config values instead of hardcoded "THEBOLDFONT" and 50
-- [ ] `createTextCanvasOfSize` uses config values for font rendering
-- [ ] Typecheck passes
-- [ ] Unit tests verify different fonts and sizes render correctly
+- [x] Update `canvas.js` functions to accept font and fontSize from config
+- [x] Support loading custom fonts via `registerFont` if font path provided in config
+- [x] `estimateTextSize` uses config values instead of hardcoded "THEBOLDFONT" and 50
+- [x] `createTextCanvasOfSize` uses config values for font rendering
+- [x] Typecheck passes
+- [x] Unit tests verify different fonts and sizes render correctly
 
 #### US-005: Implement Configurable Text Color and Position
 **Description:** As a user, I want to set text color and position so that overlays appear where I want them.

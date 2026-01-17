@@ -62,3 +62,23 @@
   - The old calculateInputImagesDimensions had quirky logic (+20 constant); new logic is cleaner (numInputs * width + gaps * spacing)
   - Integration tests should verify both config loading and the effect on downstream calculations
 ---
+
+## Iteration 4 - US-004: Implement Configurable Font and Font Size
+- What was implemented:
+  - Updated `canvas.js` to accept config object in `createTextCanvasOfSize` function
+  - Added `registerCustomFont` function to support loading custom fonts from file paths
+  - Added `isFontRegistered` function to check if a font is already registered
+  - Updated `estimateTextSize` to use default values when font/fontSize not provided
+  - Both functions now extract font, fontSize, color from config.text when config is provided
+  - Maintains backward compatibility - functions work without config (using defaults)
+  - Added 14 unit tests for font/fontSize configuration
+- Files changed:
+  - src/image/canvas.js (added config parameter, custom font support, exports)
+  - tests/canvas.test.js (added tests for configurable font/fontSize)
+  - PRD.md (marked US-004 as complete)
+- Learnings for future iterations:
+  - node-canvas's measureText may return fixed widths for some fonts - tests should use toBeGreaterThanOrEqual
+  - Track registered fonts in a Set to avoid duplicate registration
+  - Functions should extract defaults inline (`textConfig.font || 'THEBOLDFONT'`) for clean fallback handling
+  - The config parameter should be last and default to null for backward compatibility
+---
