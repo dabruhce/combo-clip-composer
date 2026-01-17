@@ -171,6 +171,54 @@
       cursor: not-allowed;
     }
 
+    .btn-open {
+      margin-left: auto;
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #333;
+      border-top-color: #007acc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: 16px;
+      color: #cccccc;
+      font-size: 14px;
+    }
+
+    .loading-subtext {
+      margin-top: 8px;
+      color: #888888;
+      font-size: 12px;
+    }
+
     /* Status bar */
     .status-bar {
       height: 22px;
@@ -190,6 +238,7 @@
   <!-- Toolbar -->
   <div class="toolbar">
     <h1>Combo Clip Composer Editor</h1>
+    <button class="btn btn-open" id="openVideoBtn">Open Video</button>
   </div>
 
   <!-- Main Content -->
@@ -204,10 +253,16 @@
 
     <!-- Center - Video Preview -->
     <div class="video-preview">
-      <div class="preview-container">
-        <div class="preview-placeholder">
+      <div class="preview-container" id="previewContainer">
+        <div class="preview-placeholder" id="previewPlaceholder">
           <h2>No Video Loaded</h2>
           <p>Open a video file to begin editing</p>
+        </div>
+        <!-- Loading overlay -->
+        <div class="loading-overlay hidden" id="loadingOverlay">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading Video</div>
+          <div class="loading-subtext" id="loadingSubtext">Extracting frames...</div>
         </div>
       </div>
     </div>
@@ -244,8 +299,160 @@
   </div>
 
   <script>
-    // Placeholder script - will be expanded in future user stories
+    const { ipcRenderer } = require('electron');
+    const path = require('path');
+
+    // Editor state
+    const editorState = {
+      videoPath: null,
+      framesDir: null,
+      framePaths: [],
+      frameCount: 0,
+      currentFrame: 0,
+      metadata: null,
+      isLoading: false
+    };
+
+    // DOM elements
+    const openVideoBtn = document.getElementById('openVideoBtn');
+    const previewPlaceholder = document.getElementById('previewPlaceholder');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingSubtext = document.getElementById('loadingSubtext');
+    const statusBar = document.querySelector('.status-bar');
+
+    /**
+     * Updates the status bar with current state
+     */
+    function updateStatusBar() {
+      const items = statusBar.querySelectorAll('.status-item');
+      if (editorState.isLoading) {
+        items[0].textContent = 'Loading...';
+        items[1].textContent = 'Extracting frames';
+      } else if (editorState.videoPath) {
+        items[0].textContent = 'Ready';
+        const filename = path.basename(editorState.videoPath);
+        items[1].textContent = `${filename} - ${editorState.frameCount} frames`;
+      } else {
+        items[0].textContent = 'Ready';
+        items[1].textContent = 'No video loaded';
+      }
+    }
+
+    /**
+     * Shows the loading indicator
+     */
+    function showLoading(message = 'Extracting frames...') {
+      editorState.isLoading = true;
+      loadingOverlay.classList.remove('hidden');
+      loadingSubtext.textContent = message;
+      openVideoBtn.disabled = true;
+      updateStatusBar();
+    }
+
+    /**
+     * Hides the loading indicator
+     */
+    function hideLoading() {
+      editorState.isLoading = false;
+      loadingOverlay.classList.add('hidden');
+      openVideoBtn.disabled = false;
+      updateStatusBar();
+    }
+
+    /**
+     * Updates editor state with loaded video data
+     */
+    function onVideoLoaded(data) {
+      editorState.videoPath = data.videoPath;
+      editorState.framesDir = data.framesDir;
+      editorState.framePaths = data.framePaths;
+      editorState.frameCount = data.frameCount;
+      editorState.metadata = data.metadata;
+      editorState.currentFrame = 0;
+
+      hideLoading();
+
+      // Update placeholder text to show video info
+      const placeholder = previewPlaceholder;
+      placeholder.innerHTML = `
+        <h2>Video Loaded</h2>
+        <p>${path.basename(data.videoPath)}</p>
+        <p style="margin-top: 8px; font-size: 12px; color: #666666;">
+          ${data.metadata.width}x${data.metadata.height} |
+          ${data.metadata.fps.toFixed(2)} fps |
+          ${data.frameCount} frames |
+          ${data.metadata.duration.toFixed(2)}s
+        </p>
+      `;
+
+      // Update timeline time display
+      const timeDisplay = document.querySelector('.timeline-controls span');
+      if (timeDisplay) {
+        const totalSeconds = data.metadata.duration;
+        const formatTime = (s) => {
+          const mins = Math.floor(s / 60);
+          const secs = Math.floor(s % 60);
+          const frames = Math.floor((s % 1) * data.metadata.fps);
+          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
+        };
+        timeDisplay.textContent = `00:00:00 / ${formatTime(totalSeconds)}`;
+      }
+
+      console.log('Video loaded:', editorState);
+    }
+
+    /**
+     * Handles video loading error
+     */
+    function onVideoLoadError(error) {
+      hideLoading();
+      console.error('Failed to load video:', error);
+      alert(`Failed to load video: ${error}`);
+    }
+
+    /**
+     * Opens video file via IPC
+     */
+    async function openVideo() {
+      showLoading('Opening file dialog...');
+
+      try {
+        const result = await ipcRenderer.invoke('open-video');
+
+        if (result.canceled) {
+          hideLoading();
+          return;
+        }
+
+        if (result.success) {
+          onVideoLoaded(result);
+        } else if (result.error) {
+          onVideoLoadError(result.error);
+        }
+      } catch (error) {
+        onVideoLoadError(error.message);
+      }
+    }
+
+    // Event listeners
+    openVideoBtn.addEventListener('click', openVideo);
+
+    // IPC event listeners
+    ipcRenderer.on('video-loading-started', (event, data) => {
+      showLoading(`Loading: ${path.basename(data.videoPath)}`);
+    });
+
+    ipcRenderer.on('video-loaded', (event, data) => {
+      onVideoLoaded(data);
+    });
+
+    ipcRenderer.on('video-load-error', (event, data) => {
+      onVideoLoadError(data.error);
+    });
+
+    // Initialize
     console.log('Combo Clip Composer Editor initialized');
+    updateStatusBar();
   </script>
 </body>
 </html>

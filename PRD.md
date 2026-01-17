@@ -214,12 +214,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to load a video file so that I can preview overlays on it.
 
 **Acceptance Criteria:**
-- [ ] Add "Open Video" menu item and button
-- [ ] Use Electron dialog to select video file
-- [ ] Extract frames from video to temp directory using existing `extractFrames`
-- [ ] Display loading indicator during extraction
-- [ ] Store frame paths in editor state
-- [ ] Typecheck passes
+- [x] Add "Open Video" menu item and button
+- [x] Use Electron dialog to select video file
+- [x] Extract frames from video to temp directory using existing `extractFrames`
+- [x] Display loading indicator during extraction
+- [x] Store frame paths in editor state
+- [x] Typecheck passes
 
 #### US-018: Implement Frame Display Panel
 **Description:** As a user, I want to see the current frame so that I can position overlays visually.
