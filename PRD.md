@@ -33,12 +33,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want sensible defaults so that the application works without any configuration.
 
 **Acceptance Criteria:**
-- [ ] Create `config/defaults.json` with current hardcoded values as defaults
-- [ ] Defaults include: font="THEBOLDFONT", fontSize=50, color="yellow", position={x:10, y:50}
-- [ ] Defaults include: dropshadow={enabled:false, color:"#000", blur:0, offsetX:-2, offsetY:3}
-- [ ] Defaults include: images={width:50, height:50, spacing:0, padding:5, margin:5}
-- [ ] Defaults include: animation={type:"none", duration:500, delay:0}
-- [ ] Typecheck passes
+- [x] Create `config/defaults.json` with current hardcoded values as defaults
+- [x] Defaults include: font="THEBOLDFONT", fontSize=50, color="yellow", position={x:10, y:50}
+- [x] Defaults include: dropshadow={enabled:false, color:"#000", blur:0, offsetX:-2, offsetY:3}
+- [x] Defaults include: images={width:50, height:50, spacing:0, padding:5, margin:5}
+- [x] Defaults include: animation={type:"none", duration:500, delay:0}
+- [x] Typecheck passes
 
 #### US-003: Integrate Config Loader into Video Processing Pipeline
 **Description:** As a user, I want to pass a config file path to `processComboVideo` so that my custom styles are applied.

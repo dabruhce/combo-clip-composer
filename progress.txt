@@ -27,3 +27,17 @@
   - deepMerge handles nested objects recursively while preserving immutability
   - Test fixtures should be created in beforeAll and cleaned up in afterAll
 ---
+
+## Iteration 2 - US-002: Create Default Configuration File
+- What was implemented:
+  - Verified that `config/defaults.json` already existed (created in US-001 as a dependency)
+  - Verified all acceptance criteria are met: font, fontSize, color, position, dropshadow, images, animation
+  - All 43 config tests pass confirming defaults.json works correctly
+- Files changed:
+  - None (config/defaults.json was already created in US-001)
+  - PRD.md (marked US-002 as complete)
+- Learnings for future iterations:
+  - Some tasks may be pre-completed by dependency requirements from earlier tasks
+  - Always verify existing files before implementing to avoid duplication
+  - The dropshadow color "#000000" is equivalent to "#000" (both valid hex formats)
+---
