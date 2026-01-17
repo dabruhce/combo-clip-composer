@@ -925,6 +925,78 @@
       color: #555555;
       font-size: 11px;
     }
+
+    /* Keyframe controls */
+    .keyframe-controls {
+      display: flex;
+      align-items: center;
+      margin-left: 10px;
+      padding-left: 10px;
+      border-left: 1px solid #3c3c3c;
+    }
+
+    .keyframe-btn {
+      background: #3c3c3c;
+      color: #f0a030;
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+
+    .keyframe-btn:hover:not(:disabled) {
+      background: #505050;
+    }
+
+    .keyframe-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Keyframe context menu */
+    .keyframe-context-menu {
+      display: none;
+      position: fixed;
+      background: #2d2d2d;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      min-width: 160px;
+      padding: 4px 0;
+    }
+
+    .keyframe-context-menu.visible {
+      display: block;
+    }
+
+    .context-menu-item {
+      padding: 6px 12px;
+      cursor: pointer;
+      color: #cccccc;
+      font-size: 12px;
+    }
+
+    .context-menu-item:hover {
+      background: #094771;
+    }
+
+    .context-menu-separator {
+      height: 1px;
+      background: #3c3c3c;
+      margin: 4px 0;
+    }
+
+    .context-menu-submenu {
+      display: none;
+      padding-left: 12px;
+    }
+
+    .context-menu-submenu.visible {
+      display: block;
+    }
+
+    .context-menu-item.interp-option {
+      padding-left: 24px;
+    }
   </style>
 </head>
 <body>
@@ -1193,6 +1265,9 @@
       <button class="btn" id="btnPlayPause" disabled title="Play/Pause (Space)">▶</button>
       <button class="btn" id="btnStepForward" disabled title="Step Forward (→)">⏩</button>
       <button class="btn" id="btnJumpEnd" disabled title="Jump to End (End)">⏭</button>
+      <div class="keyframe-controls">
+        <button class="btn keyframe-btn" id="btnAddKeyframe" disabled title="Add Keyframe (K)">◆+</button>
+      </div>
       <div class="timeline-zoom-controls">
         <button class="timeline-zoom-btn" id="btnTimelineZoomOut" disabled title="Zoom Out">−</button>
         <input type="range" class="timeline-zoom-slider" id="timelineZoomSlider" min="1" max="10" value="1" step="0.5" disabled>
@@ -1234,6 +1309,20 @@
   <div class="status-bar">
     <span class="status-item">Ready</span>
     <span class="status-item">No video loaded</span>
+  </div>
+
+  <!-- Keyframe Context Menu -->
+  <div class="keyframe-context-menu" id="keyframeContextMenu">
+    <div class="context-menu-item" id="contextMenuDelete">Delete Keyframe</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" id="contextMenuChangeInterp">Change Interpolation</div>
+    <div class="context-menu-submenu" id="contextMenuInterpSubmenu">
+      <div class="context-menu-item interp-option" data-interp="linear">Linear</div>
+      <div class="context-menu-item interp-option" data-interp="ease-in">Ease In</div>
+      <div class="context-menu-item interp-option" data-interp="ease-out">Ease Out</div>
+      <div class="context-menu-item interp-option" data-interp="ease-in-out">Ease In-Out</div>
+      <div class="context-menu-item interp-option" data-interp="step">Step</div>
+    </div>
   </div>
 
   <script>
@@ -1356,6 +1445,13 @@
     const timelineZoomLabel = document.getElementById('timelineZoomLabel');
     const keyframeTracksContainer = document.getElementById('keyframeTracksContainer');
 
+    // Keyframe controls and context menu DOM elements
+    const btnAddKeyframe = document.getElementById('btnAddKeyframe');
+    const keyframeContextMenu = document.getElementById('keyframeContextMenu');
+    const contextMenuDelete = document.getElementById('contextMenuDelete');
+    const contextMenuChangeInterp = document.getElementById('contextMenuChangeInterp');
+    const contextMenuInterpSubmenu = document.getElementById('contextMenuInterpSubmenu');
+
     // Import keyframe classes from keyframe.js
     const { Keyframe, KeyframeTrack, KeyframeManager, INTERPOLATION_TYPES } = require('./models/keyframe.js');
 
@@ -1366,6 +1462,13 @@
     let isDraggingPlayhead = false;
     let isPlaying = false;
     let playbackIntervalId = null;
+
+    // Undo/Redo history for keyframe operations
+    const keyframeHistory = {
+      undoStack: [],  // Array of {type, data, description}
+      redoStack: [],
+      maxHistory: 50
+    };
 
     /**
      * Updates the status bar with current state
@@ -2069,6 +2172,7 @@
       btnPlayPause.disabled = false;
       btnStepForward.disabled = false;
       btnJumpEnd.disabled = false;
+      btnAddKeyframe.disabled = false;
 
       // Enable zoom controls
       timelineZoomSlider.disabled = false;
@@ -3041,6 +3145,7 @@
 
           // Add event listeners
           marker.addEventListener('mousedown', (e) => onKeyframeMouseDown(e, property, keyframe.frame));
+          marker.addEventListener('contextmenu', (e) => onKeyframeContextMenu(e, property, keyframe.frame));
 
           trackContent.appendChild(marker);
         }
@@ -3152,6 +3257,358 @@
       createKeyframeTracks();
       updateKeyframeTrackWidths();
       renderKeyframeMarkers();
+    }
+
+    // ========================================
+    // KEYFRAME ADD/REMOVE FUNCTIONS
+    // ========================================
+
+    /**
+     * Gets the current value for a keyframe property
+     * @param {string} property - Property name (position.x, position.y, opacity, scale)
+     * @returns {number} Current value for the property
+     */
+    function getCurrentValueForProperty(property) {
+      switch (property) {
+        case 'position.x':
+          return editorState.overlay.xOffset;
+        case 'position.y':
+          return editorState.overlay.yOffset;
+        case 'opacity':
+          return 1.0; // Default opacity
+        case 'scale':
+          return 1.0; // Default scale
+        default:
+          return 0;
+      }
+    }
+
+    /**
+     * Adds a keyframe at the current frame for the specified property
+     * @param {string} property - Property name
+     * @param {number} [value] - Optional value (uses current value if not provided)
+     */
+    function addKeyframeAtCurrentFrame(property, value) {
+      if (!editorState.keyframes.manager) return;
+
+      const frame = editorState.currentFrame;
+      const actualValue = value !== undefined ? value : getCurrentValueForProperty(property);
+
+      // Store previous state for undo
+      const track = editorState.keyframes.manager.getTrack(property);
+      const existingKeyframe = track.getKeyframeAt(frame);
+      const previousState = existingKeyframe ? existingKeyframe.toJSON() : null;
+
+      // Add the keyframe
+      editorState.keyframes.manager.addKeyframe(frame, property, actualValue, INTERPOLATION_TYPES.LINEAR);
+
+      // Record for undo
+      pushToUndoStack({
+        type: 'add',
+        data: {
+          property,
+          frame,
+          value: actualValue,
+          previousKeyframe: previousState
+        },
+        description: `Add keyframe for ${property} at frame ${frame}`
+      });
+
+      // Select the new keyframe
+      selectKeyframe(property, frame);
+    }
+
+    /**
+     * Adds keyframes for all properties at the current frame
+     */
+    function addKeyframesForAllProperties() {
+      if (!editorState.keyframes.manager) return;
+
+      const frame = editorState.currentFrame;
+      const addedKeyframes = [];
+
+      for (const property of KEYFRAME_PROPERTIES) {
+        const value = getCurrentValueForProperty(property);
+        const track = editorState.keyframes.manager.getTrack(property);
+        const existingKeyframe = track.getKeyframeAt(frame);
+
+        addedKeyframes.push({
+          property,
+          frame,
+          value,
+          previousKeyframe: existingKeyframe ? existingKeyframe.toJSON() : null
+        });
+
+        editorState.keyframes.manager.addKeyframe(frame, property, value, INTERPOLATION_TYPES.LINEAR);
+      }
+
+      // Record batch operation for undo
+      pushToUndoStack({
+        type: 'add-batch',
+        data: { keyframes: addedKeyframes },
+        description: `Add keyframes for all properties at frame ${frame}`
+      });
+
+      renderKeyframeMarkers();
+    }
+
+    /**
+     * Removes a keyframe at the specified frame and property
+     * @param {string} property - Property name
+     * @param {number} frame - Frame number
+     */
+    function removeKeyframe(property, frame) {
+      if (!editorState.keyframes.manager) return;
+
+      const track = editorState.keyframes.manager.getTrack(property);
+      const keyframe = track.getKeyframeAt(frame);
+      if (!keyframe) return;
+
+      // Store for undo
+      const keyframeData = keyframe.toJSON();
+
+      // Remove the keyframe
+      track.removeKeyframeAt(frame);
+
+      // Record for undo
+      pushToUndoStack({
+        type: 'remove',
+        data: {
+          property,
+          frame,
+          keyframe: keyframeData
+        },
+        description: `Remove keyframe for ${property} at frame ${frame}`
+      });
+
+      // Deselect if this was selected
+      if (editorState.keyframes.selectedKeyframe &&
+          editorState.keyframes.selectedKeyframe.property === property &&
+          editorState.keyframes.selectedKeyframe.frame === frame) {
+        deselectKeyframe();
+      }
+
+      renderKeyframeMarkers();
+    }
+
+    /**
+     * Removes the currently selected keyframe
+     */
+    function removeSelectedKeyframe() {
+      if (!editorState.keyframes.selectedKeyframe) return;
+
+      const { property, frame } = editorState.keyframes.selectedKeyframe;
+      removeKeyframe(property, frame);
+    }
+
+    /**
+     * Changes the interpolation type of a keyframe
+     * @param {string} property - Property name
+     * @param {number} frame - Frame number
+     * @param {string} interpolation - New interpolation type
+     */
+    function changeKeyframeInterpolation(property, frame, interpolation) {
+      if (!editorState.keyframes.manager) return;
+
+      const track = editorState.keyframes.manager.getTrack(property);
+      const keyframe = track.getKeyframeAt(frame);
+      if (!keyframe) return;
+
+      const previousInterpolation = keyframe.interpolation;
+
+      // Remove and re-add with new interpolation
+      const value = keyframe.value;
+      track.removeKeyframeAt(frame);
+      const newKeyframe = new Keyframe(frame, property, value, interpolation);
+      track.addKeyframe(newKeyframe);
+
+      // Record for undo
+      pushToUndoStack({
+        type: 'change-interp',
+        data: {
+          property,
+          frame,
+          oldInterpolation: previousInterpolation,
+          newInterpolation: interpolation
+        },
+        description: `Change interpolation for ${property} at frame ${frame}`
+      });
+
+      renderKeyframeMarkers();
+    }
+
+    // ========================================
+    // UNDO/REDO FUNCTIONS
+    // ========================================
+
+    /**
+     * Pushes an action to the undo stack
+     * @param {Object} action - The action to push
+     */
+    function pushToUndoStack(action) {
+      keyframeHistory.undoStack.push(action);
+      // Clear redo stack when new action is performed
+      keyframeHistory.redoStack = [];
+      // Limit stack size
+      if (keyframeHistory.undoStack.length > keyframeHistory.maxHistory) {
+        keyframeHistory.undoStack.shift();
+      }
+    }
+
+    /**
+     * Undoes the last keyframe operation
+     */
+    function undoKeyframeAction() {
+      if (keyframeHistory.undoStack.length === 0) return;
+
+      const action = keyframeHistory.undoStack.pop();
+
+      switch (action.type) {
+        case 'add':
+          // Undo add: remove the keyframe (or restore previous if it existed)
+          const addTrack = editorState.keyframes.manager.getTrack(action.data.property);
+          addTrack.removeKeyframeAt(action.data.frame);
+          if (action.data.previousKeyframe) {
+            addTrack.addKeyframe(Keyframe.fromJSON(action.data.previousKeyframe));
+          }
+          break;
+
+        case 'add-batch':
+          // Undo batch add: remove all added keyframes
+          for (const kfData of action.data.keyframes) {
+            const track = editorState.keyframes.manager.getTrack(kfData.property);
+            track.removeKeyframeAt(kfData.frame);
+            if (kfData.previousKeyframe) {
+              track.addKeyframe(Keyframe.fromJSON(kfData.previousKeyframe));
+            }
+          }
+          break;
+
+        case 'remove':
+          // Undo remove: add the keyframe back
+          const removeTrack = editorState.keyframes.manager.getTrack(action.data.property);
+          removeTrack.addKeyframe(Keyframe.fromJSON(action.data.keyframe));
+          break;
+
+        case 'change-interp':
+          // Undo interpolation change: restore old interpolation
+          const interpTrack = editorState.keyframes.manager.getTrack(action.data.property);
+          const kf = interpTrack.getKeyframeAt(action.data.frame);
+          if (kf) {
+            const value = kf.value;
+            interpTrack.removeKeyframeAt(action.data.frame);
+            interpTrack.addKeyframe(new Keyframe(action.data.frame, action.data.property, value, action.data.oldInterpolation));
+          }
+          break;
+
+        case 'move':
+          // Undo move: move back to original position
+          const moveTrack = editorState.keyframes.manager.getTrack(action.data.property);
+          moveTrack.moveKeyframe(action.data.toFrame, action.data.fromFrame);
+          break;
+      }
+
+      // Push to redo stack
+      keyframeHistory.redoStack.push(action);
+      renderKeyframeMarkers();
+    }
+
+    /**
+     * Redoes the last undone keyframe operation
+     */
+    function redoKeyframeAction() {
+      if (keyframeHistory.redoStack.length === 0) return;
+
+      const action = keyframeHistory.redoStack.pop();
+
+      switch (action.type) {
+        case 'add':
+          // Redo add: add the keyframe
+          editorState.keyframes.manager.addKeyframe(
+            action.data.frame,
+            action.data.property,
+            action.data.value,
+            INTERPOLATION_TYPES.LINEAR
+          );
+          break;
+
+        case 'add-batch':
+          // Redo batch add: add all keyframes
+          for (const kfData of action.data.keyframes) {
+            editorState.keyframes.manager.addKeyframe(
+              kfData.frame,
+              kfData.property,
+              kfData.value,
+              INTERPOLATION_TYPES.LINEAR
+            );
+          }
+          break;
+
+        case 'remove':
+          // Redo remove: remove the keyframe
+          const removeTrack = editorState.keyframes.manager.getTrack(action.data.property);
+          removeTrack.removeKeyframeAt(action.data.frame);
+          break;
+
+        case 'change-interp':
+          // Redo interpolation change: apply new interpolation
+          const interpTrack = editorState.keyframes.manager.getTrack(action.data.property);
+          const kf = interpTrack.getKeyframeAt(action.data.frame);
+          if (kf) {
+            const value = kf.value;
+            interpTrack.removeKeyframeAt(action.data.frame);
+            interpTrack.addKeyframe(new Keyframe(action.data.frame, action.data.property, value, action.data.newInterpolation));
+          }
+          break;
+
+        case 'move':
+          // Redo move: move to new position
+          const moveTrack = editorState.keyframes.manager.getTrack(action.data.property);
+          moveTrack.moveKeyframe(action.data.fromFrame, action.data.toFrame);
+          break;
+      }
+
+      // Push back to undo stack
+      keyframeHistory.undoStack.push(action);
+      renderKeyframeMarkers();
+    }
+
+    // ========================================
+    // CONTEXT MENU FUNCTIONS
+    // ========================================
+
+    /**
+     * Shows the context menu at the specified position
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     */
+    function showContextMenu(x, y) {
+      keyframeContextMenu.style.left = `${x}px`;
+      keyframeContextMenu.style.top = `${y}px`;
+      keyframeContextMenu.classList.add('visible');
+      contextMenuInterpSubmenu.classList.remove('visible');
+    }
+
+    /**
+     * Hides the context menu
+     */
+    function hideContextMenu() {
+      keyframeContextMenu.classList.remove('visible');
+      contextMenuInterpSubmenu.classList.remove('visible');
+    }
+
+    /**
+     * Handles right-click on a keyframe marker
+     */
+    function onKeyframeContextMenu(event, property, frame) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Select the keyframe
+      selectKeyframe(property, frame);
+
+      // Show context menu at mouse position
+      showContextMenu(event.clientX, event.clientY);
     }
 
     // Event listeners
@@ -3343,6 +3800,21 @@
     document.addEventListener('keydown', (event) => {
       // Ignore if user is typing in an input field
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+
+      // Handle Ctrl+Z (undo) and Ctrl+Y (redo) globally
+      if (event.ctrlKey || event.metaKey) {
+        if (event.code === 'KeyZ') {
+          event.preventDefault();
+          undoKeyframeAction();
+          return;
+        }
+        if (event.code === 'KeyY') {
+          event.preventDefault();
+          redoKeyframeAction();
+          return;
+        }
+      }
+
       // Ignore if no video loaded
       if (editorState.frameCount === 0) return;
 
@@ -3370,6 +3842,17 @@
           event.preventDefault();
           stopPlayback();
           jumpToEnd();
+          break;
+        case 'KeyK':
+          // Add keyframes at current frame
+          event.preventDefault();
+          addKeyframesForAllProperties();
+          break;
+        case 'Delete':
+        case 'Backspace':
+          // Delete selected keyframe
+          event.preventDefault();
+          removeSelectedKeyframe();
           break;
       }
     });
@@ -3408,6 +3891,49 @@
         // Update keyframe track widths and re-render
         updateKeyframeTrackWidths();
         renderKeyframeMarkers();
+      }
+    });
+
+    // Add Keyframe button event listener
+    btnAddKeyframe.addEventListener('click', () => {
+      addKeyframesForAllProperties();
+    });
+
+    // Context menu event listeners
+    contextMenuDelete.addEventListener('click', () => {
+      removeSelectedKeyframe();
+      hideContextMenu();
+    });
+
+    contextMenuChangeInterp.addEventListener('click', () => {
+      // Toggle submenu visibility
+      contextMenuInterpSubmenu.classList.toggle('visible');
+    });
+
+    // Interpolation option click handlers
+    const interpOptions = document.querySelectorAll('.interp-option');
+    interpOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        const interpType = option.dataset.interp;
+        if (editorState.keyframes.selectedKeyframe) {
+          const { property, frame } = editorState.keyframes.selectedKeyframe;
+          changeKeyframeInterpolation(property, frame, interpType);
+        }
+        hideContextMenu();
+      });
+    });
+
+    // Hide context menu on click outside
+    document.addEventListener('click', (event) => {
+      if (!keyframeContextMenu.contains(event.target)) {
+        hideContextMenu();
+      }
+    });
+
+    // Hide context menu on escape key
+    document.addEventListener('keydown', (event) => {
+      if (event.code === 'Escape') {
+        hideContextMenu();
       }
     });
 

@@ -330,11 +330,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to add and remove keyframes so that I can define animation points.
 
 **Acceptance Criteria:**
-- [ ] "Add Keyframe" button creates keyframe at current frame with current values
-- [ ] Right-click keyframe shows delete option
-- [ ] Keyboard shortcut: K to add keyframe, Delete to remove selected
-- [ ] Undo/redo support for keyframe operations
-- [ ] Typecheck passes
+- [x] "Add Keyframe" button creates keyframe at current frame with current values
+- [x] Right-click keyframe shows delete option
+- [x] Keyboard shortcut: K to add keyframe, Delete to remove selected
+- [x] Undo/redo support for keyframe operations
+- [x] Typecheck passes
 
 #### US-028: Implement Keyframe Interpolation
 **Description:** As a user, I want smooth transitions between keyframes so that animations look natural.
