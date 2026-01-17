@@ -167,12 +167,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want text to fade in so that overlays appear smoothly.
 
 **Acceptance Criteria:**
-- [ ] Create `src/animation/fadeAnimation.js` with fade-in logic
-- [ ] Calculate alpha value based on frame number, duration, and fps
-- [ ] Support per-character fade (staggered) when `perCharacter: true`
-- [ ] Apply alpha to text rendering context before drawing
-- [ ] Typecheck passes
-- [ ] Unit tests verify alpha calculations at various frame points
+- [x] Create `src/animation/fadeAnimation.js` with fade-in logic
+- [x] Calculate alpha value based on frame number, duration, and fps
+- [x] Support per-character fade (staggered) when `perCharacter: true`
+- [x] Apply alpha to text rendering context before drawing
+- [x] Typecheck passes
+- [x] Unit tests verify alpha calculations at various frame points
 
 #### US-014: Implement Fade-Out Animation for Text
 **Description:** As a user, I want text to fade out so that overlays disappear smoothly.

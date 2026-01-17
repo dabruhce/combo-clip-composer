@@ -227,3 +227,44 @@
   - Line height affects both newline Y advancement and dimension calculations
   - createMarkupCanvas integrates with existing config structure (config.text.*)
 ---
+
+## Iteration 12 - US-012: Implement Animation Configuration Schema
+- What was implemented:
+  - Added `perCharacter` boolean to animation schema in `src/config/schema.js`
+  - Added `perCharacter: false` default value in `config/defaults.json`
+  - Animation schema now includes: type (enum: 'none'|'fade'), duration, delay, perCharacter
+  - Schema validation already existed - just needed to add the new property
+  - Added 8 new tests: perCharacter validation (5), default animation tests (3)
+- Files changed:
+  - src/config/schema.js (added perCharacter property to animation schema)
+  - config/defaults.json (added perCharacter: false)
+  - tests/config.test.js (added perCharacter validation and default tests)
+  - PRD.md (marked US-012 as complete)
+- Learnings for future iterations:
+  - The animation schema already had type, duration, delay - just needed perCharacter
+  - Default animation type "none" already existed for backward compatibility
+  - Pre-existing test failures (pipeline.test.js, combos.test.js) are ffmpeg/ytdl-core environment issues, not code issues
+  - Config test file is the right place for all schema and config loader tests
+---
+
+## Iteration 13 - US-013: Implement Fade-In Animation for Text
+- What was implemented:
+  - Created `src/animation/fadeAnimation.js` with complete fade-in animation logic
+  - `calculateFadeInAlpha(frameNumber, fps, animationConfig)` - calculates alpha based on frame, duration, and fps
+  - `calculatePerCharacterFadeInAlpha(frameNumber, fps, animationConfig, charIndex, totalChars)` - staggered per-character fade
+  - `applyAlphaToContext(ctx, alpha)` - applies alpha to canvas context with clamping (0-1)
+  - `resetContextAlpha(ctx)` - resets context alpha to 1
+  - `createAnimationState(animationConfig, fps, totalFrames)` - creates animation state object for tracking
+  - `getFrameAlpha(animationState, frameNumber, charIndex, totalChars)` - convenience function combining calculations
+  - Created 43 comprehensive unit tests covering all functions and edge cases
+- Files changed:
+  - src/animation/fadeAnimation.js (new)
+  - tests/fadeAnimation.test.js (new)
+  - PRD.md (marked US-013 as complete)
+- Learnings for future iterations:
+  - Alpha calculation formula: (currentTimeMs - delay) / duration, clamped to [0, 1]
+  - Per-character fade uses overlap factor (0.5) for smooth staggered appearance
+  - Use Math.max/Math.min for clamping alpha values to valid range
+  - Animation state pattern allows tracking animation config + video metadata together
+  - Convert frame number to time: (frameNumber / fps) * 1000 for milliseconds
+---
