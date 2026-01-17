@@ -48,7 +48,9 @@ const configSchema = {
       type: { type: 'string', enum: ['none', 'fade'], description: 'Animation type' },
       duration: { type: 'number', minimum: 0, description: 'Animation duration in milliseconds' },
       delay: { type: 'number', minimum: 0, description: 'Delay before animation starts in milliseconds' },
-      perCharacter: { type: 'boolean', description: 'Whether to animate each character separately (staggered effect)' }
+      perCharacter: { type: 'boolean', description: 'Whether to animate each character separately (staggered effect)' },
+      fadeOutStart: { type: 'number', minimum: 0, description: 'When fade-out starts (frame number if > 1, percentage of duration if 0-1)' },
+      fadeOutDuration: { type: 'number', minimum: 0, description: 'Fade-out duration in milliseconds (defaults to duration if not set)' }
     }
   }
 };

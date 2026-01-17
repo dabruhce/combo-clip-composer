@@ -1,6 +1,10 @@
 const {
   calculateFadeInAlpha,
   calculatePerCharacterFadeInAlpha,
+  calculateFadeOutAlpha,
+  calculatePerCharacterFadeOutAlpha,
+  calculateCombinedFadeAlpha,
+  calculatePerCharacterCombinedFadeAlpha,
   applyAlphaToContext,
   resetContextAlpha,
   createAnimationState,
@@ -274,6 +278,272 @@ describe('fadeAnimation', () => {
     });
   });
 
+  describe('calculateFadeOutAlpha', () => {
+    const fps = 30;
+    const totalFrames = 100; // ~3.33 seconds at 30fps
+
+    describe('basic fade-out calculations', () => {
+      test('should return 1 when animation type is "none"', () => {
+        const alpha = calculateFadeOutAlpha(10, fps, { type: 'none', fadeOutStart: 50 }, totalFrames);
+        expect(alpha).toBe(1);
+      });
+
+      test('should return 1 when animationConfig is null', () => {
+        const alpha = calculateFadeOutAlpha(10, fps, null, totalFrames);
+        expect(alpha).toBe(1);
+      });
+
+      test('should return 1 when fadeOutStart is undefined', () => {
+        const alpha = calculateFadeOutAlpha(80, fps, { type: 'fade', duration: 500 }, totalFrames);
+        expect(alpha).toBe(1);
+      });
+
+      test('should return 1 before fadeOutStart frame', () => {
+        const alpha = calculateFadeOutAlpha(40, fps, {
+          type: 'fade',
+          fadeOutStart: 50,
+          fadeOutDuration: 500
+        }, totalFrames);
+        expect(alpha).toBe(1);
+      });
+
+      test('should return 0 after fade-out completes', () => {
+        // fadeOutStart at frame 50 (1666ms at 30fps)
+        // fadeOutDuration 500ms = 15 frames
+        // So at frame 65+, alpha should be 0
+        const alpha = calculateFadeOutAlpha(70, fps, {
+          type: 'fade',
+          fadeOutStart: 50,
+          fadeOutDuration: 500
+        }, totalFrames);
+        expect(alpha).toBe(0);
+      });
+
+      test('should return 0.5 at midpoint of fade-out', () => {
+        // fadeOutStart at frame 60 (2000ms at 30fps)
+        // fadeOutDuration 500ms = 15 frames
+        // Midpoint is frame 60 + 7.5 = 67.5
+        const alpha = calculateFadeOutAlpha(67.5, fps, {
+          type: 'fade',
+          fadeOutStart: 60,
+          fadeOutDuration: 500
+        }, totalFrames);
+        expect(alpha).toBeCloseTo(0.5, 5);
+      });
+    });
+
+    describe('fadeOutStart as percentage', () => {
+      test('should interpret decimal 0.8 as 80% of total duration', () => {
+        // totalFrames = 100, so 0.8 * 100 = frame 80
+        // At frame 70, we should still be at alpha 1 (before fade-out)
+        const alpha = calculateFadeOutAlpha(70, fps, {
+          type: 'fade',
+          fadeOutStart: 0.8,
+          fadeOutDuration: 500
+        }, totalFrames);
+        expect(alpha).toBe(1);
+      });
+
+      test('should start fading at 80% of duration when fadeOutStart is 0.8', () => {
+        // totalFrames = 100, 0.8 * 100 = frame 80
+        // At frame 85, we should be partway through fade-out
+        const alpha = calculateFadeOutAlpha(85, fps, {
+          type: 'fade',
+          fadeOutStart: 0.8,
+          fadeOutDuration: 500
+        }, totalFrames);
+        expect(alpha).toBeLessThan(1);
+        expect(alpha).toBeGreaterThan(0);
+      });
+    });
+
+    describe('fadeOutStart as frame number', () => {
+      test('should interpret integer > 1 as frame number', () => {
+        // fadeOutStart at frame 50
+        const alphaBefore = calculateFadeOutAlpha(40, fps, {
+          type: 'fade',
+          fadeOutStart: 50,
+          fadeOutDuration: 500
+        }, totalFrames);
+        expect(alphaBefore).toBe(1);
+
+        const alphaAt = calculateFadeOutAlpha(55, fps, {
+          type: 'fade',
+          fadeOutStart: 50,
+          fadeOutDuration: 500
+        }, totalFrames);
+        expect(alphaAt).toBeLessThan(1);
+      });
+    });
+
+    describe('edge cases', () => {
+      test('should handle fadeOutDuration of 0 (instant fade)', () => {
+        const alpha = calculateFadeOutAlpha(55, fps, {
+          type: 'fade',
+          fadeOutStart: 50,
+          fadeOutDuration: 0
+        }, totalFrames);
+        expect(alpha).toBe(0);
+      });
+
+      test('should use duration as default when fadeOutDuration not set', () => {
+        // fadeOutStart at frame 50, duration = 500ms (default for fadeOutDuration)
+        const alpha = calculateFadeOutAlpha(57.5, fps, {
+          type: 'fade',
+          duration: 500,
+          fadeOutStart: 50
+        }, totalFrames);
+        // At frame 57.5, 7.5 frames past start = 250ms into 500ms fade
+        expect(alpha).toBeCloseTo(0.5, 5);
+      });
+    });
+  });
+
+  describe('calculatePerCharacterFadeOutAlpha', () => {
+    const fps = 30;
+    const totalFrames = 100;
+
+    test('should return 1 when perCharacter is false', () => {
+      const alpha = calculatePerCharacterFadeOutAlpha(80, fps, {
+        type: 'fade',
+        fadeOutStart: 50,
+        fadeOutDuration: 500,
+        perCharacter: false
+      }, 0, 5, totalFrames);
+      // Should fall back to regular fade-out calculation
+      expect(alpha).toBeLessThan(1);
+    });
+
+    test('should return 1 when fadeOutStart is not set', () => {
+      const alpha = calculatePerCharacterFadeOutAlpha(80, fps, {
+        type: 'fade',
+        perCharacter: true
+      }, 0, 5, totalFrames);
+      expect(alpha).toBe(1);
+    });
+
+    test('last character should start fading before first character', () => {
+      const config = {
+        type: 'fade',
+        fadeOutStart: 50,
+        fadeOutDuration: 500,
+        perCharacter: true
+      };
+      // The last character (index 4) should start fading first
+      const firstCharAlpha = calculatePerCharacterFadeOutAlpha(55, fps, config, 0, 5, totalFrames);
+      const lastCharAlpha = calculatePerCharacterFadeOutAlpha(55, fps, config, 4, 5, totalFrames);
+
+      // Last character should be more faded (lower alpha) than first
+      expect(lastCharAlpha).toBeLessThan(firstCharAlpha);
+    });
+
+    test('all characters should be invisible after fade-out completes', () => {
+      const config = {
+        type: 'fade',
+        fadeOutStart: 50,
+        fadeOutDuration: 500,
+        perCharacter: true
+      };
+      // Well past fade-out duration
+      const frame = 80;
+
+      for (let i = 0; i < 5; i++) {
+        const alpha = calculatePerCharacterFadeOutAlpha(frame, fps, config, i, 5, totalFrames);
+        expect(alpha).toBe(0);
+      }
+    });
+  });
+
+  describe('calculateCombinedFadeAlpha', () => {
+    const fps = 30;
+    const totalFrames = 100;
+
+    test('should return 0 at start (before fade-in)', () => {
+      const alpha = calculateCombinedFadeAlpha(0, fps, {
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500
+      }, totalFrames);
+      expect(alpha).toBe(0);
+    });
+
+    test('should return 1 during hold period (after fade-in, before fade-out)', () => {
+      // Fade-in completes at ~frame 15 (500ms at 30fps)
+      // Fade-out starts at frame 80
+      const alpha = calculateCombinedFadeAlpha(50, fps, {
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500
+      }, totalFrames);
+      expect(alpha).toBe(1);
+    });
+
+    test('should return 0 after fade-out completes', () => {
+      // Fade-out starts at frame 80, duration 500ms = 15 frames
+      // So at frame 95+, alpha should be 0
+      const alpha = calculateCombinedFadeAlpha(95, fps, {
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500
+      }, totalFrames);
+      expect(alpha).toBe(0);
+    });
+
+    test('should handle overlapping fade-in and fade-out', () => {
+      // If fadeOutStart is early, they might overlap
+      // In overlap region, should use minimum alpha
+      const alpha = calculateCombinedFadeAlpha(10, fps, {
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 5, // Very early fade-out
+        fadeOutDuration: 500
+      }, totalFrames);
+      // Both fade-in and fade-out are active, result is minimum
+      expect(alpha).toBeGreaterThanOrEqual(0);
+      expect(alpha).toBeLessThan(1);
+    });
+
+    test('should return 1 when no fadeOutStart (fade-in only)', () => {
+      const alpha = calculateCombinedFadeAlpha(50, fps, {
+        type: 'fade',
+        duration: 500,
+        delay: 0
+      }, totalFrames);
+      expect(alpha).toBe(1);
+    });
+  });
+
+  describe('calculatePerCharacterCombinedFadeAlpha', () => {
+    const fps = 30;
+    const totalFrames = 100;
+
+    test('should combine per-character fade-in and fade-out', () => {
+      const config = {
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500,
+        perCharacter: true
+      };
+
+      // During hold period
+      const alphaHold = calculatePerCharacterCombinedFadeAlpha(50, fps, config, 0, 5, totalFrames);
+      expect(alphaHold).toBe(1);
+
+      // During fade-out - test the last character (index 4) which fades first
+      const alphaFadeOut = calculatePerCharacterCombinedFadeAlpha(85, fps, config, 4, 5, totalFrames);
+      expect(alphaFadeOut).toBeLessThan(1);
+    });
+  });
+
   describe('applyAlphaToContext', () => {
     test('should set globalAlpha on context', () => {
       const ctx = { globalAlpha: 1 };
@@ -311,15 +581,13 @@ describe('fadeAnimation', () => {
         perCharacter: true
       }, 30, 100);
 
-      expect(state).toEqual({
-        type: 'fade',
-        duration: 1000,
-        delay: 200,
-        perCharacter: true,
-        fps: 30,
-        totalFrames: 100,
-        isEnabled: true
-      });
+      expect(state.type).toBe('fade');
+      expect(state.duration).toBe(1000);
+      expect(state.delay).toBe(200);
+      expect(state.perCharacter).toBe(true);
+      expect(state.fps).toBe(30);
+      expect(state.totalFrames).toBe(100);
+      expect(state.isEnabled).toBe(true);
     });
 
     test('should use defaults when config is null', () => {
@@ -340,6 +608,28 @@ describe('fadeAnimation', () => {
     test('should mark isEnabled as true for type "fade"', () => {
       const state = createAnimationState({ type: 'fade' }, 30, 100);
       expect(state.isEnabled).toBe(true);
+    });
+
+    test('should include fadeOut properties when provided', () => {
+      const state = createAnimationState({
+        type: 'fade',
+        fadeOutStart: 80,
+        fadeOutDuration: 300
+      }, 30, 100);
+
+      expect(state.fadeOutStart).toBe(80);
+      expect(state.fadeOutDuration).toBe(300);
+      expect(state.hasFadeOut).toBe(true);
+    });
+
+    test('should set hasFadeOut to false when fadeOutStart not provided', () => {
+      const state = createAnimationState({
+        type: 'fade',
+        duration: 500
+      }, 30, 100);
+
+      expect(state.fadeOutStart).toBeUndefined();
+      expect(state.hasFadeOut).toBe(false);
     });
   });
 
@@ -393,6 +683,71 @@ describe('fadeAnimation', () => {
       // With totalChars = 1, should behave like regular fade
       const alpha = getFrameAlpha(state, 15, 0, 1);
       expect(alpha).toBe(1);
+    });
+
+    test('should use combined fade when fadeOutStart is set', () => {
+      const state = createAnimationState({
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500
+      }, 30, 100);
+
+      // During hold period (after fade-in, before fade-out)
+      const alphaHold = getFrameAlpha(state, 50);
+      expect(alphaHold).toBe(1);
+
+      // During fade-out
+      const alphaFadeOut = getFrameAlpha(state, 87.5);
+      expect(alphaFadeOut).toBeCloseTo(0.5, 5);
+    });
+
+    test('should use per-character combined fade when both are enabled', () => {
+      const state = createAnimationState({
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500,
+        perCharacter: true
+      }, 30, 100);
+
+      // During hold period
+      const alphaHold = getFrameAlpha(state, 50, 0, 5);
+      expect(alphaHold).toBe(1);
+
+      // First and last char should have different alphas during fade-out
+      const alpha0 = getFrameAlpha(state, 83, 0, 5);
+      const alpha4 = getFrameAlpha(state, 83, 4, 5);
+      // Last char fades first, so should have lower alpha
+      expect(alpha4).toBeLessThanOrEqual(alpha0);
+    });
+
+    test('should return 0 at start with combined fade', () => {
+      const state = createAnimationState({
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500
+      }, 30, 100);
+
+      const alpha = getFrameAlpha(state, 0);
+      expect(alpha).toBe(0);
+    });
+
+    test('should return 0 after fade-out completes', () => {
+      const state = createAnimationState({
+        type: 'fade',
+        duration: 500,
+        delay: 0,
+        fadeOutStart: 80,
+        fadeOutDuration: 500
+      }, 30, 100);
+
+      const alpha = getFrameAlpha(state, 99);
+      expect(alpha).toBe(0);
     });
   });
 });

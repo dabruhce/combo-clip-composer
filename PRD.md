@@ -178,11 +178,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want text to fade out so that overlays disappear smoothly.
 
 **Acceptance Criteria:**
-- [ ] Extend `fadeAnimation.js` with fade-out logic
-- [ ] Support config for `fadeOutStart` (frame or percentage of duration)
-- [ ] Fade-out can combine with fade-in (fade in, hold, fade out)
-- [ ] Typecheck passes
-- [ ] Unit tests verify fade-out alpha calculations
+- [x] Extend `fadeAnimation.js` with fade-out logic
+- [x] Support config for `fadeOutStart` (frame or percentage of duration)
+- [x] Fade-out can combine with fade-in (fade in, hold, fade out)
+- [x] Typecheck passes
+- [x] Unit tests verify fade-out alpha calculations
 
 #### US-015: Integrate Animation into Frame Rendering
 **Description:** As a developer, I want animations applied during `redrawFrameWithComboImages` so that each frame reflects the animation state.
