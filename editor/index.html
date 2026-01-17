@@ -997,6 +997,129 @@
     .context-menu-item.interp-option {
       padding-left: 24px;
     }
+
+    /* Export dialog styles */
+    .export-dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .export-dialog-overlay.hidden {
+      display: none;
+    }
+
+    .export-dialog {
+      background-color: #2d2d2d;
+      border: 1px solid #3d3d3d;
+      border-radius: 8px;
+      padding: 24px;
+      min-width: 400px;
+      max-width: 500px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .export-dialog-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    .export-dialog-status {
+      font-size: 14px;
+      color: #cccccc;
+      margin-bottom: 12px;
+    }
+
+    .export-progress-container {
+      background-color: #1e1e1e;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .export-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #007acc, #00b4ff);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .export-progress-bar.indeterminate {
+      width: 100%;
+      animation: export-progress-indeterminate 1.5s ease-in-out infinite;
+      background: linear-gradient(90deg, #007acc 0%, #00b4ff 50%, #007acc 100%);
+      background-size: 200% 100%;
+    }
+
+    @keyframes export-progress-indeterminate {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .export-dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .export-dialog-buttons .btn-cancel {
+      background-color: #3c3c3c;
+      color: #ffffff;
+    }
+
+    .export-dialog-buttons .btn-cancel:hover {
+      background-color: #4c4c4c;
+    }
+
+    .export-dialog-success {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .export-dialog-success .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .export-dialog-success .success-message {
+      font-size: 16px;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .export-dialog-success .success-path {
+      font-size: 12px;
+      color: #888888;
+      word-break: break-all;
+      margin-bottom: 16px;
+    }
+
+    .export-dialog-error {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .export-dialog-error .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #ff4444;
+    }
+
+    .export-dialog-error .error-message {
+      font-size: 14px;
+      color: #ff6b6b;
+      margin-bottom: 16px;
+    }
   </style>
 </head>
 <body>
@@ -1322,6 +1445,44 @@
       <div class="context-menu-item interp-option" data-interp="ease-out">Ease Out</div>
       <div class="context-menu-item interp-option" data-interp="ease-in-out">Ease In-Out</div>
       <div class="context-menu-item interp-option" data-interp="step">Step</div>
+    </div>
+  </div>
+
+  <!-- Export Dialog -->
+  <div class="export-dialog-overlay hidden" id="exportDialogOverlay">
+    <div class="export-dialog" id="exportDialog">
+      <!-- Progress view -->
+      <div id="exportProgressView">
+        <div class="export-dialog-title">Exporting Video</div>
+        <div class="export-dialog-status" id="exportStatus">Preparing...</div>
+        <div class="export-progress-container">
+          <div class="export-progress-bar indeterminate" id="exportProgressBar"></div>
+        </div>
+        <div class="export-dialog-buttons">
+          <button class="btn btn-cancel" id="exportCancelBtn">Cancel</button>
+        </div>
+      </div>
+      <!-- Success view -->
+      <div id="exportSuccessView" style="display: none;">
+        <div class="export-dialog-success">
+          <div class="success-icon">&#10003;</div>
+          <div class="success-message">Export Complete!</div>
+          <div class="success-path" id="exportSuccessPath"></div>
+        </div>
+        <div class="export-dialog-buttons">
+          <button class="btn" id="exportDoneBtn">Done</button>
+        </div>
+      </div>
+      <!-- Error view -->
+      <div id="exportErrorView" style="display: none;">
+        <div class="export-dialog-error">
+          <div class="error-icon">&#10007;</div>
+          <div class="error-message" id="exportErrorMessage">An error occurred</div>
+        </div>
+        <div class="export-dialog-buttons">
+          <button class="btn" id="exportErrorDoneBtn">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4299,6 +4460,155 @@
       originalPushToUndoStack(action);
       markUnsavedChanges();
     };
+
+    // ============================================================
+    // Export Video Functionality
+    // ============================================================
+
+    // Export dialog DOM elements
+    const exportDialogOverlay = document.getElementById('exportDialogOverlay');
+    const exportProgressView = document.getElementById('exportProgressView');
+    const exportSuccessView = document.getElementById('exportSuccessView');
+    const exportErrorView = document.getElementById('exportErrorView');
+    const exportStatus = document.getElementById('exportStatus');
+    const exportProgressBar = document.getElementById('exportProgressBar');
+    const exportCancelBtn = document.getElementById('exportCancelBtn');
+    const exportDoneBtn = document.getElementById('exportDoneBtn');
+    const exportErrorDoneBtn = document.getElementById('exportErrorDoneBtn');
+    const exportSuccessPath = document.getElementById('exportSuccessPath');
+    const exportErrorMessage = document.getElementById('exportErrorMessage');
+
+    // Export state
+    let isExportInProgress = false;
+
+    /**
+     * Shows the export dialog in progress mode
+     */
+    function showExportDialog() {
+      exportProgressView.style.display = 'block';
+      exportSuccessView.style.display = 'none';
+      exportErrorView.style.display = 'none';
+      exportStatus.textContent = 'Preparing...';
+      exportProgressBar.classList.add('indeterminate');
+      exportProgressBar.style.width = '0%';
+      exportDialogOverlay.classList.remove('hidden');
+    }
+
+    /**
+     * Hides the export dialog
+     */
+    function hideExportDialog() {
+      exportDialogOverlay.classList.add('hidden');
+    }
+
+    /**
+     * Shows the export success view
+     * @param {string} outputPath - Path to the exported video
+     */
+    function showExportSuccess(outputPath) {
+      exportProgressView.style.display = 'none';
+      exportSuccessView.style.display = 'block';
+      exportErrorView.style.display = 'none';
+      exportSuccessPath.textContent = outputPath;
+    }
+
+    /**
+     * Shows the export error view
+     * @param {string} error - Error message
+     */
+    function showExportError(error) {
+      exportProgressView.style.display = 'none';
+      exportSuccessView.style.display = 'none';
+      exportErrorView.style.display = 'block';
+      exportErrorMessage.textContent = error;
+    }
+
+    /**
+     * Updates the export progress
+     * @param {number} progress - Progress percentage (0-100)
+     * @param {string} status - Status message
+     */
+    function updateExportProgress(progress, status) {
+      if (status) {
+        exportStatus.textContent = status;
+      }
+      if (typeof progress === 'number' && progress > 0) {
+        exportProgressBar.classList.remove('indeterminate');
+        exportProgressBar.style.width = progress + '%';
+      }
+    }
+
+    /**
+     * Initiates video export
+     */
+    async function startExport() {
+      // Validate we have a video loaded
+      if (!editorState.videoPath) {
+        alert('Please load a video first before exporting.');
+        return;
+      }
+
+      // Validate we have combo text
+      const comboText = editorState.overlay.comboText || comboTextInput.value;
+      if (!comboText || comboText.trim() === '') {
+        alert('Please enter combo notation before exporting.');
+        return;
+      }
+
+      isExportInProgress = true;
+      showExportDialog();
+
+      try {
+        const config = getFullConfigFromInputs();
+        const result = await ipcRenderer.invoke('export-video', {
+          comboText: comboText,
+          xOffset: editorState.overlay.xOffset || parseInt(overlayXInput.value) || 10,
+          yOffset: editorState.overlay.yOffset || parseInt(overlayYInput.value) || 10,
+          config: config
+        });
+
+        if (result.success) {
+          showExportSuccess(result.outputPath);
+        } else if (result.canceled) {
+          hideExportDialog();
+        } else if (result.error) {
+          showExportError(result.error);
+        }
+      } catch (error) {
+        showExportError(error.message || 'An unexpected error occurred');
+      } finally {
+        isExportInProgress = false;
+      }
+    }
+
+    /**
+     * Cancels the current export
+     */
+    async function cancelExport() {
+      if (isExportInProgress) {
+        await ipcRenderer.invoke('cancel-export');
+        isExportInProgress = false;
+        hideExportDialog();
+      }
+    }
+
+    // Export dialog button event listeners
+    exportCancelBtn.addEventListener('click', cancelExport);
+    exportDoneBtn.addEventListener('click', hideExportDialog);
+    exportErrorDoneBtn.addEventListener('click', hideExportDialog);
+
+    // Export IPC event listeners
+    ipcRenderer.on('export-video', async () => {
+      await startExport();
+    });
+
+    ipcRenderer.on('export-started', (event, { outputPath }) => {
+      updateExportProgress(0, 'Processing video...');
+    });
+
+    ipcRenderer.on('export-progress', (event, { progress, status }) => {
+      updateExportProgress(progress, status);
+    });
 
     // Initialize
     console.log('Combo Clip Composer Editor initialized');

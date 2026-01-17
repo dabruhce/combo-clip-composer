@@ -23,6 +23,10 @@ let framePaths = [];
 let currentProjectPath = null;
 let hasUnsavedChanges = false;
 
+// Store export state
+let isExporting = false;
+let exportCancelled = false;
+
 /**
  * Gets video metadata using ffprobe
  */
@@ -161,6 +165,26 @@ async function saveProjectDialog() {
 }
 
 /**
+ * Opens a dialog to select export video destination
+ */
+async function exportVideoDialog(defaultName) {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Export Video',
+    filters: [
+      { name: 'MP4 Video', extensions: ['mp4'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    defaultPath: defaultName || 'output.mp4'
+  });
+
+  if (result.canceled) {
+    return null;
+  }
+
+  return result.filePath;
+}
+
+/**
  * Handle project open request from renderer
  */
 async function handleOpenProject() {
@@ -251,6 +275,128 @@ async function handleSaveProject(event, { projectData, saveAs }) {
 function handleMarkUnsavedChanges(event, { hasChanges }) {
   hasUnsavedChanges = hasChanges;
   updateWindowTitle();
+}
+
+/**
+ * Handle video export request from renderer
+ */
+async function handleExportVideo(event, { comboText, xOffset, yOffset, config }) {
+  try {
+    // Validate we have a video loaded
+    if (!currentVideoPath || !fs.existsSync(currentVideoPath)) {
+      return {
+        success: false,
+        error: 'No video loaded or video file not found'
+      };
+    }
+
+    // Generate default output name based on input video
+    const inputBasename = path.basename(currentVideoPath, path.extname(currentVideoPath));
+    const defaultName = `${inputBasename}_combo.mp4`;
+
+    // Show save dialog
+    const outputPath = await exportVideoDialog(defaultName);
+    if (!outputPath) {
+      return { success: false, canceled: true };
+    }
+
+    // Reset export state
+    isExporting = true;
+    exportCancelled = false;
+
+    // Notify renderer that export is starting
+    event.sender.send('export-started', { outputPath });
+
+    // Create a temporary config file for the export
+    const tempConfigPath = path.join(os.tmpdir(), `combo-clip-config-${Date.now()}.json`);
+    fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2), 'utf-8');
+
+    try {
+      // Import processComboVideo dynamically to avoid issues with module loading
+      const { processComboVideo } = require('../src/video/videoUtils');
+
+      // Track progress by watching the output directory
+      const outputDir = path.dirname(outputPath);
+      let lastProgress = 0;
+
+      // Send periodic progress updates
+      const progressInterval = setInterval(() => {
+        if (exportCancelled) {
+          clearInterval(progressInterval);
+          return;
+        }
+        // Send a heartbeat progress update
+        if (isExporting) {
+          event.sender.send('export-progress', { progress: lastProgress, status: 'Processing...' });
+        }
+      }, 500);
+
+      // Run the video processing
+      const result = await processComboVideo(
+        currentVideoPath,
+        comboText,
+        xOffset,
+        yOffset,
+        './artifacts/out/', // Default job directory
+        ['./assets/games/Tekken7/images', './assets/games/common/images'], // Default asset directories
+        config.images ? config.images.width : null,
+        config.images ? config.images.height : null,
+        tempConfigPath
+      );
+
+      clearInterval(progressInterval);
+
+      // Check if cancelled
+      if (exportCancelled) {
+        // Clean up temp config
+        if (fs.existsSync(tempConfigPath)) {
+          fs.unlinkSync(tempConfigPath);
+        }
+        return {
+          success: false,
+          canceled: true
+        };
+      }
+
+      // Copy the result to the user's chosen output path
+      if (result && fs.existsSync(result)) {
+        fs.copyFileSync(result, outputPath);
+      }
+
+      // Clean up temp config
+      if (fs.existsSync(tempConfigPath)) {
+        fs.unlinkSync(tempConfigPath);
+      }
+
+      isExporting = false;
+
+      return {
+        success: true,
+        outputPath: outputPath
+      };
+    } catch (processError) {
+      // Clean up temp config on error
+      if (fs.existsSync(tempConfigPath)) {
+        fs.unlinkSync(tempConfigPath);
+      }
+      throw processError;
+    }
+  } catch (error) {
+    isExporting = false;
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Handle export cancellation request from renderer
+ */
+function handleCancelExport() {
+  exportCancelled = true;
+  isExporting = false;
+  return { success: true };
 }
 
 /**
@@ -445,6 +591,16 @@ function createMenu() {
           }
         },
         { type: 'separator' },
+        {
+          label: 'Export Video...',
+          accelerator: 'CmdOrCtrl+E',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('export-video');
+            }
+          }
+        },
+        { type: 'separator' },
         { role: 'quit' }
       ]
     },
@@ -547,6 +703,10 @@ app.whenReady().then(() => {
     return { action: choice };
   });
 
+  // Export IPC handlers
+  ipcMain.handle('export-video', handleExportVideo);
+  ipcMain.handle('cancel-export', handleCancelExport);
+
   // On macOS, re-create window when dock icon is clicked and no windows exist
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -581,7 +741,10 @@ module.exports = {
   openVideoDialog,
   openProjectDialog,
   saveProjectDialog,
+  exportVideoDialog,
   handleOpenProject,
   handleSaveProject,
-  handleLoadVideoByPath
+  handleLoadVideoByPath,
+  handleExportVideo,
+  handleCancelExport
 };

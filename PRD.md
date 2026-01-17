@@ -367,12 +367,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to export the final video so that I can share my combo video.
 
 **Acceptance Criteria:**
-- [ ] "Export Video" menu item opens export dialog
-- [ ] Progress bar shows export progress
-- [ ] Use existing `processComboVideo` pipeline with editor config and keyframes
-- [ ] Support cancel export operation
-- [ ] Show success message with output file path
-- [ ] Typecheck passes
+- [x] "Export Video" menu item opens export dialog
+- [x] Progress bar shows export progress
+- [x] Use existing `processComboVideo` pipeline with editor config and keyframes
+- [x] Support cancel export operation
+- [x] Show success message with output file path
+- [x] Typecheck passes
 
 #### US-031: Implement Config Export
 **Description:** As a user, I want to export just the config so that I can use it with the CLI.

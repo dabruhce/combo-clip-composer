@@ -652,3 +652,35 @@
   - KeyframeManager.fromJSON() and .toJSON() enable easy serialization of keyframe data
   - Mark unsaved changes at the source (applyOverlayFromInputs, pushToUndoStack) for comprehensive tracking
 ---
+
+## Iteration 30 - US-030: Implement Video Export
+- What was implemented:
+  - Added "Export Video" menu item in File menu with Ctrl+E keyboard shortcut
+  - Created export dialog overlay with progress view, success view, and error view
+  - Implemented indeterminate progress bar animation during export (since processComboVideo doesn't provide granular progress)
+  - Added exportVideoDialog() function for selecting output file destination
+  - Added handleExportVideo() IPC handler that:
+    - Validates video is loaded and combo text is provided
+    - Creates temporary config file from editor settings
+    - Calls processComboVideo with editor config
+    - Copies result to user's chosen output path
+    - Cleans up temp files on success/failure
+  - Added handleCancelExport() IPC handler for cancel support
+  - Added export state tracking (isExporting, exportCancelled) in main process
+  - Added renderer-side export functions: startExport(), cancelExport(), showExportDialog(), hideExportDialog(), showExportSuccess(), showExportError(), updateExportProgress()
+  - Added IPC listeners for export-video, export-started, export-progress events
+  - Success view shows the output file path
+  - Error view shows the error message
+  - 481 tests pass (3 pre-existing ffmpeg/ytdl-core failures unchanged)
+- Files changed:
+  - editor/main.js (added export state, exportVideoDialog, handleExportVideo, handleCancelExport, menu item, IPC handlers)
+  - editor/index.html (added CSS for export dialog, HTML for dialog overlay, JS for export functions and event listeners)
+  - PRD.md (marked US-030 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - processComboVideo doesn't expose granular progress, so indeterminate progress bar is best UX option
+  - Use fs.copyFileSync to copy final output to user-chosen location (processComboVideo outputs to artifacts/)
+  - Create temporary config file, pass path to processComboVideo, and clean up after completion
+  - Pattern for multi-view dialogs: show/hide different view containers within single overlay
+  - Export validation should check both video loaded and combo text present
+---
