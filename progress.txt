@@ -684,3 +684,30 @@
   - Pattern for multi-view dialogs: show/hide different view containers within single overlay
   - Export validation should check both video loaded and combo text present
 ---
+
+## Iteration 31 - US-031: Implement Config Export
+- What was implemented:
+  - Added "Export Config..." menu item in File menu with Ctrl+Shift+E keyboard shortcut
+  - Added exportConfigDialog() function for selecting output file destination (.json)
+  - Added handleExportConfig() IPC handler that:
+    - Gets config from renderer
+    - Optionally includes keyframes based on user checkbox selection
+    - Saves as JSON file compatible with CLI --config flag
+  - Created config export dialog overlay with options view and success view
+  - Added "Include Keyframes" checkbox option for exporting animation keyframe data
+  - Added showConfigExportDialog(), hideConfigExportDialog(), showConfigExportSuccess(), startConfigExport() functions in renderer
+  - Added IPC listener for 'export-config' event
+  - Exported config matches the format expected by configLoader.js (text, images, dropshadow properties)
+  - 481 tests pass (3 pre-existing ffmpeg/ytdl-core failures unchanged)
+- Files changed:
+  - editor/main.js (added exportConfigDialog, handleExportConfig, menu item, IPC handler, exports)
+  - editor/index.html (added CSS styles for config export dialog, HTML dialog structure, JS export functions)
+  - PRD.md (marked US-031 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Follow existing dialog patterns: overlay container with hidden class, multiple views (options/success)
+  - IPC handler receives config from renderer already built by getFullConfigFromInputs()
+  - Use conditional inclusion pattern: includeKeyframes && keyframes for optional properties
+  - Menu accelerators: CmdOrCtrl+Shift+E for "Export Config" (Shift modifier distinguishes from Export Video)
+  - Config export doesn't need validation - can export even without video loaded (just current settings)
+---
