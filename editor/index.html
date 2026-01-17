@@ -226,6 +226,83 @@
       gap: 8px;
     }
 
+    .timeline-zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 12px;
+      padding-left: 12px;
+      border-left: 1px solid #3d3d3d;
+    }
+
+    .timeline-zoom-slider {
+      width: 80px;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #3d3d3d;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .timeline-zoom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .timeline-zoom-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .timeline-zoom-label {
+      font-size: 11px;
+      color: #888888;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .timeline-zoom-btn {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #2d2d2d;
+      border: 1px solid #3d3d3d;
+      border-radius: 3px;
+      color: #cccccc;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .timeline-zoom-btn:hover {
+      background-color: #3d3d3d;
+    }
+
+    .timeline-zoom-btn:active {
+      background-color: #4d4d4d;
+    }
+
+    .timeline-zoom-btn:disabled {
+      color: #555555;
+      cursor: not-allowed;
+    }
+
+    .timeline-zoom-btn:disabled:hover {
+      background-color: #2d2d2d;
+    }
+
     .timeline-tracks {
       flex: 1;
       display: flex;
@@ -248,6 +325,39 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+    }
+
+    .timeline-scroll-container {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .timeline-scroll-container::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .timeline-scroll-container::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+
+    .timeline-scroll-container::-webkit-scrollbar-thumb {
+      background: #555555;
+      border-radius: 4px;
+    }
+
+    .timeline-scroll-container::-webkit-scrollbar-thumb:hover {
+      background: #666666;
+    }
+
+    .timeline-content {
+      display: flex;
+      flex-direction: column;
+      min-width: 100%;
     }
 
     .timeline-ruler {
@@ -505,6 +615,13 @@
       <button class="btn" id="btnPlayPause" disabled title="Play/Pause (Space)">▶</button>
       <button class="btn" id="btnStepForward" disabled title="Step Forward (→)">⏩</button>
       <button class="btn" id="btnJumpEnd" disabled title="Jump to End (End)">⏭</button>
+      <div class="timeline-zoom-controls">
+        <button class="timeline-zoom-btn" id="btnTimelineZoomOut" disabled title="Zoom Out">−</button>
+        <input type="range" class="timeline-zoom-slider" id="timelineZoomSlider" min="1" max="10" value="1" step="0.5" disabled>
+        <button class="timeline-zoom-btn" id="btnTimelineZoomIn" disabled title="Zoom In">+</button>
+        <button class="timeline-zoom-btn" id="btnTimelineZoomFit" disabled title="Zoom to Fit">⤢</button>
+        <span class="timeline-zoom-label" id="timelineZoomLabel">100%</span>
+      </div>
       <div class="timeline-frame-display">
         <span class="timeline-frame-number" id="frameNumberDisplay">Frame: 0 / 0</span>
         <span class="timeline-timecode" id="timecodeDisplay">00:00:00.00 / 00:00:00.00</span>
@@ -515,14 +632,18 @@
         Load a video to see the timeline
       </div>
       <div class="timeline-ruler-container" id="timelineRulerContainer" style="display: none;">
-        <div class="timeline-ruler" id="timelineRuler">
-          <div class="timeline-ruler-ticks" id="timelineRulerTicks"></div>
-          <div class="timeline-playhead" id="timelinePlayhead" style="left: 0;">
-            <div class="timeline-playhead-head" id="timelinePlayheadHead"></div>
+        <div class="timeline-scroll-container" id="timelineScrollContainer">
+          <div class="timeline-content" id="timelineContent">
+            <div class="timeline-ruler" id="timelineRuler">
+              <div class="timeline-ruler-ticks" id="timelineRulerTicks"></div>
+              <div class="timeline-playhead" id="timelinePlayhead" style="left: 0;">
+                <div class="timeline-playhead-head" id="timelinePlayheadHead"></div>
+              </div>
+            </div>
+            <div class="timeline-track-area" id="timelineTrackArea">
+              <div class="timeline-playhead" id="timelinePlayheadTrack" style="left: 0;"></div>
+            </div>
           </div>
-        </div>
-        <div class="timeline-track-area" id="timelineTrackArea">
-          <div class="timeline-playhead" id="timelinePlayheadTrack" style="left: 0;"></div>
         </div>
       </div>
     </div>
@@ -548,7 +669,8 @@
       metadata: null,
       isLoading: false,
       zoom: 'fit', // 'fit', 0.5, 1, 2
-      frameImage: null // Cached current frame image
+      frameImage: null, // Cached current frame image
+      timelineZoom: 1 // Timeline zoom level (1 = 100%, 2 = 200%, etc.)
     };
 
     // DOM elements
@@ -584,6 +706,15 @@
     const btnPlayPause = document.getElementById('btnPlayPause');
     const btnStepForward = document.getElementById('btnStepForward');
     const btnJumpEnd = document.getElementById('btnJumpEnd');
+
+    // Timeline zoom DOM elements
+    const timelineScrollContainer = document.getElementById('timelineScrollContainer');
+    const timelineContent = document.getElementById('timelineContent');
+    const timelineZoomSlider = document.getElementById('timelineZoomSlider');
+    const btnTimelineZoomIn = document.getElementById('btnTimelineZoomIn');
+    const btnTimelineZoomOut = document.getElementById('btnTimelineZoomOut');
+    const btnTimelineZoomFit = document.getElementById('btnTimelineZoomFit');
+    const timelineZoomLabel = document.getElementById('timelineZoomLabel');
 
     // Timeline state
     let isDraggingPlayhead = false;
@@ -876,7 +1007,9 @@
     function drawTimelineRuler() {
       if (!editorState.metadata || editorState.frameCount === 0) return;
 
-      const rulerWidth = timelineRuler.clientWidth;
+      // Use the timeline content width (affected by zoom)
+      const visibleWidth = getTimelineVisibleWidth();
+      const rulerWidth = visibleWidth * editorState.timelineZoom;
       const totalFrames = editorState.frameCount;
       const fps = editorState.metadata.fps;
       const duration = editorState.metadata.duration;
@@ -939,7 +1072,9 @@
     function updatePlayheadPosition() {
       if (editorState.frameCount === 0) return;
 
-      const rulerWidth = timelineRuler.clientWidth;
+      // Use the timeline content width (affected by zoom)
+      const visibleWidth = getTimelineVisibleWidth();
+      const rulerWidth = visibleWidth * editorState.timelineZoom;
       const x = (editorState.currentFrame / (editorState.frameCount - 1 || 1)) * rulerWidth;
 
       timelinePlayhead.style.left = `${x}px`;
@@ -950,10 +1085,11 @@
      * Calculates frame number from X position on timeline
      */
     function getFrameFromPosition(clientX) {
-      const rect = timelineRuler.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const rulerWidth = rect.width;
-      const ratio = Math.max(0, Math.min(1, x / rulerWidth));
+      const rect = timelineScrollContainer.getBoundingClientRect();
+      const x = clientX - rect.left + timelineScrollContainer.scrollLeft;
+      const visibleWidth = getTimelineVisibleWidth();
+      const contentWidth = visibleWidth * editorState.timelineZoom;
+      const ratio = Math.max(0, Math.min(1, x / contentWidth));
       return Math.round(ratio * (editorState.frameCount - 1));
     }
 
@@ -969,6 +1105,11 @@
         loadFrame(frame);
         updatePlayheadPosition();
         updateTimelineDisplay();
+
+        // Auto-scroll to keep playhead visible when timeline is zoomed
+        if (editorState.timelineZoom > 1) {
+          scrollToPlayhead();
+        }
       }
     }
 
@@ -1077,6 +1218,17 @@
       btnStepForward.disabled = false;
       btnJumpEnd.disabled = false;
 
+      // Enable zoom controls
+      timelineZoomSlider.disabled = false;
+      btnTimelineZoomIn.disabled = false;
+      btnTimelineZoomOut.disabled = true; // Disabled at 100% zoom
+      btnTimelineZoomFit.disabled = false;
+
+      // Reset timeline zoom to 100%
+      editorState.timelineZoom = 1;
+      updateTimelineContentWidth();
+      updateTimelineZoomControls();
+
       // Draw ruler and position playhead
       drawTimelineRuler();
       updatePlayheadPosition();
@@ -1099,6 +1251,165 @@
       btnPlayPause.disabled = true;
       btnStepForward.disabled = true;
       btnJumpEnd.disabled = true;
+
+      // Disable zoom controls
+      timelineZoomSlider.disabled = true;
+      btnTimelineZoomIn.disabled = true;
+      btnTimelineZoomOut.disabled = true;
+      btnTimelineZoomFit.disabled = true;
+    }
+
+    /**
+     * Gets the visible width of the timeline scroll container
+     */
+    function getTimelineVisibleWidth() {
+      return timelineScrollContainer.clientWidth;
+    }
+
+    /**
+     * Updates the timeline content width based on zoom level
+     */
+    function updateTimelineContentWidth() {
+      const visibleWidth = getTimelineVisibleWidth();
+      const contentWidth = visibleWidth * editorState.timelineZoom;
+      timelineContent.style.width = `${contentWidth}px`;
+    }
+
+    /**
+     * Updates the timeline zoom label display
+     */
+    function updateTimelineZoomLabel() {
+      const percentage = Math.round(editorState.timelineZoom * 100);
+      timelineZoomLabel.textContent = `${percentage}%`;
+    }
+
+    /**
+     * Updates the zoom slider position and button states
+     */
+    function updateTimelineZoomControls() {
+      timelineZoomSlider.value = editorState.timelineZoom;
+      updateTimelineZoomLabel();
+
+      // Update button states (zoom range is 1-10)
+      btnTimelineZoomOut.disabled = editorState.timelineZoom <= 1;
+      btnTimelineZoomIn.disabled = editorState.timelineZoom >= 10;
+    }
+
+    /**
+     * Sets the timeline zoom level
+     */
+    function setTimelineZoom(zoomLevel, keepPlayheadVisible = true) {
+      // Clamp zoom level to valid range
+      const newZoom = Math.max(1, Math.min(10, zoomLevel));
+
+      if (newZoom === editorState.timelineZoom) return;
+
+      // Store scroll position relative to playhead for restoration
+      const scrollBefore = timelineScrollContainer.scrollLeft;
+      const visibleWidth = getTimelineVisibleWidth();
+      const oldContentWidth = visibleWidth * editorState.timelineZoom;
+      const playheadPos = editorState.frameCount > 1
+        ? (editorState.currentFrame / (editorState.frameCount - 1)) * oldContentWidth
+        : 0;
+
+      // Update zoom level
+      editorState.timelineZoom = newZoom;
+
+      // Update content width
+      updateTimelineContentWidth();
+
+      // Update controls
+      updateTimelineZoomControls();
+
+      // Redraw ruler with new width
+      drawTimelineRuler();
+
+      // Update playhead position
+      updatePlayheadPosition();
+
+      // Scroll to keep playhead visible if requested
+      if (keepPlayheadVisible && editorState.frameCount > 0) {
+        scrollToPlayhead();
+      }
+    }
+
+    /**
+     * Scrolls the timeline to ensure playhead is visible
+     */
+    function scrollToPlayhead() {
+      const visibleWidth = getTimelineVisibleWidth();
+      const contentWidth = visibleWidth * editorState.timelineZoom;
+      const playheadPos = editorState.frameCount > 1
+        ? (editorState.currentFrame / (editorState.frameCount - 1)) * contentWidth
+        : 0;
+
+      const currentScroll = timelineScrollContainer.scrollLeft;
+      const margin = 50; // Margin from edges
+
+      // Check if playhead is outside visible area
+      if (playheadPos < currentScroll + margin) {
+        // Scroll left to show playhead
+        timelineScrollContainer.scrollLeft = Math.max(0, playheadPos - margin);
+      } else if (playheadPos > currentScroll + visibleWidth - margin) {
+        // Scroll right to show playhead
+        timelineScrollContainer.scrollLeft = playheadPos - visibleWidth + margin;
+      }
+    }
+
+    /**
+     * Zooms timeline in by one step (0.5)
+     */
+    function timelineZoomIn() {
+      setTimelineZoom(editorState.timelineZoom + 0.5);
+    }
+
+    /**
+     * Zooms timeline out by one step (0.5)
+     */
+    function timelineZoomOut() {
+      setTimelineZoom(editorState.timelineZoom - 0.5);
+    }
+
+    /**
+     * Resets timeline zoom to fit all frames (100%)
+     */
+    function timelineZoomToFit() {
+      setTimelineZoom(1, false);
+      timelineScrollContainer.scrollLeft = 0;
+    }
+
+    /**
+     * Handles mouse wheel on timeline for zooming
+     */
+    function onTimelineWheel(event) {
+      if (editorState.frameCount === 0) return;
+
+      // Only zoom on Ctrl+wheel
+      if (!event.ctrlKey) return;
+
+      event.preventDefault();
+
+      // Zoom in/out based on wheel direction
+      const delta = event.deltaY > 0 ? -0.5 : 0.5;
+      const newZoom = editorState.timelineZoom + delta;
+
+      // Calculate mouse position relative to timeline content for zoom centering
+      const rect = timelineScrollContainer.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const scrollBefore = timelineScrollContainer.scrollLeft;
+      const visibleWidth = getTimelineVisibleWidth();
+      const oldContentWidth = visibleWidth * editorState.timelineZoom;
+
+      // Position in content that mouse is over
+      const contentX = scrollBefore + mouseX;
+      const contentRatio = contentX / oldContentWidth;
+
+      setTimelineZoom(newZoom, false);
+
+      // After zoom, scroll to keep the same content position under mouse
+      const newContentWidth = visibleWidth * editorState.timelineZoom;
+      const newContentX = contentRatio * newContentWidth;
+      timelineScrollContainer.scrollLeft = newContentX - mouseX;
     }
 
     /**
@@ -1204,6 +1515,18 @@
     zoomInBtn.addEventListener('click', zoomIn);
     zoomOutBtn.addEventListener('click', zoomOut);
 
+    // Timeline zoom control event listeners
+    timelineZoomSlider.addEventListener('input', (e) => {
+      setTimelineZoom(parseFloat(e.target.value));
+    });
+
+    btnTimelineZoomIn.addEventListener('click', timelineZoomIn);
+    btnTimelineZoomOut.addEventListener('click', timelineZoomOut);
+    btnTimelineZoomFit.addEventListener('click', timelineZoomToFit);
+
+    // Mouse wheel zoom on timeline (Ctrl+scroll)
+    timelineScrollContainer.addEventListener('wheel', onTimelineWheel, { passive: false });
+
     // Handle window resize to recalculate fit zoom and timeline
     window.addEventListener('resize', () => {
       if (editorState.zoom === 'fit' && editorState.frameImage) {
@@ -1211,6 +1534,7 @@
       }
       // Redraw timeline ruler and update playhead position on resize
       if (editorState.frameCount > 0) {
+        updateTimelineContentWidth();
         drawTimelineRuler();
         updatePlayheadPosition();
       }

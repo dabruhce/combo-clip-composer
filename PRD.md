@@ -260,11 +260,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to zoom the timeline so that I can make precise edits.
 
 **Acceptance Criteria:**
-- [ ] Timeline zoom slider (show more or fewer frames)
-- [ ] Horizontal scroll when zoomed in
-- [ ] Mouse wheel zoom on timeline
-- [ ] Zoom to fit all frames button
-- [ ] Typecheck passes
+- [x] Timeline zoom slider (show more or fewer frames)
+- [x] Horizontal scroll when zoomed in
+- [x] Mouse wheel zoom on timeline
+- [x] Zoom to fit all frames button
+- [x] Typecheck passes
 
 ---
 
