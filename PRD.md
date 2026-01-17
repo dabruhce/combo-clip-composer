@@ -378,10 +378,10 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to export just the config so that I can use it with the CLI.
 
 **Acceptance Criteria:**
-- [ ] "Export Config" saves current config as JSON file
-- [ ] Exported config works with CLI `--config` flag
-- [ ] Option to export with or without keyframes
-- [ ] Typecheck passes
+- [x] "Export Config" saves current config as JSON file
+- [x] Exported config works with CLI `--config` flag
+- [x] Option to export with or without keyframes
+- [x] Typecheck passes
 
 ---
 

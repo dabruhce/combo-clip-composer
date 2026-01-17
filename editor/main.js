@@ -185,6 +185,71 @@ async function exportVideoDialog(defaultName) {
 }
 
 /**
+ * Opens a dialog to select export config destination
+ */
+async function exportConfigDialog(defaultName) {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Export Config',
+    filters: [
+      { name: 'JSON Config', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    defaultPath: defaultName || 'config.json'
+  });
+
+  if (result.canceled) {
+    return null;
+  }
+
+  return result.filePath;
+}
+
+/**
+ * Handle config export request from renderer
+ */
+async function handleExportConfig(event, { config, keyframes, includeKeyframes }) {
+  try {
+    // Generate default output name
+    const defaultName = currentProjectPath
+      ? path.basename(currentProjectPath, '.ccc') + '-config.json'
+      : 'config.json';
+
+    // Show save dialog
+    const outputPath = await exportConfigDialog(defaultName);
+    if (!outputPath) {
+      return { success: false, canceled: true };
+    }
+
+    // Build the config object to export
+    const exportData = { ...config };
+
+    // Include keyframes if requested
+    if (includeKeyframes && keyframes) {
+      exportData.keyframes = keyframes;
+    }
+
+    // Ensure .json extension
+    let finalPath = outputPath;
+    if (!finalPath.toLowerCase().endsWith('.json')) {
+      finalPath += '.json';
+    }
+
+    // Write config file
+    fs.writeFileSync(finalPath, JSON.stringify(exportData, null, 2), 'utf-8');
+
+    return {
+      success: true,
+      outputPath: finalPath
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Handle project open request from renderer
  */
 async function handleOpenProject() {
@@ -600,6 +665,15 @@ function createMenu() {
             }
           }
         },
+        {
+          label: 'Export Config...',
+          accelerator: 'CmdOrCtrl+Shift+E',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('export-config');
+            }
+          }
+        },
         { type: 'separator' },
         { role: 'quit' }
       ]
@@ -706,6 +780,7 @@ app.whenReady().then(() => {
   // Export IPC handlers
   ipcMain.handle('export-video', handleExportVideo);
   ipcMain.handle('cancel-export', handleCancelExport);
+  ipcMain.handle('export-config', handleExportConfig);
 
   // On macOS, re-create window when dock icon is clicked and no windows exist
   app.on('activate', () => {
@@ -742,9 +817,11 @@ module.exports = {
   openProjectDialog,
   saveProjectDialog,
   exportVideoDialog,
+  exportConfigDialog,
   handleOpenProject,
   handleSaveProject,
   handleLoadVideoByPath,
   handleExportVideo,
-  handleCancelExport
+  handleCancelExport,
+  handleExportConfig
 };

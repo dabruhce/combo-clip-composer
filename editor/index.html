@@ -1120,6 +1120,124 @@
       color: #ff6b6b;
       margin-bottom: 16px;
     }
+
+    /* Config export dialog styles */
+    .config-export-dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .config-export-dialog-overlay.hidden {
+      display: none;
+    }
+
+    .config-export-dialog {
+      background-color: #2d2d2d;
+      border: 1px solid #3d3d3d;
+      border-radius: 8px;
+      padding: 24px;
+      min-width: 400px;
+      max-width: 500px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .config-export-dialog-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    .config-export-dialog-description {
+      font-size: 14px;
+      color: #cccccc;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .config-export-options {
+      background-color: #1e1e1e;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .config-export-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .config-export-option:last-child {
+      margin-bottom: 0;
+    }
+
+    .config-export-option input[type="checkbox"] {
+      margin-top: 3px;
+    }
+
+    .config-export-option-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .config-export-option-label span:first-child {
+      font-size: 14px;
+      color: #ffffff;
+    }
+
+    .config-export-option-label span:last-child {
+      font-size: 12px;
+      color: #888888;
+    }
+
+    .config-export-dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .config-export-dialog-buttons .btn-cancel {
+      background-color: #3c3c3c;
+      color: #ffffff;
+    }
+
+    .config-export-dialog-buttons .btn-cancel:hover {
+      background-color: #4c4c4c;
+    }
+
+    .config-export-dialog-success {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .config-export-dialog-success .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .config-export-dialog-success .success-message {
+      font-size: 16px;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .config-export-dialog-success .success-path {
+      font-size: 12px;
+      color: #888888;
+      word-break: break-all;
+      margin-bottom: 16px;
+    }
   </style>
 </head>
 <body>
@@ -1481,6 +1599,43 @@
         </div>
         <div class="export-dialog-buttons">
           <button class="btn" id="exportErrorDoneBtn">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config Export Dialog -->
+  <div class="config-export-dialog-overlay hidden" id="configExportDialogOverlay">
+    <div class="config-export-dialog" id="configExportDialog">
+      <!-- Options view -->
+      <div id="configExportOptionsView">
+        <div class="config-export-dialog-title">Export Config</div>
+        <div class="config-export-dialog-description">
+          Export your current configuration as a JSON file that can be used with the CLI's --config flag.
+        </div>
+        <div class="config-export-options">
+          <div class="config-export-option">
+            <input type="checkbox" id="configExportIncludeKeyframes">
+            <label class="config-export-option-label" for="configExportIncludeKeyframes">
+              <span>Include Keyframes</span>
+              <span>Export animation keyframe data along with the config</span>
+            </label>
+          </div>
+        </div>
+        <div class="config-export-dialog-buttons">
+          <button class="btn btn-cancel" id="configExportCancelBtn">Cancel</button>
+          <button class="btn" id="configExportSaveBtn">Export</button>
+        </div>
+      </div>
+      <!-- Success view -->
+      <div id="configExportSuccessView" style="display: none;">
+        <div class="config-export-dialog-success">
+          <div class="success-icon">&#10003;</div>
+          <div class="success-message">Config Exported!</div>
+          <div class="success-path" id="configExportSuccessPath"></div>
+        </div>
+        <div class="config-export-dialog-buttons">
+          <button class="btn" id="configExportDoneBtn">Done</button>
         </div>
       </div>
     </div>
@@ -4608,6 +4763,90 @@
 
     ipcRenderer.on('export-progress', (event, { progress, status }) => {
       updateExportProgress(progress, status);
+    });
+
+    // ============================================================
+    // Export Config Functionality
+    // ============================================================
+
+    // Config export dialog DOM elements
+    const configExportDialogOverlay = document.getElementById('configExportDialogOverlay');
+    const configExportOptionsView = document.getElementById('configExportOptionsView');
+    const configExportSuccessView = document.getElementById('configExportSuccessView');
+    const configExportIncludeKeyframes = document.getElementById('configExportIncludeKeyframes');
+    const configExportCancelBtn = document.getElementById('configExportCancelBtn');
+    const configExportSaveBtn = document.getElementById('configExportSaveBtn');
+    const configExportDoneBtn = document.getElementById('configExportDoneBtn');
+    const configExportSuccessPath = document.getElementById('configExportSuccessPath');
+
+    /**
+     * Shows the config export dialog
+     */
+    function showConfigExportDialog() {
+      configExportOptionsView.style.display = 'block';
+      configExportSuccessView.style.display = 'none';
+      // Reset checkbox to unchecked by default
+      configExportIncludeKeyframes.checked = false;
+      configExportDialogOverlay.classList.remove('hidden');
+    }
+
+    /**
+     * Hides the config export dialog
+     */
+    function hideConfigExportDialog() {
+      configExportDialogOverlay.classList.add('hidden');
+    }
+
+    /**
+     * Shows the config export success view
+     * @param {string} outputPath - Path to the exported config file
+     */
+    function showConfigExportSuccess(outputPath) {
+      configExportOptionsView.style.display = 'none';
+      configExportSuccessView.style.display = 'block';
+      configExportSuccessPath.textContent = outputPath;
+    }
+
+    /**
+     * Initiates config export
+     */
+    async function startConfigExport() {
+      const config = getFullConfigFromInputs();
+      const includeKeyframes = configExportIncludeKeyframes.checked;
+      const keyframes = editorState.keyframes.manager
+        ? editorState.keyframes.manager.toJSON()
+        : { tracks: [] };
+
+      try {
+        const result = await ipcRenderer.invoke('export-config', {
+          config: config,
+          keyframes: keyframes,
+          includeKeyframes: includeKeyframes
+        });
+
+        if (result.success) {
+          showConfigExportSuccess(result.outputPath);
+        } else if (result.canceled) {
+          // User cancelled save dialog - keep the options dialog open
+          // Don't hide the dialog
+        } else if (result.error) {
+          alert('Failed to export config: ' + result.error);
+          hideConfigExportDialog();
+        }
+      } catch (error) {
+        alert('Failed to export config: ' + (error.message || 'An unexpected error occurred'));
+        hideConfigExportDialog();
+      }
+    }
+
+    // Config export dialog button event listeners
+    configExportCancelBtn.addEventListener('click', hideConfigExportDialog);
+    configExportSaveBtn.addEventListener('click', startConfigExport);
+    configExportDoneBtn.addEventListener('click', hideConfigExportDialog);
+
+    // Config export IPC event listener
+    ipcRenderer.on('export-config', () => {
+      showConfigExportDialog();
     });
 
     // Initialize
