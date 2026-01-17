@@ -120,12 +120,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to write `[red]text[/red]` inline so that I can change colors mid-text.
 
 **Acceptance Criteria:**
-- [ ] Create `src/text/markupParser.js` with `parseMarkup(text)` function
-- [ ] Parser returns array of segments: `[{text: "hello", styles: []}, {text: "world", styles: ["red"]}]`
-- [ ] Support color tags: `[red]`, `[#FF0000]`, `[color:red]`
-- [ ] Support newline tag: `[br]` or `[newline]`
-- [ ] Typecheck passes
-- [ ] Unit tests cover basic parsing
+- [x] Create `src/text/markupParser.js` with `parseMarkup(text)` function
+- [x] Parser returns array of segments: `[{text: "hello", styles: []}, {text: "world", styles: ["red"]}]`
+- [x] Support color tags: `[red]`, `[#FF0000]`, `[color:red]`
+- [x] Support newline tag: `[br]` or `[newline]`
+- [x] Typecheck passes
+- [x] Unit tests cover basic parsing
 
 #### US-010: Support Nested Markup Styles
 **Description:** As a user, I want to nest styles like `[bold][red]text[/red][/bold]` so that I can combine effects.
