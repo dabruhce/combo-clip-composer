@@ -202,3 +202,28 @@
   - Warning collection pattern: module-level array reset on each parse call, getter returns copy
   - The parseMarkup function maps styleStack to values array using .map(s => s.value)
 ---
+
+## Iteration 11 - US-011: Render Parsed Markup to Canvas
+- What was implemented:
+  - Created `src/text/markupRenderer.js` with full markup rendering capabilities
+  - `renderMarkup(ctx, segments, x, y, baseConfig)` - renders parsed segments to canvas context
+  - `renderMarkupText(ctx, text, x, y, baseConfig)` - convenience function combining parse + render
+  - `createMarkupCanvas(text, config)` - creates standalone canvas with markup text
+  - `calculateMarkupDimensions(segments, font, fontSize, lineHeight)` - calculates space needed
+  - Helper functions: `hasStyle`, `buildFontString`, `measureStyledText`
+  - Supports bold, italic, underline styles + all color formats from markupParser
+  - Handles [br] newline tags by advancing Y and resetting X
+  - Integrated with existing dropshadow config flow via createMarkupCanvas
+  - Added 53 comprehensive tests for all functionality
+- Files changed:
+  - src/text/markupRenderer.js (new)
+  - tests/markupRenderer.test.js (new)
+  - PRD.md (marked US-011 as complete)
+- Learnings for future iterations:
+  - Jest test environment may use canvas polyfills that lack some methods (e.g., beginPath)
+  - Use `typeof ctx.method === 'function'` checks before calling canvas path methods for robustness
+  - `buildFontString` order: italic, bold, size, family (CSS font shorthand format)
+  - Underline position should be slightly below baseline: `currentY + fontSize * 0.1`
+  - Line height affects both newline Y advancement and dimension calculations
+  - createMarkupCanvas integrates with existing config structure (config.text.*)
+---

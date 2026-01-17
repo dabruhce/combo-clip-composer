@@ -142,13 +142,13 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a developer, I want to render parsed markup segments so that inline styles appear in the video.
 
 **Acceptance Criteria:**
-- [ ] Create `src/text/markupRenderer.js` with `renderMarkup(ctx, segments, x, y, baseConfig)` function
-- [ ] Each segment rendered with its combined styles applied
-- [ ] Track x position as each segment is drawn for proper flow
-- [ ] Handle `[br]` by advancing y position and resetting x
-- [ ] Integrate with existing `createTextCanvasOfSize` flow
-- [ ] Typecheck passes
-- [ ] Visual tests verify multi-color text renders correctly
+- [x] Create `src/text/markupRenderer.js` with `renderMarkup(ctx, segments, x, y, baseConfig)` function
+- [x] Each segment rendered with its combined styles applied
+- [x] Track x position as each segment is drawn for proper flow
+- [x] Handle `[br]` by advancing y position and resetting x
+- [x] Integrate with existing `createTextCanvasOfSize` flow
+- [x] Typecheck passes
+- [x] Visual tests verify multi-color text renders correctly
 
 ---
 
