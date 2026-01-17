@@ -200,8 +200,9 @@ async function splitwords(initialFrames, updatedFramesPath, game, comboText, xOf
 
 async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comboText, xOffset, yOffset, imageJobPath, config = null) {
   try {
-    // Get padding from config (for drawBlurredBackground which still takes explicit param)
+    // Get padding and margin from config
     const resolvedPadding = config && config.images ? config.images.padding : 5;
+    const resolvedMargin = config && config.images ? config.images.margin : 5;
 
     const inputs = comboText.split(",").map(input => input.trimStart());
     const wordSeparator = "sep";
@@ -229,9 +230,22 @@ async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comb
 
     const inputImagesDimensions = calculateInputImagesDimensions(splitInputs, config);
 
-    if (xOffset + inputImagesDimensions.width > frameDimensions.width) {
-      // Handle the situation here, e.g., throw an error, adjust xOffset, or scale the images
-      throw new Error("The total width of input images and the blurred background exceeds the width of the base frame.");
+    // Calculate total overlay dimensions including padding
+    const totalOverlayWidth = inputImagesDimensions.width + (resolvedPadding * 2);
+    const totalOverlayHeight = inputImagesDimensions.height + (resolvedPadding * 2);
+
+    // Validate that overlay fits within frame with margin
+    if (xOffset - resolvedPadding < resolvedMargin) {
+      throw new Error("The overlay position is too close to the left edge. Increase xOffset or decrease margin/padding.");
+    }
+    if (yOffset - resolvedPadding < resolvedMargin) {
+      throw new Error("The overlay position is too close to the top edge. Increase yOffset or decrease margin/padding.");
+    }
+    if (xOffset + inputImagesDimensions.width + resolvedPadding > frameDimensions.width - resolvedMargin) {
+      throw new Error("The overlay extends beyond the right edge. Decrease xOffset, image sizes, or margin/padding.");
+    }
+    if (yOffset + inputImagesDimensions.height + resolvedPadding > frameDimensions.height - resolvedMargin) {
+      throw new Error("The overlay extends beyond the bottom edge. Decrease yOffset, image sizes, or margin/padding.");
     }
 
     await drawBlurredBackground(context, xOffset, yOffset, inputImagesDimensions.width, inputImagesDimensions.height, "#008B8B99", resolvedPadding);

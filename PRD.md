@@ -104,13 +104,13 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want control over spacing between inputs and padding around the overlay so that layout looks professional.
 
 **Acceptance Criteria:**
-- [ ] Add `spacing` config: gap between individual input images
-- [ ] Add `padding` config: space between images and blurred background edge
-- [ ] Add `margin` config: space between overlay and video frame edge
-- [ ] Update `drawBlurredBackground` to account for padding
-- [ ] Update `drawInputImages` to apply spacing between images
-- [ ] Typecheck passes
-- [ ] Unit tests verify spacing calculations
+- [x] Add `spacing` config: gap between individual input images
+- [x] Add `padding` config: space between images and blurred background edge
+- [x] Add `margin` config: space between overlay and video frame edge
+- [x] Update `drawBlurredBackground` to account for padding
+- [x] Update `drawInputImages` to apply spacing between images
+- [x] Typecheck passes
+- [x] Unit tests verify spacing calculations
 
 ---
 

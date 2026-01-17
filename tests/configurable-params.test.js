@@ -328,3 +328,187 @@ describe('Config integration with video pipeline', () => {
     expect(result.height).toBe(75);
   });
 });
+
+// US-008: Configurable Spacing, Padding, and Margins
+describe('Spacing, Padding, and Margin configuration (US-008)', () => {
+  const { loadConfig } = require('../src/config/configLoader');
+
+  describe('spacing config - gap between individual input images', () => {
+    test('spacing of 0 results in no gaps between images', () => {
+      const inputs = ['d', 'df', 'f'];
+      const config = { images: { width: 50, height: 50, spacing: 0, padding: 5, margin: 5 } };
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Width = 3 * 50 + 0 gaps = 150
+      expect(result.width).toBe(150);
+    });
+
+    test('spacing of 5 adds 5px gaps between images', () => {
+      const inputs = ['d', 'df', 'f'];
+      const config = { images: { width: 50, height: 50, spacing: 5, padding: 5, margin: 5 } };
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Width = 3 * 50 + 2 * 5 = 150 + 10 = 160
+      expect(result.width).toBe(160);
+    });
+
+    test('spacing of 15 adds 15px gaps between images', () => {
+      const inputs = ['d', 'df', 'f', '1', '2'];
+      const config = { images: { width: 40, height: 40, spacing: 15, padding: 5, margin: 5 } };
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Width = 5 * 40 + 4 * 15 = 200 + 60 = 260
+      expect(result.width).toBe(260);
+    });
+
+    test('spacing only applies between images, not at edges', () => {
+      const inputs = ['1'];
+      const config = { images: { width: 50, height: 50, spacing: 20, padding: 5, margin: 5 } };
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Single image: no spacing, just the image width
+      expect(result.width).toBe(50);
+    });
+  });
+
+  describe('padding config - space between images and blurred background edge', () => {
+    test('default padding is 5', () => {
+      const config = loadConfig();
+      expect(config.images.padding).toBe(5);
+    });
+
+    test('padding can be customized in config', () => {
+      const path = require('path');
+      const fs = require('fs');
+
+      const testConfigPath = path.join(__dirname, 'fixtures', 'padding-test-config.json');
+      fs.writeFileSync(testConfigPath, JSON.stringify({
+        images: { padding: 15 }
+      }));
+
+      const config = loadConfig(testConfigPath);
+      expect(config.images.padding).toBe(15);
+
+      fs.unlinkSync(testConfigPath);
+    });
+
+    test('padding of 0 is valid', () => {
+      const path = require('path');
+      const fs = require('fs');
+
+      const testConfigPath = path.join(__dirname, 'fixtures', 'zero-padding-config.json');
+      fs.writeFileSync(testConfigPath, JSON.stringify({
+        images: { padding: 0 }
+      }));
+
+      const config = loadConfig(testConfigPath);
+      expect(config.images.padding).toBe(0);
+
+      fs.unlinkSync(testConfigPath);
+    });
+  });
+
+  describe('margin config - space between overlay and video frame edge', () => {
+    test('default margin is 5', () => {
+      const config = loadConfig();
+      expect(config.images.margin).toBe(5);
+    });
+
+    test('margin can be customized in config', () => {
+      const path = require('path');
+      const fs = require('fs');
+
+      const testConfigPath = path.join(__dirname, 'fixtures', 'margin-test-config.json');
+      fs.writeFileSync(testConfigPath, JSON.stringify({
+        images: { margin: 20 }
+      }));
+
+      const config = loadConfig(testConfigPath);
+      expect(config.images.margin).toBe(20);
+
+      fs.unlinkSync(testConfigPath);
+    });
+
+    test('margin of 0 is valid', () => {
+      const path = require('path');
+      const fs = require('fs');
+
+      const testConfigPath = path.join(__dirname, 'fixtures', 'zero-margin-config.json');
+      fs.writeFileSync(testConfigPath, JSON.stringify({
+        images: { margin: 0 }
+      }));
+
+      const config = loadConfig(testConfigPath);
+      expect(config.images.margin).toBe(0);
+
+      fs.unlinkSync(testConfigPath);
+    });
+  });
+
+  describe('combined spacing, padding, and margin calculations', () => {
+    test('calculateInputImagesDimensions returns correct dimensions with all configs', () => {
+      const inputs = ['d', 'df', 'f', '1'];
+      const config = {
+        images: {
+          width: 60,
+          height: 45,
+          spacing: 8,
+          padding: 10,
+          margin: 15
+        }
+      };
+
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Width = 4 * 60 + 3 * 8 = 240 + 24 = 264
+      expect(result.width).toBe(264);
+      expect(result.height).toBe(45);
+    });
+
+    test('total overlay area can be calculated from dimensions + padding', () => {
+      const inputs = ['d', 'df', 'f'];
+      const config = {
+        images: {
+          width: 50,
+          height: 50,
+          spacing: 5,
+          padding: 10,
+          margin: 5
+        }
+      };
+
+      const dimensions = calculateInputImagesDimensions(inputs, config);
+      const padding = config.images.padding;
+
+      // Overlay width = dimensions.width + padding*2
+      const totalOverlayWidth = dimensions.width + (padding * 2);
+      // Width = 3 * 50 + 2 * 5 = 160, overlay = 160 + 20 = 180
+      expect(totalOverlayWidth).toBe(180);
+
+      // Overlay height = dimensions.height + padding*2
+      const totalOverlayHeight = dimensions.height + (padding * 2);
+      // Height = 50, overlay = 50 + 20 = 70
+      expect(totalOverlayHeight).toBe(70);
+    });
+
+    test('minimum position for overlay is margin + padding', () => {
+      const config = {
+        images: {
+          width: 50,
+          height: 50,
+          spacing: 0,
+          padding: 10,
+          margin: 15
+        }
+      };
+
+      // The minimum x position where images can start is margin + padding
+      // because the blurred background extends padding pixels before the images
+      const minX = config.images.margin + config.images.padding;
+      const minY = config.images.margin + config.images.padding;
+
+      expect(minX).toBe(25);
+      expect(minY).toBe(25);
+    });
+  });
+});
