@@ -309,12 +309,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a developer, I want a keyframe data structure so that properties can change over time.
 
 **Acceptance Criteria:**
-- [ ] Create `editor/models/keyframe.js` with Keyframe class
-- [ ] Keyframe stores: frame number, property name, value
-- [ ] KeyframeTrack stores ordered list of keyframes for one property
-- [ ] Support interpolation types: linear, ease-in, ease-out, step
-- [ ] Typecheck passes
-- [ ] Unit tests verify keyframe data model
+- [x] Create `editor/models/keyframe.js` with Keyframe class
+- [x] Keyframe stores: frame number, property name, value
+- [x] KeyframeTrack stores ordered list of keyframes for one property
+- [x] Support interpolation types: linear, ease-in, ease-out, step
+- [x] Typecheck passes
+- [x] Unit tests verify keyframe data model
 
 #### US-026: Implement Keyframe UI on Timeline
 **Description:** As a user, I want to see keyframes on the timeline so that I can manage animation points.
