@@ -1,0 +1,30 @@
+{
+  "text": {
+    "font": "THEBOLDFONT",
+    "fontSize": 50,
+    "color": "yellow",
+    "position": {
+      "x": 10,
+      "y": 50
+    },
+    "dropshadow": {
+      "enabled": false,
+      "color": "#000000",
+      "blur": 0,
+      "offsetX": -2,
+      "offsetY": 3
+    }
+  },
+  "images": {
+    "width": 50,
+    "height": 50,
+    "spacing": 0,
+    "padding": 5,
+    "margin": 5
+  },
+  "animation": {
+    "type": "none",
+    "duration": 500,
+    "delay": 0
+  }
+}
