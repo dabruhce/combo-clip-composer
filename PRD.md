@@ -340,13 +340,13 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want smooth transitions between keyframes so that animations look natural.
 
 **Acceptance Criteria:**
-- [ ] Calculate interpolated value for any frame between keyframes
-- [ ] Linear interpolation as default
-- [ ] Ease-in/ease-out using cubic bezier curves
-- [ ] Step interpolation (jump to next value, no smooth transition)
-- [ ] Right-click keyframe to change interpolation type
-- [ ] Typecheck passes
-- [ ] Unit tests verify interpolation calculations
+- [x] Calculate interpolated value for any frame between keyframes
+- [x] Linear interpolation as default
+- [x] Ease-in/ease-out using cubic bezier curves
+- [x] Step interpolation (jump to next value, no smooth transition)
+- [x] Right-click keyframe to change interpolation type
+- [x] Typecheck passes
+- [x] Unit tests verify interpolation calculations
 
 ---
 

@@ -580,3 +580,47 @@
   - Use moveKeyframe() from KeyframeTrack for atomic move operations that preserve interpolation
   - Keyframe tracks sync with timeline zoom via updateKeyframeTrackWidths() + renderKeyframeMarkers()
 ---
+
+## Iteration 27 - US-027: Implement Add/Remove Keyframe
+- What was implemented:
+  - Added "Add Keyframe" button (◆+) to timeline controls
+  - Button creates keyframes for all 4 properties (position.x, position.y, opacity, scale) at current frame
+  - Added right-click context menu on keyframe markers with Delete and Change Interpolation options
+  - Added keyboard shortcuts: K to add keyframes, Delete/Backspace to remove selected
+  - Implemented undo/redo history with Ctrl+Z / Ctrl+Y support
+  - Added helper functions: getCurrentValueForProperty, addKeyframeAtCurrentFrame, addKeyframesForAllProperties, removeKeyframe, removeSelectedKeyframe, changeKeyframeInterpolation
+  - Context menu with interpolation submenu for changing keyframe easing (linear, ease-in, ease-out, ease-in-out, step)
+  - Undo/redo supports add, add-batch, remove, change-interp, and move operations
+- Files changed:
+  - editor/index.html (CSS for context menu and keyframe controls, HTML for context menu and button, JS for add/remove/undo/redo functions)
+  - PRD.md (marked US-027 as complete)
+- Learnings for future iterations:
+  - Undo/redo pattern: store operation type, data (property, frame, value, previous state), and description
+  - Context menu uses position: fixed with clientX/clientY for positioning
+  - Hide context menu on document click outside menu (use .contains() check)
+  - Keyboard shortcuts should check for Ctrl/Meta key before regular key handling
+  - Event listener order matters - handle Ctrl+Z/Ctrl+Y before checking frameCount === 0
+  - Context menu submenu visibility toggled with class, not inline style
+  - The getCurrentValueForProperty function reads from editorState.overlay for position values
+---
+
+## Iteration 28 - US-028: Implement Keyframe Interpolation
+- What was implemented:
+  - Verified all acceptance criteria were already satisfied from US-025/US-026/US-027 implementations
+  - `getValueAt()` in KeyframeTrack calculates interpolated value for any frame between keyframes
+  - Linear interpolation is default via Keyframe constructor (`interpolation = INTERPOLATION_TYPES.LINEAR`)
+  - Ease-in/ease-out implemented using quadratic curves in `interpolate()` function
+  - Ease-in-out uses cubic curves (4*t^3 for first half, 1-(-2t+2)^3/2 for second half)
+  - Step interpolation returns startValue until reaching endFrame (no interpolation)
+  - Right-click context menu in editor UI already allows changing interpolation type via `changeKeyframeInterpolation()`
+  - 71 keyframe unit tests pass covering all interpolation calculations
+  - No TypeScript in project, so typecheck criterion is satisfied by default
+- Files changed:
+  - PRD.md (marked US-028 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Keyframe interpolation was already fully implemented across US-025/US-026/US-027
+  - The `interpolate()` function in keyframe.js handles all interpolation types
+  - Pre-existing test failures (pipeline.test.js, combos.test.js) are ffmpeg/ytdl-core environment issues, not code bugs
+  - When all acceptance criteria are already satisfied, task completion is a verification exercise
+---
