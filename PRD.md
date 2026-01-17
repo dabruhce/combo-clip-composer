@@ -225,11 +225,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to see the current frame so that I can position overlays visually.
 
 **Acceptance Criteria:**
-- [ ] Create canvas-based frame display component
-- [ ] Display selected frame from extracted frames
-- [ ] Support zoom in/out (fit, 50%, 100%, 200%)
-- [ ] Display frame dimensions and current zoom level
-- [ ] Typecheck passes
+- [x] Create canvas-based frame display component
+- [x] Display selected frame from extracted frames
+- [x] Support zoom in/out (fit, 50%, 100%, 200%)
+- [x] Display frame dimensions and current zoom level
+- [x] Typecheck passes
 
 ---
 

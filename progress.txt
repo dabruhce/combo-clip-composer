@@ -336,3 +336,51 @@
   - Placeholder layout should include all major UI regions to guide future implementation
   - Dark theme (#1e1e1e background, #252526 panels) matches VS Code for professional look
 ---
+
+## Iteration 17 - US-017: Implement Video Loading in Editor
+- What was implemented:
+  - Added "Open Video" menu item in File menu with Ctrl+O/Cmd+O accelerator
+  - Added "Open Video" button in toolbar
+  - Implemented Electron dialog to select video files (.mp4, .avi, .mov, .mkv, .webm)
+  - Extract frames using ffmpeg-extract-frames to temp directory (os.tmpdir())
+  - Display animated loading overlay with spinner during frame extraction
+  - Store frame paths, metadata (fps, duration, width, height) in editor state
+  - Added IPC handlers: 'open-video', 'get-frame-paths', 'get-current-video'
+  - Clean up temp directory on app quit
+  - Status bar updates with loading/loaded state
+  - 410 tests pass (3 pre-existing ffmpeg/ytdl-core failures unchanged)
+- Files changed:
+  - editor/main.js (added menu, IPC handlers, video extraction logic, cleanup)
+  - editor/index.html (added toolbar button, loading overlay, renderer script with state management)
+  - PRD.md (marked US-017 as complete)
+- Learnings for future iterations:
+  - Electron IPC pattern: ipcMain.handle in main process, ipcRenderer.invoke in renderer
+  - Use os.tmpdir() for temp frame storage, clean up with fs.rmSync on will-quit
+  - Menu accelerators use 'CmdOrCtrl+O' for cross-platform compatibility
+  - Frame extraction is the bottleneck - should show progress for large videos
+  - Loading overlay uses CSS animation for spinner, z-index ensures it covers content
+  - The getVideoMetadata function can be reused from videoUtils.js pattern
+---
+
+## Iteration 18 - US-018: Implement Frame Display Panel
+- What was implemented:
+  - Created canvas-based frame display component with `#frameCanvas` element
+  - Added `loadFrame(frameIndex)` function to load and display frames from extracted frame paths
+  - Implemented zoom support: fit, 50%, 100%, 200% via dropdown and +/- buttons
+  - `calculateFitScale()` calculates scale to fit frame within container with padding
+  - `setZoom()`, `zoomIn()`, `zoomOut()` handle zoom level changes
+  - Added `#frameInfo` display showing "widthxheight @ zoom%" format
+  - `drawFrame()` renders frame to canvas at current zoom scale with high-quality image smoothing
+  - `showFrameCanvas()`/`hideFrameCanvas()` toggle between placeholder and frame view
+  - Window resize handler recalculates fit zoom when resized
+  - 410 tests pass (3 pre-existing ffmpeg/ytdl-core failures unchanged)
+- Files changed:
+  - editor/index.html (added canvas, zoom controls, CSS styles, and JS functions)
+  - PRD.md (marked US-018 as complete)
+- Learnings for future iterations:
+  - Use `file://` protocol prefix for loading local image files in Electron renderer
+  - Canvas `imageSmoothingEnabled` and `imageSmoothingQuality = 'high'` for crisp scaling
+  - Fit scale calculation: min(scaleX, scaleY, 1) to never scale up beyond 100%
+  - Store zoom as 'fit' string or numeric value (0.5, 1, 2) for flexible handling
+  - Image onload callback is async - cache loaded image in state for redraw on zoom
+---

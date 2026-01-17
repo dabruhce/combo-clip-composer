@@ -106,6 +106,98 @@
       color: #555555;
     }
 
+    /* Frame canvas container */
+    .frame-canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: auto;
+      display: none;
+    }
+
+    .frame-canvas-container.visible {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .frame-canvas-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 100%;
+      min-height: 100%;
+    }
+
+    #frameCanvas {
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      image-rendering: auto;
+    }
+
+    /* Zoom controls */
+    .zoom-controls {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(30, 30, 30, 0.9);
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #3d3d3d;
+      z-index: 10;
+    }
+
+    .zoom-controls.hidden {
+      display: none;
+    }
+
+    .zoom-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #2d2d2d;
+      border: 1px solid #3d3d3d;
+      border-radius: 3px;
+      color: #cccccc;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .zoom-btn:hover {
+      background-color: #3d3d3d;
+    }
+
+    .zoom-btn:active {
+      background-color: #4d4d4d;
+    }
+
+    .zoom-select {
+      padding: 4px 8px;
+      background-color: #2d2d2d;
+      border: 1px solid #3d3d3d;
+      border-radius: 3px;
+      color: #cccccc;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .zoom-select:hover {
+      background-color: #3d3d3d;
+    }
+
+    .frame-info {
+      font-size: 11px;
+      color: #888888;
+      white-space: nowrap;
+    }
+
     /* Right panel - Layers/Elements */
     .panel-right {
       width: 280px;
@@ -258,6 +350,24 @@
           <h2>No Video Loaded</h2>
           <p>Open a video file to begin editing</p>
         </div>
+        <!-- Frame canvas display -->
+        <div class="frame-canvas-container" id="frameCanvasContainer">
+          <div class="frame-canvas-wrapper" id="frameCanvasWrapper">
+            <canvas id="frameCanvas"></canvas>
+          </div>
+        </div>
+        <!-- Zoom controls -->
+        <div class="zoom-controls hidden" id="zoomControls">
+          <button class="zoom-btn" id="zoomOutBtn" title="Zoom Out">−</button>
+          <select class="zoom-select" id="zoomSelect">
+            <option value="fit">Fit</option>
+            <option value="0.5">50%</option>
+            <option value="1">100%</option>
+            <option value="2">200%</option>
+          </select>
+          <button class="zoom-btn" id="zoomInBtn" title="Zoom In">+</button>
+          <span class="frame-info" id="frameInfo">0x0</span>
+        </div>
         <!-- Loading overlay -->
         <div class="loading-overlay hidden" id="loadingOverlay">
           <div class="loading-spinner"></div>
@@ -310,7 +420,9 @@
       frameCount: 0,
       currentFrame: 0,
       metadata: null,
-      isLoading: false
+      isLoading: false,
+      zoom: 'fit', // 'fit', 0.5, 1, 2
+      frameImage: null // Cached current frame image
     };
 
     // DOM elements
@@ -319,6 +431,16 @@
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingSubtext = document.getElementById('loadingSubtext');
     const statusBar = document.querySelector('.status-bar');
+    const previewContainer = document.getElementById('previewContainer');
+    const frameCanvasContainer = document.getElementById('frameCanvasContainer');
+    const frameCanvas = document.getElementById('frameCanvas');
+    const frameCanvasWrapper = document.getElementById('frameCanvasWrapper');
+    const zoomControls = document.getElementById('zoomControls');
+    const zoomSelect = document.getElementById('zoomSelect');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const frameInfo = document.getElementById('frameInfo');
+    const ctx = frameCanvas.getContext('2d');
 
     /**
      * Updates the status bar with current state
@@ -360,6 +482,150 @@
     }
 
     /**
+     * Calculates the zoom scale for 'fit' mode
+     */
+    function calculateFitScale() {
+      if (!editorState.metadata) return 1;
+      const containerWidth = previewContainer.clientWidth;
+      const containerHeight = previewContainer.clientHeight;
+      const imageWidth = editorState.metadata.width;
+      const imageHeight = editorState.metadata.height;
+
+      // Calculate scale to fit with some padding
+      const padding = 40;
+      const scaleX = (containerWidth - padding) / imageWidth;
+      const scaleY = (containerHeight - padding) / imageHeight;
+
+      return Math.min(scaleX, scaleY, 1); // Don't scale up beyond 100%
+    }
+
+    /**
+     * Gets the current zoom scale as a number
+     */
+    function getZoomScale() {
+      if (editorState.zoom === 'fit') {
+        return calculateFitScale();
+      }
+      return parseFloat(editorState.zoom);
+    }
+
+    /**
+     * Updates the frame info display
+     */
+    function updateFrameInfo() {
+      if (!editorState.metadata) {
+        frameInfo.textContent = '0x0';
+        return;
+      }
+      const scale = getZoomScale();
+      const zoomPercent = Math.round(scale * 100);
+      frameInfo.textContent = `${editorState.metadata.width}x${editorState.metadata.height} @ ${zoomPercent}%`;
+    }
+
+    /**
+     * Draws the current frame on the canvas
+     */
+    function drawFrame() {
+      if (!editorState.frameImage || !editorState.metadata) return;
+
+      const scale = getZoomScale();
+      const scaledWidth = Math.round(editorState.metadata.width * scale);
+      const scaledHeight = Math.round(editorState.metadata.height * scale);
+
+      // Set canvas size to scaled dimensions
+      frameCanvas.width = scaledWidth;
+      frameCanvas.height = scaledHeight;
+
+      // Clear and draw the frame
+      ctx.clearRect(0, 0, scaledWidth, scaledHeight);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(editorState.frameImage, 0, 0, scaledWidth, scaledHeight);
+
+      updateFrameInfo();
+    }
+
+    /**
+     * Loads and displays a frame by index
+     */
+    function loadFrame(frameIndex) {
+      if (!editorState.framePaths || editorState.framePaths.length === 0) return;
+
+      // Clamp frame index
+      const index = Math.max(0, Math.min(frameIndex, editorState.framePaths.length - 1));
+      editorState.currentFrame = index;
+
+      const framePath = editorState.framePaths[index];
+      const img = new Image();
+
+      img.onload = () => {
+        editorState.frameImage = img;
+        drawFrame();
+      };
+
+      img.onerror = (err) => {
+        console.error('Failed to load frame:', framePath, err);
+      };
+
+      // Use file:// protocol for local files
+      img.src = `file://${framePath}`;
+    }
+
+    /**
+     * Sets the zoom level and redraws
+     */
+    function setZoom(zoom) {
+      editorState.zoom = zoom;
+      zoomSelect.value = zoom;
+      drawFrame();
+
+      // For fit mode, center the canvas
+      if (zoom === 'fit') {
+        frameCanvasContainer.scrollTo(0, 0);
+      }
+    }
+
+    /**
+     * Zoom in one step
+     */
+    function zoomIn() {
+      const zoomLevels = ['fit', '0.5', '1', '2'];
+      const currentIndex = zoomLevels.indexOf(String(editorState.zoom));
+      if (currentIndex < zoomLevels.length - 1) {
+        setZoom(zoomLevels[currentIndex + 1] === 'fit' ? 'fit' : parseFloat(zoomLevels[currentIndex + 1]));
+      }
+    }
+
+    /**
+     * Zoom out one step
+     */
+    function zoomOut() {
+      const zoomLevels = ['fit', '0.5', '1', '2'];
+      const currentIndex = zoomLevels.indexOf(String(editorState.zoom));
+      if (currentIndex > 0) {
+        setZoom(zoomLevels[currentIndex - 1] === 'fit' ? 'fit' : parseFloat(zoomLevels[currentIndex - 1]));
+      }
+    }
+
+    /**
+     * Shows the frame canvas and hides placeholder
+     */
+    function showFrameCanvas() {
+      previewPlaceholder.style.display = 'none';
+      frameCanvasContainer.classList.add('visible');
+      zoomControls.classList.remove('hidden');
+    }
+
+    /**
+     * Hides the frame canvas and shows placeholder
+     */
+    function hideFrameCanvas() {
+      previewPlaceholder.style.display = '';
+      frameCanvasContainer.classList.remove('visible');
+      zoomControls.classList.add('hidden');
+    }
+
+    /**
      * Updates editor state with loaded video data
      */
     function onVideoLoaded(data) {
@@ -369,21 +635,14 @@
       editorState.frameCount = data.frameCount;
       editorState.metadata = data.metadata;
       editorState.currentFrame = 0;
+      editorState.zoom = 'fit';
 
       hideLoading();
 
-      // Update placeholder text to show video info
-      const placeholder = previewPlaceholder;
-      placeholder.innerHTML = `
-        <h2>Video Loaded</h2>
-        <p>${path.basename(data.videoPath)}</p>
-        <p style="margin-top: 8px; font-size: 12px; color: #666666;">
-          ${data.metadata.width}x${data.metadata.height} |
-          ${data.metadata.fps.toFixed(2)} fps |
-          ${data.frameCount} frames |
-          ${data.metadata.duration.toFixed(2)}s
-        </p>
-      `;
+      // Show frame canvas and load first frame
+      showFrameCanvas();
+      setZoom('fit');
+      loadFrame(0);
 
       // Update timeline time display
       const timeDisplay = document.querySelector('.timeline-controls span');
@@ -436,6 +695,22 @@
 
     // Event listeners
     openVideoBtn.addEventListener('click', openVideo);
+
+    // Zoom control event listeners
+    zoomSelect.addEventListener('change', (e) => {
+      const value = e.target.value;
+      setZoom(value === 'fit' ? 'fit' : parseFloat(value));
+    });
+
+    zoomInBtn.addEventListener('click', zoomIn);
+    zoomOutBtn.addEventListener('click', zoomOut);
+
+    // Handle window resize to recalculate fit zoom
+    window.addEventListener('resize', () => {
+      if (editorState.zoom === 'fit' && editorState.frameImage) {
+        drawFrame();
+      }
+    });
 
     // IPC event listeners
     ipcRenderer.on('video-loading-started', (event, data) => {
