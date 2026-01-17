@@ -70,11 +70,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to set text color and position so that overlays appear where I want them.
 
 **Acceptance Criteria:**
-- [ ] Update `createTextCanvasOfSize` to accept `color` from config
-- [ ] Support hex colors (#RRGGBB), named colors, and rgba format
-- [ ] Position (x, y) read from config with CLI override capability
-- [ ] Typecheck passes
-- [ ] Unit tests verify color parsing and position application
+- [x] Update `createTextCanvasOfSize` to accept `color` from config
+- [x] Support hex colors (#RRGGBB), named colors, and rgba format
+- [x] Position (x, y) read from config with CLI override capability
+- [x] Typecheck passes
+- [x] Unit tests verify color parsing and position application
 
 #### US-006: Implement Text Dropshadow Effect
 **Description:** As a user, I want dropshadow on text so that it stands out against busy backgrounds.
