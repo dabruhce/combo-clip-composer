@@ -94,11 +94,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to control input image sizes so that they scale appropriately for my video resolution.
 
 **Acceptance Criteria:**
-- [ ] Update `drawInputImages` to use `images.width` and `images.height` from config
-- [ ] Update `calculateInputImagesDimensions` to use config values
-- [ ] Remove hardcoded `inputWidth=50, inputHeight=50` defaults
-- [ ] Typecheck passes
-- [ ] Unit tests verify dimension calculations with various config values
+- [x] Update `drawInputImages` to use `images.width` and `images.height` from config
+- [x] Update `calculateInputImagesDimensions` to use config values
+- [x] Remove hardcoded `inputWidth=50, inputHeight=50` defaults
+- [x] Typecheck passes
+- [x] Unit tests verify dimension calculations with various config values
 
 #### US-008: Implement Configurable Spacing, Padding, and Margins
 **Description:** As a user, I want control over spacing between inputs and padding around the overlay so that layout looks professional.

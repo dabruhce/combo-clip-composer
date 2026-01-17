@@ -30,13 +30,18 @@ ffmpeg.setFfprobePath(ffprobePath);
     return path.basename(filePath);
   }
 
-  async function processComboVideo(inputFile, text, x, y, jobDirectory = './artifacts/out/', directories = ['./assets/games/Tekken7/images', './assets/games/common/images'], inputWidth = 50, inputHeight = 50, configPath = null) {
+  async function processComboVideo(inputFile, text, x, y, jobDirectory = './artifacts/out/', directories = ['./assets/games/Tekken7/images', './assets/games/common/images'], inputWidth = null, inputHeight = null, configPath = null) {
     // Load and merge config (uses defaults if no configPath provided)
     const config = loadConfig(configPath);
 
-    // Use config values for image dimensions, falling back to parameters for backward compatibility
-    const resolvedInputWidth = inputWidth !== 50 ? inputWidth : config.images.width;
-    const resolvedInputHeight = inputHeight !== 50 ? inputHeight : config.images.height;
+    // If explicit inputWidth/inputHeight params are passed (for backward compatibility),
+    // override the config values
+    if (inputWidth !== null) {
+      config.images.width = inputWidth;
+    }
+    if (inputHeight !== null) {
+      config.images.height = inputHeight;
+    }
 
     const { audio, video, duration, fps } = await getVideoMetadata(inputFile)
 
@@ -81,7 +86,7 @@ ffmpeg.setFfprobePath(ffprobePath);
     const filePaths = fileNames.map(name => path.join(initialFramesDirectory, name));
 
     for (const filePath of filePaths) {
-      await redrawFrameWithComboImages(filePath, updatedFramesDirectory, text, x, y, imagesDirectory, resolvedInputWidth, resolvedInputHeight, config)
+      await redrawFrameWithComboImages(filePath, updatedFramesDirectory, text, x, y, imagesDirectory, config)
     }
 
     // Stitch frames into video
@@ -193,13 +198,10 @@ async function splitwords(initialFrames, updatedFramesPath, game, comboText, xOf
   });
 }
 
-async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comboText, xOffset, yOffset, imageJobPath, inputWidth = 50, inputHeight = 50, config = null) {
+async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comboText, xOffset, yOffset, imageJobPath, config = null) {
   try {
-    // Use config values if provided, otherwise use parameters
-    const resolvedWidth = config ? config.images.width : inputWidth;
-    const resolvedHeight = config ? config.images.height : inputHeight;
-    const resolvedSpacing = config ? config.images.spacing : 0;
-    const resolvedPadding = config ? config.images.padding : 5;
+    // Get padding from config (for drawBlurredBackground which still takes explicit param)
+    const resolvedPadding = config && config.images ? config.images.padding : 5;
 
     const inputs = comboText.split(",").map(input => input.trimStart());
     const wordSeparator = "sep";
@@ -225,7 +227,7 @@ async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comb
 
     await drawBaseFrame(context, initialFrames);
 
-    const inputImagesDimensions = calculateInputImagesDimensions(splitInputs, resolvedWidth, resolvedHeight, resolvedSpacing);
+    const inputImagesDimensions = calculateInputImagesDimensions(splitInputs, config);
 
     if (xOffset + inputImagesDimensions.width > frameDimensions.width) {
       // Handle the situation here, e.g., throw an error, adjust xOffset, or scale the images
@@ -234,7 +236,7 @@ async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comb
 
     await drawBlurredBackground(context, xOffset, yOffset, inputImagesDimensions.width, inputImagesDimensions.height, "#008B8B99", resolvedPadding);
 
-    await drawInputImages(context, splitInputs, xOffset, yOffset, imageJobPath, resolvedWidth, resolvedHeight, resolvedSpacing);
+    await drawInputImages(context, splitInputs, xOffset, yOffset, imageJobPath, config);
 
     const outputFilename = path.join(updatedFramesPath, path.basename(filename));
     const finalOutput = canvas.toBuffer("image/png");
@@ -274,25 +276,35 @@ async function drawBlurredBackground(context, xOffset, yOffset, width, height, c
   context.fillRect(blurredRect.x, blurredRect.y, blurredRect.width, blurredRect.height);
 }
 
-async function drawInputImages(context, inputs, xOffset, yOffset, imageJobPath, inputWidth = 50, inputHeight = 50, spacing = 0) {
+async function drawInputImages(context, inputs, xOffset, yOffset, imageJobPath, config = null) {
+  // Extract image dimensions from config, with defaults for backward compatibility
+  const width = config && config.images ? config.images.width : 50;
+  const height = config && config.images ? config.images.height : 50;
+  const spacing = config && config.images ? config.images.spacing : 0;
+
   const drawImagePromises = inputs.map(async (item, i) => {
-  const trimmedItem = item.trim();
+    const trimmedItem = item.trim();
 
     const file = `${trimmedItem}.svg`
     const imageFilePath = await findFileInDirectory(imageJobPath, file)
     const imageFile = await loadImage(imageFilePath);
-    const inputPosition = xOffset + (i * (inputWidth + spacing));
-    context.drawImage(imageFile, inputPosition, yOffset, inputWidth, inputHeight);
+    const inputPosition = xOffset + (i * (width + spacing));
+    context.drawImage(imageFile, inputPosition, yOffset, width, height);
 
   });
 
   await Promise.all(drawImagePromises);
 }
 
-function calculateInputImagesDimensions(inputs, inputWidth = 50, inputHeight = 50, spacing = 0) {
-  // Calculate total width: each input takes inputWidth, plus spacing between them
+function calculateInputImagesDimensions(inputs, config = null) {
+  // Extract image dimensions from config, with defaults for backward compatibility
+  const width = config && config.images ? config.images.width : 50;
+  const height = config && config.images ? config.images.height : 50;
+  const spacing = config && config.images ? config.images.spacing : 0;
+
+  // Calculate total width: each input takes width, plus spacing between them
   const numInputs = inputs.length;
-  let totalWidth = numInputs * inputWidth;
+  let totalWidth = numInputs * width;
 
   // Add spacing between images (numInputs - 1 gaps)
   if (numInputs > 1) {
@@ -301,7 +313,7 @@ function calculateInputImagesDimensions(inputs, inputWidth = 50, inputHeight = 5
 
   return {
     width: totalWidth,
-    height: inputHeight
+    height: height
   };
 }
 

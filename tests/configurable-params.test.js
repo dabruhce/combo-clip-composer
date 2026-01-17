@@ -86,8 +86,13 @@ describe('parseFrameRate', () => {
 });
 
 describe('calculateInputImagesDimensions', () => {
-  describe('default dimensions', () => {
-    test('should use default width (50) and height (50)', () => {
+  // Helper to create config object
+  const createConfig = (width = 50, height = 50, spacing = 0) => ({
+    images: { width, height, spacing, padding: 5, margin: 5 }
+  });
+
+  describe('default dimensions (no config)', () => {
+    test('should use default width (50) and height (50) when no config provided', () => {
       const inputs = ['d', 'df', 'f', '1'];
       const result = calculateInputImagesDimensions(inputs);
 
@@ -95,21 +100,31 @@ describe('calculateInputImagesDimensions', () => {
       // Width = 4 inputs * 50 width = 200 (no spacing by default)
       expect(result.width).toBe(200);
     });
+
+    test('should use default when config is null', () => {
+      const inputs = ['d', 'df', 'f', '1'];
+      const result = calculateInputImagesDimensions(inputs, null);
+
+      expect(result.height).toBe(50);
+      expect(result.width).toBe(200);
+    });
   });
 
-  describe('custom dimensions', () => {
-    test('should use custom width for calculation', () => {
+  describe('custom dimensions from config', () => {
+    test('should use custom width for calculation from config', () => {
       const inputs = ['d', 'df', 'f', '1'];
-      const result = calculateInputImagesDimensions(inputs, 100, 75);
+      const config = createConfig(100, 75);
+      const result = calculateInputImagesDimensions(inputs, config);
 
       // Width = 4 inputs * 100 width = 400
       expect(result.width).toBe(400);
       expect(result.height).toBe(75);
     });
 
-    test('should handle single input with custom dimensions', () => {
+    test('should handle single input with custom dimensions from config', () => {
       const inputs = ['1'];
-      const result = calculateInputImagesDimensions(inputs, 80, 60);
+      const config = createConfig(80, 60);
+      const result = calculateInputImagesDimensions(inputs, config);
 
       // Width = 1 input * 80 width = 80
       expect(result.width).toBe(80);
@@ -118,7 +133,8 @@ describe('calculateInputImagesDimensions', () => {
 
     test('should handle empty inputs array', () => {
       const inputs = [];
-      const result = calculateInputImagesDimensions(inputs, 50, 50);
+      const config = createConfig(50, 50);
+      const result = calculateInputImagesDimensions(inputs, config);
 
       // Width = 0 inputs = 0
       expect(result.width).toBe(0);
@@ -128,8 +144,11 @@ describe('calculateInputImagesDimensions', () => {
     test('should scale dimensions proportionally', () => {
       const inputs = ['d', 'df', 'f'];
 
-      const smallResult = calculateInputImagesDimensions(inputs, 25, 25);
-      const largeResult = calculateInputImagesDimensions(inputs, 100, 100);
+      const smallConfig = createConfig(25, 25);
+      const largeConfig = createConfig(100, 100);
+
+      const smallResult = calculateInputImagesDimensions(inputs, smallConfig);
+      const largeResult = calculateInputImagesDimensions(inputs, largeConfig);
 
       // Small: 3 * 25 = 75
       expect(smallResult.width).toBe(75);
@@ -141,10 +160,11 @@ describe('calculateInputImagesDimensions', () => {
     });
   });
 
-  describe('with spacing parameter', () => {
+  describe('with spacing from config', () => {
     test('should add spacing between images', () => {
       const inputs = ['d', 'df', 'f', '1'];
-      const result = calculateInputImagesDimensions(inputs, 50, 50, 10);
+      const config = createConfig(50, 50, 10);
+      const result = calculateInputImagesDimensions(inputs, config);
 
       // Width = 4 * 50 + (4-1) * 10 = 200 + 30 = 230
       expect(result.width).toBe(230);
@@ -153,7 +173,8 @@ describe('calculateInputImagesDimensions', () => {
 
     test('should not add spacing for single input', () => {
       const inputs = ['1'];
-      const result = calculateInputImagesDimensions(inputs, 50, 50, 10);
+      const config = createConfig(50, 50, 10);
+      const result = calculateInputImagesDimensions(inputs, config);
 
       // Width = 1 * 50 + 0 gaps = 50
       expect(result.width).toBe(50);
@@ -161,10 +182,43 @@ describe('calculateInputImagesDimensions', () => {
 
     test('should handle zero spacing', () => {
       const inputs = ['d', 'df', 'f'];
-      const result = calculateInputImagesDimensions(inputs, 50, 50, 0);
+      const config = createConfig(50, 50, 0);
+      const result = calculateInputImagesDimensions(inputs, config);
 
       // Width = 3 * 50 = 150
       expect(result.width).toBe(150);
+    });
+  });
+
+  describe('various config values (US-007)', () => {
+    test('should handle large image dimensions', () => {
+      const inputs = ['d', 'df', 'f'];
+      const config = createConfig(200, 150, 20);
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Width = 3 * 200 + 2 * 20 = 600 + 40 = 640
+      expect(result.width).toBe(640);
+      expect(result.height).toBe(150);
+    });
+
+    test('should handle small image dimensions', () => {
+      const inputs = ['d', 'df', 'f', '1', '2'];
+      const config = createConfig(10, 10, 2);
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Width = 5 * 10 + 4 * 2 = 50 + 8 = 58
+      expect(result.width).toBe(58);
+      expect(result.height).toBe(10);
+    });
+
+    test('should handle non-square dimensions', () => {
+      const inputs = ['d', 'df'];
+      const config = createConfig(80, 40, 5);
+      const result = calculateInputImagesDimensions(inputs, config);
+
+      // Width = 2 * 80 + 1 * 5 = 160 + 5 = 165
+      expect(result.width).toBe(165);
+      expect(result.height).toBe(40);
     });
   });
 });
@@ -267,12 +321,7 @@ describe('Config integration with video pipeline', () => {
     const config = loadConfig(customConfigPath);
     const inputs = ['d', 'df', 'f', '1'];
 
-    const result = calculateInputImagesDimensions(
-      inputs,
-      config.images.width,
-      config.images.height,
-      config.images.spacing
-    );
+    const result = calculateInputImagesDimensions(inputs, config);
 
     // Width = 4 * 75 + 3 * 10 = 300 + 30 = 330
     expect(result.width).toBe(330);
