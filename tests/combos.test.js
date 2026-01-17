@@ -1,3 +1,6 @@
+// Use real canvas module, not the mock (needed for integration tests)
+jest.unmock('canvas');
+
 const { processComboVideo, processVideo } = require('../src/video/videoUtils');
 const { recreateDirectory } = require('../src/utils/createDirectory');
 const { readFile } = require('../src/utils/readFile');
