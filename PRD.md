@@ -274,11 +274,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to see overlays rendered on the current frame so that I can adjust positioning.
 
 **Acceptance Criteria:**
-- [ ] Render combo input images on frame canvas using existing canvas logic
-- [ ] Render text overlays with current config
-- [ ] Update preview when config changes
-- [ ] Preview matches final render output
-- [ ] Typecheck passes
+- [x] Render combo input images on frame canvas using existing canvas logic
+- [x] Render text overlays with current config
+- [x] Update preview when config changes
+- [x] Preview matches final render output
+- [x] Typecheck passes
 
 #### US-023: Implement Drag-to-Position Overlays
 **Description:** As a user, I want to drag overlays to position them so that I don't need to guess coordinates.

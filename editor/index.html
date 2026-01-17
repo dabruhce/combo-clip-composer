@@ -545,6 +545,87 @@
     .status-item {
       margin-right: 16px;
     }
+
+    /* Property panel styles */
+    .property-group {
+      margin-bottom: 16px;
+    }
+
+    .property-label {
+      display: block;
+      font-size: 12px;
+      color: #cccccc;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .property-input {
+      width: 100%;
+      padding: 6px 8px;
+      background-color: #3c3c3c;
+      border: 1px solid #555555;
+      border-radius: 3px;
+      color: #ffffff;
+      font-size: 12px;
+    }
+
+    .property-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .property-input:disabled {
+      background-color: #2d2d2d;
+      color: #666666;
+      cursor: not-allowed;
+    }
+
+    .property-input-small {
+      width: 60px;
+      padding: 4px 6px;
+      background-color: #3c3c3c;
+      border: 1px solid #555555;
+      border-radius: 3px;
+      color: #ffffff;
+      font-size: 12px;
+    }
+
+    .property-input-small:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .property-input-small:disabled {
+      background-color: #2d2d2d;
+      color: #666666;
+      cursor: not-allowed;
+    }
+
+    .property-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .property-sublabel {
+      font-size: 11px;
+      color: #888888;
+      min-width: 16px;
+    }
+
+    .property-hint {
+      font-size: 10px;
+      color: #666666;
+      margin-top: 4px;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
@@ -560,7 +641,63 @@
     <div class="panel-left">
       <div class="panel-header">Properties</div>
       <div class="panel-content">
-        <p style="color: #666666; font-size: 13px;">Load a video to see properties</p>
+        <div id="propertiesPlaceholder">
+          <p style="color: #666666; font-size: 13px;">Load a video to see properties</p>
+        </div>
+        <div id="overlayControls" style="display: none;">
+          <!-- Overlay Toggle -->
+          <div class="property-group">
+            <label class="property-label">
+              <input type="checkbox" id="overlayEnabled">
+              Enable Overlay Preview
+            </label>
+          </div>
+
+          <!-- Combo Text Input -->
+          <div class="property-group">
+            <label class="property-label" for="comboTextInput">Combo Notation</label>
+            <input type="text" id="comboTextInput" class="property-input" placeholder="e.g., d df f 2, w! ss" disabled>
+            <p class="property-hint">Separate combos with commas</p>
+          </div>
+
+          <!-- Position Controls -->
+          <div class="property-group">
+            <label class="property-label">Position</label>
+            <div class="property-row">
+              <label class="property-sublabel" for="overlayX">X:</label>
+              <input type="number" id="overlayX" class="property-input-small" value="10" min="0" disabled>
+              <label class="property-sublabel" for="overlayY">Y:</label>
+              <input type="number" id="overlayY" class="property-input-small" value="10" min="0" disabled>
+            </div>
+          </div>
+
+          <!-- Image Size Controls -->
+          <div class="property-group">
+            <label class="property-label">Image Size</label>
+            <div class="property-row">
+              <label class="property-sublabel" for="imgWidth">W:</label>
+              <input type="number" id="imgWidth" class="property-input-small" value="50" min="10" max="200" disabled>
+              <label class="property-sublabel" for="imgHeight">H:</label>
+              <input type="number" id="imgHeight" class="property-input-small" value="50" min="10" max="200" disabled>
+            </div>
+          </div>
+
+          <!-- Spacing Controls -->
+          <div class="property-group">
+            <label class="property-label">Spacing</label>
+            <div class="property-row">
+              <label class="property-sublabel" for="imgSpacing">Gap:</label>
+              <input type="number" id="imgSpacing" class="property-input-small" value="0" min="0" max="50" disabled>
+              <label class="property-sublabel" for="imgPadding">Pad:</label>
+              <input type="number" id="imgPadding" class="property-input-small" value="5" min="0" max="50" disabled>
+            </div>
+          </div>
+
+          <!-- Apply Button -->
+          <div class="property-group">
+            <button class="btn btn-full" id="applyOverlayBtn" disabled>Apply Overlay</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -658,6 +795,7 @@
   <script>
     const { ipcRenderer } = require('electron');
     const path = require('path');
+    const fs = require('fs');
 
     // Editor state
     const editorState = {
@@ -670,7 +808,16 @@
       isLoading: false,
       zoom: 'fit', // 'fit', 0.5, 1, 2
       frameImage: null, // Cached current frame image
-      timelineZoom: 1 // Timeline zoom level (1 = 100%, 2 = 200%, etc.)
+      timelineZoom: 1, // Timeline zoom level (1 = 100%, 2 = 200%, etc.)
+      // Overlay state
+      overlay: {
+        enabled: false,
+        comboText: '',
+        xOffset: 10,
+        yOffset: 10,
+        inputImages: [], // Loaded input images [{name, image}]
+        config: null // Config object for styling
+      }
     };
 
     // DOM elements
@@ -689,6 +836,19 @@
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     const frameInfo = document.getElementById('frameInfo');
     const ctx = frameCanvas.getContext('2d');
+
+    // Overlay controls DOM elements
+    const propertiesPlaceholder = document.getElementById('propertiesPlaceholder');
+    const overlayControls = document.getElementById('overlayControls');
+    const overlayEnabledCheckbox = document.getElementById('overlayEnabled');
+    const comboTextInput = document.getElementById('comboTextInput');
+    const overlayXInput = document.getElementById('overlayX');
+    const overlayYInput = document.getElementById('overlayY');
+    const imgWidthInput = document.getElementById('imgWidth');
+    const imgHeightInput = document.getElementById('imgHeight');
+    const imgSpacingInput = document.getElementById('imgSpacing');
+    const imgPaddingInput = document.getElementById('imgPadding');
+    const applyOverlayBtn = document.getElementById('applyOverlayBtn');
 
     // Timeline DOM elements
     const timelinePlaceholder = document.getElementById('timelinePlaceholder');
@@ -839,7 +999,7 @@
 
       img.onload = () => {
         editorState.frameImage = img;
-        drawFrame();
+        updatePreview();
       };
 
       img.onerror = (err) => {
@@ -856,7 +1016,7 @@
     function setZoom(zoom) {
       editorState.zoom = zoom;
       zoomSelect.value = zoom;
-      drawFrame();
+      updatePreview();
 
       // For fit mode, center the canvas
       if (zoom === 'fit') {
@@ -926,7 +1086,76 @@
       // Show timeline and update display
       showTimeline();
 
+      // Show overlay controls
+      showOverlayControls();
+
       console.log('Video loaded:', editorState);
+    }
+
+    /**
+     * Shows and enables overlay controls in properties panel
+     */
+    function showOverlayControls() {
+      propertiesPlaceholder.style.display = 'none';
+      overlayControls.style.display = 'block';
+
+      // Enable inputs
+      overlayEnabledCheckbox.disabled = false;
+      comboTextInput.disabled = false;
+      overlayXInput.disabled = false;
+      overlayYInput.disabled = false;
+      imgWidthInput.disabled = false;
+      imgHeightInput.disabled = false;
+      imgSpacingInput.disabled = false;
+      imgPaddingInput.disabled = false;
+      applyOverlayBtn.disabled = false;
+    }
+
+    /**
+     * Hides overlay controls in properties panel
+     */
+    function hideOverlayControls() {
+      propertiesPlaceholder.style.display = 'block';
+      overlayControls.style.display = 'none';
+
+      // Disable inputs
+      overlayEnabledCheckbox.disabled = true;
+      comboTextInput.disabled = true;
+      overlayXInput.disabled = true;
+      overlayYInput.disabled = true;
+      imgWidthInput.disabled = true;
+      imgHeightInput.disabled = true;
+      imgSpacingInput.disabled = true;
+      imgPaddingInput.disabled = true;
+      applyOverlayBtn.disabled = true;
+    }
+
+    /**
+     * Gets current config from overlay control inputs
+     */
+    function getOverlayConfigFromInputs() {
+      return {
+        text: { ...defaultConfig.text },
+        images: {
+          width: parseInt(imgWidthInput.value) || 50,
+          height: parseInt(imgHeightInput.value) || 50,
+          spacing: parseInt(imgSpacingInput.value) || 0,
+          padding: parseInt(imgPaddingInput.value) || 5,
+          margin: 5
+        }
+      };
+    }
+
+    /**
+     * Applies overlay from current control values
+     */
+    async function applyOverlayFromInputs() {
+      const comboText = comboTextInput.value;
+      const xOffset = parseInt(overlayXInput.value) || 10;
+      const yOffset = parseInt(overlayYInput.value) || 10;
+      const config = getOverlayConfigFromInputs();
+
+      await updateOverlay(comboText, xOffset, yOffset, config);
     }
 
     /**
@@ -1451,8 +1680,439 @@
       document.body.style.cursor = '';
     }
 
+    // ========================================
+    // OVERLAY PREVIEW FUNCTIONS
+    // ========================================
+
+    /**
+     * Default config for overlay rendering
+     */
+    const defaultConfig = {
+      text: {
+        font: 'Arial',
+        fontSize: 50,
+        color: 'yellow',
+        position: { x: 10, y: 50 },
+        dropshadow: {
+          enabled: false,
+          color: '#000000',
+          blur: 0,
+          offsetX: -2,
+          offsetY: 3
+        }
+      },
+      images: {
+        width: 50,
+        height: 50,
+        spacing: 0,
+        padding: 5,
+        margin: 5
+      }
+    };
+
+    /**
+     * Shortcut expansions for combo notation
+     */
+    const COMBO_SHORTCUTS = {
+      hcf: ['b', 'db', 'd', 'df', 'f'],
+      qcf: ['d', 'df', 'f'],
+      qcb: ['b', 'db', 'd'],
+      hcb: ['f', 'df', 'd', 'db', 'b'],
+      dp: ['f', 'd', 'df']
+    };
+
+    /**
+     * Held input conversions (uppercase to pressed variant)
+     */
+    const HELD_INPUT_MAP = {
+      'B': 'bp',
+      'DB': 'dbp',
+      'D': 'dp',
+      'DF': 'dfp',
+      'F': 'fp',
+      'UF': 'ufp',
+      'U': 'up',
+      'UB': 'ubp'
+    };
+
+    /**
+     * Parses combo text into array of input strings
+     * Handles comma separators, space-separated inputs, shortcuts, and held inputs
+     */
+    function parseComboText(comboText) {
+      if (!comboText || typeof comboText !== 'string') return [];
+
+      const inputs = comboText.split(',').map(input => input.trim());
+      const wordSeparator = 'sep';
+
+      const splitInputs = inputs.flatMap((input, index, array) => {
+        const parts = input.split(/\s+/).filter(p => p.length > 0);
+        if (index < array.length - 1) {
+          parts.push(wordSeparator);
+        }
+        return parts;
+      });
+
+      // Expand shortcuts
+      const expandedInputs = splitInputs.flatMap(item => {
+        const lower = item.toLowerCase();
+        if (COMBO_SHORTCUTS[lower]) {
+          return COMBO_SHORTCUTS[lower];
+        }
+        return [item];
+      });
+
+      // Convert held inputs (uppercase directions to *p variants)
+      const convertedInputs = expandedInputs.map(item => {
+        if (item.length < 3 && item.toUpperCase() === item && !/^\d+$/.test(item)) {
+          return HELD_INPUT_MAP[item] || item;
+        }
+        return item;
+      });
+
+      return convertedInputs;
+    }
+
+    /**
+     * Gets the SVG file name for an input
+     */
+    function getInputFileName(inputName) {
+      return `${inputName}.svg`;
+    }
+
+    /**
+     * Loads an image from a URL, returns a Promise
+     */
+    function loadImageAsync(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(new Error(`Failed to load image: ${src}`));
+        img.src = src;
+      });
+    }
+
+    /**
+     * Loads all input images for a combo from asset directories
+     * Returns array of {name, image} objects
+     */
+    async function loadInputImages(inputs, assetDirs) {
+      const images = [];
+      const loadPromises = [];
+
+      for (const input of inputs) {
+        const fileName = getInputFileName(input);
+
+        // Try each asset directory
+        for (const dir of assetDirs) {
+          const filePath = path.join(dir, fileName);
+
+          // Check if file exists and try to load it
+          loadPromises.push(
+            (async () => {
+              try {
+                // Use fs.existsSync to check if file exists in renderer process
+                if (fs.existsSync(filePath)) {
+                  const img = await loadImageAsync(`file://${filePath}`);
+                  return { name: input, image: img, path: filePath };
+                }
+              } catch (e) {
+                // File doesn't exist or couldn't load
+              }
+              return null;
+            })()
+          );
+        }
+      }
+
+      const results = await Promise.all(loadPromises);
+
+      // Group by input name (take first successful load for each)
+      const imageMap = new Map();
+      for (const result of results) {
+        if (result && !imageMap.has(result.name)) {
+          imageMap.set(result.name, result);
+        }
+      }
+
+      // Return in original input order
+      for (const input of inputs) {
+        const entry = imageMap.get(input);
+        if (entry) {
+          images.push(entry);
+        } else {
+          // Create placeholder for missing images
+          images.push({ name: input, image: null, missing: true });
+        }
+      }
+
+      return images;
+    }
+
+    /**
+     * Calculates the total dimensions of input images overlay
+     */
+    function calculateInputImagesDimensions(inputs, config) {
+      const imgConfig = config?.images || defaultConfig.images;
+      const width = imgConfig.width || 50;
+      const height = imgConfig.height || 50;
+      const spacing = imgConfig.spacing || 0;
+
+      const numInputs = inputs.length;
+      let totalWidth = numInputs * width;
+
+      if (numInputs > 1) {
+        totalWidth += (numInputs - 1) * spacing;
+      }
+
+      return { width: totalWidth, height: height };
+    }
+
+    /**
+     * Draws a blurred background behind the overlay
+     */
+    function drawBlurredBackground(ctx, xOffset, yOffset, width, height, color, padding) {
+      const blurredRect = {
+        x: xOffset - padding,
+        y: yOffset - padding,
+        height: height + (padding * 2),
+        width: width + (padding * 2),
+        spread: 10
+      };
+
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+
+      // Draw semi-transparent colored background
+      ctx.filter = 'none';
+      ctx.fillStyle = color || '#008B8B99';
+      ctx.fillRect(blurredRect.x, blurredRect.y, blurredRect.width, blurredRect.height);
+
+      ctx.restore();
+    }
+
+    /**
+     * Draws input images onto the canvas
+     */
+    function drawInputImages(ctx, inputImages, xOffset, yOffset, config) {
+      const imgConfig = config?.images || defaultConfig.images;
+      const width = imgConfig.width || 50;
+      const height = imgConfig.height || 50;
+      const spacing = imgConfig.spacing || 0;
+
+      inputImages.forEach((entry, i) => {
+        const inputPosition = xOffset + (i * (width + spacing));
+
+        if (entry.image) {
+          ctx.drawImage(entry.image, inputPosition, yOffset, width, height);
+        } else if (entry.missing) {
+          // Draw placeholder for missing images
+          ctx.save();
+          ctx.fillStyle = '#ff6666';
+          ctx.strokeStyle = '#ff0000';
+          ctx.lineWidth = 2;
+          ctx.fillRect(inputPosition, yOffset, width, height);
+          ctx.strokeRect(inputPosition, yOffset, width, height);
+
+          // Draw X
+          ctx.beginPath();
+          ctx.moveTo(inputPosition + 5, yOffset + 5);
+          ctx.lineTo(inputPosition + width - 5, yOffset + height - 5);
+          ctx.moveTo(inputPosition + width - 5, yOffset + 5);
+          ctx.lineTo(inputPosition + 5, yOffset + height - 5);
+          ctx.stroke();
+
+          // Draw input name
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(entry.name, inputPosition + width / 2, yOffset + height / 2 + 3);
+          ctx.restore();
+        }
+      });
+    }
+
+    /**
+     * Draws text overlay onto the canvas
+     */
+    function drawTextOverlay(ctx, text, xOffset, yOffset, config) {
+      if (!text) return;
+
+      const textConfig = config?.text || defaultConfig.text;
+      const font = textConfig.font || 'Arial';
+      const fontSize = textConfig.fontSize || 50;
+      const color = textConfig.color || 'yellow';
+      const dropshadow = textConfig.dropshadow || {};
+
+      ctx.save();
+
+      // Apply dropshadow if enabled
+      if (dropshadow.enabled) {
+        ctx.shadowColor = dropshadow.color || '#000000';
+        ctx.shadowBlur = dropshadow.blur || 0;
+        ctx.shadowOffsetX = dropshadow.offsetX || -2;
+        ctx.shadowOffsetY = dropshadow.offsetY || 3;
+      }
+
+      ctx.font = `${fontSize}px ${font}`;
+      ctx.fillStyle = color;
+      ctx.fillText(text, xOffset, yOffset + fontSize);
+
+      ctx.restore();
+    }
+
+    /**
+     * Draws the complete overlay (background + images + text) onto the frame canvas
+     */
+    function drawOverlay() {
+      if (!editorState.overlay.enabled || !editorState.frameImage) return;
+      if (!editorState.overlay.inputImages || editorState.overlay.inputImages.length === 0) return;
+
+      const config = editorState.overlay.config || defaultConfig;
+      const imgConfig = config.images || defaultConfig.images;
+      const padding = imgConfig.padding || 5;
+
+      const xOffset = editorState.overlay.xOffset;
+      const yOffset = editorState.overlay.yOffset;
+
+      // Calculate dimensions
+      const dimensions = calculateInputImagesDimensions(
+        editorState.overlay.inputImages,
+        config
+      );
+
+      // Get zoom scale
+      const scale = getZoomScale();
+
+      // Scale the offsets and dimensions
+      const scaledX = Math.round(xOffset * scale);
+      const scaledY = Math.round(yOffset * scale);
+      const scaledWidth = Math.round(dimensions.width * scale);
+      const scaledHeight = Math.round(dimensions.height * scale);
+      const scaledPadding = Math.round(padding * scale);
+      const scaledImgWidth = Math.round((imgConfig.width || 50) * scale);
+      const scaledImgHeight = Math.round((imgConfig.height || 50) * scale);
+      const scaledSpacing = Math.round((imgConfig.spacing || 0) * scale);
+
+      // Draw blurred background
+      drawBlurredBackground(ctx, scaledX, scaledY, scaledWidth, scaledHeight, '#008B8B99', scaledPadding);
+
+      // Draw input images (scaled)
+      const scaledConfig = {
+        ...config,
+        images: {
+          ...imgConfig,
+          width: scaledImgWidth,
+          height: scaledImgHeight,
+          spacing: scaledSpacing
+        }
+      };
+
+      drawInputImages(ctx, editorState.overlay.inputImages, scaledX, scaledY, scaledConfig);
+    }
+
+    /**
+     * Updates the preview by redrawing the frame and overlay
+     */
+    function updatePreview() {
+      drawFrame();
+      drawOverlay();
+    }
+
+    /**
+     * Updates overlay state and redraws preview
+     */
+    async function updateOverlay(comboText, xOffset, yOffset, config) {
+      editorState.overlay.comboText = comboText || '';
+      editorState.overlay.xOffset = xOffset !== undefined ? xOffset : editorState.overlay.xOffset;
+      editorState.overlay.yOffset = yOffset !== undefined ? yOffset : editorState.overlay.yOffset;
+      editorState.overlay.config = config || editorState.overlay.config || defaultConfig;
+
+      // Parse combo text and load images
+      if (comboText && comboText.trim()) {
+        const inputs = parseComboText(comboText);
+
+        // Asset directories for input images
+        const assetDirs = [
+          path.join(__dirname, '..', 'assets', 'games', 'Tekken7', 'images'),
+          path.join(__dirname, '..', 'assets', 'games', 'common', 'images')
+        ];
+
+        editorState.overlay.inputImages = await loadInputImages(inputs, assetDirs);
+        editorState.overlay.enabled = true;
+      } else {
+        editorState.overlay.inputImages = [];
+        editorState.overlay.enabled = false;
+      }
+
+      updatePreview();
+    }
+
+    /**
+     * Toggles overlay preview on/off
+     */
+    function toggleOverlayPreview(enabled) {
+      editorState.overlay.enabled = enabled;
+      updatePreview();
+    }
+
     // Event listeners
     openVideoBtn.addEventListener('click', openVideo);
+
+    // Overlay control event listeners
+    overlayEnabledCheckbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        // Apply overlay when checkbox is enabled
+        applyOverlayFromInputs();
+      } else {
+        // Disable overlay
+        editorState.overlay.enabled = false;
+        updatePreview();
+      }
+    });
+
+    applyOverlayBtn.addEventListener('click', async () => {
+      overlayEnabledCheckbox.checked = true;
+      await applyOverlayFromInputs();
+    });
+
+    // Update overlay on position change
+    overlayXInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    overlayYInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    // Update overlay on image config change
+    imgWidthInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    imgHeightInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    imgSpacingInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    imgPaddingInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
 
     // Timeline event listeners
     timelineRuler.addEventListener('click', onTimelineClick);
@@ -1530,7 +2190,7 @@
     // Handle window resize to recalculate fit zoom and timeline
     window.addEventListener('resize', () => {
       if (editorState.zoom === 'fit' && editorState.frameImage) {
-        drawFrame();
+        updatePreview();
       }
       // Redraw timeline ruler and update playhead position on resize
       if (editorState.frameCount > 0) {

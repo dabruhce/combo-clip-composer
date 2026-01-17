@@ -430,3 +430,56 @@
   - Check event.target.tagName to avoid capturing shortcuts when user is typing
   - Stop playback before stepping/jumping to avoid conflicting interval updates
 ---
+
+## Iteration 21 - US-021: Implement Timeline Zoom and Scroll
+- What was implemented:
+  - Added timeline zoom slider (range 1x to 10x) with +/- buttons
+  - Implemented horizontal scroll container with styled scrollbar
+  - Added Ctrl+mouse wheel zoom on timeline with position-aware centering
+  - Added "Zoom to Fit" button that resets to 100% and scrolls to start
+  - Added timeline zoom label showing current percentage
+  - Timeline content width scales with zoom level
+  - Playhead position updates based on zoomed content width
+  - Auto-scrolls to keep playhead visible during playback when zoomed
+  - Click-to-frame and drag calculations account for scroll offset and zoom
+- Files changed:
+  - editor/index.html (added zoom controls CSS, scroll container, JS zoom functions)
+  - PRD.md (marked US-021 as complete)
+- Learnings for future iterations:
+  - Use scroll container wrapper around timeline content for horizontal scroll
+  - Calculate content width as: visibleWidth * zoomLevel
+  - For mouse wheel zoom, track mouse position relative to content for zoom centering
+  - Use { passive: false } for wheel event listener to allow preventDefault()
+  - getFrameFromPosition must add scrollLeft to clientX for accurate frame calculation
+  - scrollToPlayhead() uses margin from edges to trigger scroll earlier
+  - Timeline zoom state (editorState.timelineZoom) is separate from video preview zoom
+---
+
+## Iteration 22 - US-022: Implement Live Overlay Preview on Frame
+- What was implemented:
+  - Added overlay state to editorState (enabled, comboText, xOffset, yOffset, inputImages, config)
+  - Created parseComboText() function to parse combo notation (comma separators, shortcuts, held inputs)
+  - Created loadInputImages() function to load SVG assets from asset directories
+  - Created calculateInputImagesDimensions() function matching videoUtils.js logic
+  - Created drawBlurredBackground() function for overlay background
+  - Created drawInputImages() function for rendering input images (with placeholder for missing)
+  - Created drawTextOverlay() function for text overlays with dropshadow support
+  - Created drawOverlay() function that combines all overlay rendering with proper scaling
+  - Created updatePreview() function that redraws frame + overlay
+  - Created updateOverlay() function to apply config changes and reload images
+  - Added overlay controls UI in Properties panel (combo text, position, image size, spacing)
+  - Overlay preview updates in real-time when controls change
+  - Updated loadFrame(), setZoom(), window resize to call updatePreview()
+  - 410 tests pass (3 pre-existing ffmpeg/ytdl-core failures unchanged)
+- Files changed:
+  - editor/index.html (added overlay state, rendering functions, UI controls, event listeners)
+  - PRD.md (marked US-022 as complete)
+- Learnings for future iterations:
+  - Electron renderer can use fs.existsSync for file checks (with nodeIntegration enabled)
+  - Image loading uses file:// protocol prefix for local paths
+  - Overlay scaling must use getZoomScale() for consistent rendering at all zoom levels
+  - Parsed combo text needs shortcut expansion and held input conversion to match videoUtils.js
+  - Missing images should show placeholder with input name for debugging
+  - updatePreview() pattern: drawFrame() followed by drawOverlay() for layered rendering
+  - Input elements need disabled state toggling for proper UX
+---
