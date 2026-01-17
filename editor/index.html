@@ -500,10 +500,11 @@
   <!-- Timeline -->
   <div class="timeline">
     <div class="timeline-controls">
-      <button class="btn" id="btnJumpStart" disabled title="Jump to Start">⏮</button>
-      <button class="btn" id="btnStepBack" disabled title="Step Back">◀</button>
-      <button class="btn" id="btnStepForward" disabled title="Step Forward">▶</button>
-      <button class="btn" id="btnJumpEnd" disabled title="Jump to End">⏭</button>
+      <button class="btn" id="btnJumpStart" disabled title="Jump to Start (Home)">⏮</button>
+      <button class="btn" id="btnStepBack" disabled title="Step Back (←)">⏪</button>
+      <button class="btn" id="btnPlayPause" disabled title="Play/Pause (Space)">▶</button>
+      <button class="btn" id="btnStepForward" disabled title="Step Forward (→)">⏩</button>
+      <button class="btn" id="btnJumpEnd" disabled title="Jump to End (End)">⏭</button>
       <div class="timeline-frame-display">
         <span class="timeline-frame-number" id="frameNumberDisplay">Frame: 0 / 0</span>
         <span class="timeline-timecode" id="timecodeDisplay">00:00:00.00 / 00:00:00.00</span>
@@ -580,11 +581,14 @@
     const timecodeDisplay = document.getElementById('timecodeDisplay');
     const btnJumpStart = document.getElementById('btnJumpStart');
     const btnStepBack = document.getElementById('btnStepBack');
+    const btnPlayPause = document.getElementById('btnPlayPause');
     const btnStepForward = document.getElementById('btnStepForward');
     const btnJumpEnd = document.getElementById('btnJumpEnd');
 
     // Timeline state
     let isDraggingPlayhead = false;
+    let isPlaying = false;
+    let playbackIntervalId = null;
 
     /**
      * Updates the status bar with current state
@@ -997,6 +1001,69 @@
     }
 
     /**
+     * Updates the play/pause button appearance
+     */
+    function updatePlayPauseButton() {
+      btnPlayPause.textContent = isPlaying ? '⏸' : '▶';
+      btnPlayPause.title = isPlaying ? 'Pause (Space)' : 'Play (Space)';
+    }
+
+    /**
+     * Starts playback at video FPS
+     */
+    function startPlayback() {
+      if (editorState.frameCount === 0 || !editorState.metadata) return;
+      if (isPlaying) return;
+
+      // If at end, wrap to beginning
+      if (editorState.currentFrame >= editorState.frameCount - 1) {
+        goToFrame(0);
+      }
+
+      isPlaying = true;
+      updatePlayPauseButton();
+
+      // Calculate interval from FPS
+      const fps = editorState.metadata.fps || 30;
+      const intervalMs = 1000 / fps;
+
+      playbackIntervalId = setInterval(() => {
+        if (editorState.currentFrame >= editorState.frameCount - 1) {
+          // Reached end, stop playback
+          stopPlayback();
+          return;
+        }
+        goToFrame(editorState.currentFrame + 1);
+      }, intervalMs);
+    }
+
+    /**
+     * Stops playback
+     */
+    function stopPlayback() {
+      if (!isPlaying) return;
+
+      isPlaying = false;
+      updatePlayPauseButton();
+
+      if (playbackIntervalId !== null) {
+        clearInterval(playbackIntervalId);
+        playbackIntervalId = null;
+      }
+    }
+
+    /**
+     * Toggles play/pause state
+     */
+    function togglePlayPause() {
+      if (isPlaying) {
+        stopPlayback();
+      } else {
+        startPlayback();
+      }
+    }
+
+    /**
      * Shows the timeline and enables controls
      */
     function showTimeline() {
@@ -1006,6 +1073,7 @@
       // Enable control buttons
       btnJumpStart.disabled = false;
       btnStepBack.disabled = false;
+      btnPlayPause.disabled = false;
       btnStepForward.disabled = false;
       btnJumpEnd.disabled = false;
 
@@ -1022,9 +1090,13 @@
       timelinePlaceholder.style.display = '';
       timelineRulerContainer.style.display = 'none';
 
+      // Stop playback if playing
+      stopPlayback();
+
       // Disable control buttons
       btnJumpStart.disabled = true;
       btnStepBack.disabled = true;
+      btnPlayPause.disabled = true;
       btnStepForward.disabled = true;
       btnJumpEnd.disabled = true;
     }
@@ -1084,8 +1156,44 @@
     // Control button listeners
     btnJumpStart.addEventListener('click', jumpToStart);
     btnStepBack.addEventListener('click', stepBack);
+    btnPlayPause.addEventListener('click', togglePlayPause);
     btnStepForward.addEventListener('click', stepForward);
     btnJumpEnd.addEventListener('click', jumpToEnd);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (event) => {
+      // Ignore if user is typing in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+      // Ignore if no video loaded
+      if (editorState.frameCount === 0) return;
+
+      switch (event.code) {
+        case 'Space':
+          event.preventDefault();
+          togglePlayPause();
+          break;
+        case 'ArrowLeft':
+          event.preventDefault();
+          stopPlayback();
+          stepBack();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          stopPlayback();
+          stepForward();
+          break;
+        case 'Home':
+          event.preventDefault();
+          stopPlayback();
+          jumpToStart();
+          break;
+        case 'End':
+          event.preventDefault();
+          stopPlayback();
+          jumpToEnd();
+          break;
+      }
+    });
 
     // Zoom control event listeners
     zoomSelect.addEventListener('change', (e) => {

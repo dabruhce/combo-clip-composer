@@ -250,11 +250,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want play/pause controls so that I can preview the video in motion.
 
 **Acceptance Criteria:**
-- [ ] Add play/pause button that advances frames at video FPS
-- [ ] Add step forward/backward buttons (single frame)
-- [ ] Add jump to start/end buttons
-- [ ] Keyboard shortcuts: Space (play/pause), Left/Right (step), Home/End (jump)
-- [ ] Typecheck passes
+- [x] Add play/pause button that advances frames at video FPS
+- [x] Add step forward/backward buttons (single frame)
+- [x] Add jump to start/end buttons
+- [x] Keyboard shortcuts: Space (play/pause), Left/Right (step), Home/End (jump)
+- [x] Typecheck passes
 
 #### US-021: Implement Timeline Zoom and Scroll
 **Description:** As a user, I want to zoom the timeline so that I can make precise edits.

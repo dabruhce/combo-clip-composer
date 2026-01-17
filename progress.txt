@@ -384,3 +384,49 @@
   - Store zoom as 'fit' string or numeric value (0.5, 1, 2) for flexible handling
   - Image onload callback is async - cache loaded image in state for redraw on zoom
 ---
+
+## Iteration 19 - US-019: Implement Basic Timeline Component
+- What was implemented:
+  - Created timeline ruler component with major/minor ticks and time labels
+  - Playhead indicator (red line with triangle head) showing current frame
+  - Click on timeline to jump to frame
+  - Drag playhead to scrub through frames (mousedown/mousemove/mouseup pattern)
+  - Frame number display: "Frame: X / Y" format
+  - Timecode display: "HH:MM:SS.FF / HH:MM:SS.FF" format
+  - Step forward/back buttons for single-frame navigation
+  - Jump to start/end buttons
+  - Timeline ruler redraws on window resize
+  - 410 tests pass (3 pre-existing ffmpeg/ytdl-core failures unchanged)
+- Files changed:
+  - editor/index.html (added timeline CSS, HTML structure, and JS functions)
+  - PRD.md (marked US-019 as complete)
+- Learnings for future iterations:
+  - Timeline ruler tick spacing adapts to video length using "nice" intervals (1, 5, 10, 15, 30, 60, etc.)
+  - Playhead position calculation: (currentFrame / (frameCount - 1)) * rulerWidth
+  - Use getBoundingClientRect() for accurate click-to-frame calculations
+  - The isDraggingPlayhead state controls whether mouse moves update the frame
+  - document-level mouse events needed for drag to work outside the timeline element
+  - formatTimecode uses HH:MM:SS.FF format (FF = frame within second)
+  - Frame display is 1-indexed for user friendliness (Frame: 1 / 100 instead of 0 / 99)
+---
+
+## Iteration 20 - US-020: Implement Timeline Playback Controls
+- What was implemented:
+  - Added play/pause button with ▶/⏸ toggle appearance
+  - Playback advances frames using setInterval at video FPS (1000/fps ms intervals)
+  - Playback auto-stops when reaching end of video
+  - If at end, pressing play wraps to beginning
+  - Keyboard shortcuts: Space (toggle play/pause), Left/Right (step), Home/End (jump)
+  - Step forward/backward and jump to start/end already existed from US-019
+  - Keyboard shortcuts stop playback before stepping/jumping for consistent behavior
+  - Input/textarea elements are ignored for keyboard shortcuts
+- Files changed:
+  - editor/index.html (added btnPlayPause, playback state, startPlayback/stopPlayback/togglePlayPause functions, keyboard event listener)
+  - PRD.md (marked US-020 as complete)
+- Learnings for future iterations:
+  - Use setInterval for frame-by-frame playback at FPS rate (avoid requestAnimationFrame for precise timing)
+  - event.code gives key codes like 'Space', 'ArrowLeft' which are more reliable than event.key
+  - Always call event.preventDefault() for Space to prevent page scrolling
+  - Check event.target.tagName to avoid capturing shortcuts when user is typing
+  - Stop playback before stepping/jumping to avoid conflicting interval updates
+---
