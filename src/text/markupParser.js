@@ -16,6 +16,17 @@ const NAMED_COLORS = new Set([
 ]);
 
 /**
+ * Text style tags supported by the parser
+ */
+const STYLE_TAGS = new Set(['bold', 'italic', 'underline']);
+
+/**
+ * Collected warnings from parsing (reset on each parseMarkup call)
+ * @type {string[]}
+ */
+let parsingWarnings = [];
+
+/**
  * Check if a string is a valid color value
  * @param {string} value - Value to check
  * @returns {boolean} - True if valid color
@@ -72,7 +83,7 @@ function normalizeColor(color) {
 
 /**
  * Parse a tag name to extract its type and value
- * @param {string} tagContent - The content inside the brackets (e.g., "red", "#FF0000", "color:red")
+ * @param {string} tagContent - The content inside the brackets (e.g., "red", "#FF0000", "color:red", "bold")
  * @returns {{ type: string, value: string|null } | null} - Parsed tag info or null if invalid
  */
 function parseTagContent(tagContent) {
@@ -85,6 +96,11 @@ function parseTagContent(tagContent) {
   // Check for newline tags
   if (trimmed.toLowerCase() === 'br' || trimmed.toLowerCase() === 'newline') {
     return { type: 'newline', value: null };
+  }
+
+  // Check for style tags (bold, italic, underline)
+  if (STYLE_TAGS.has(trimmed.toLowerCase())) {
+    return { type: 'style', value: trimmed.toLowerCase() };
   }
 
   // Check for explicit color: prefix (e.g., [color:red])
@@ -128,10 +144,17 @@ function parseTagContent(tagContent) {
  * // Returns: [{ text: "hello ", styles: [] }, { text: "world", styles: ["red"] }]
  *
  * @example
+ * parseMarkup("[bold][red]text[/red][/bold]")
+ * // Returns: [{ text: "text", styles: ["bold", "red"] }]
+ *
+ * @example
  * parseMarkup("line1[br]line2")
  * // Returns: [{ text: "line1", styles: [] }, { text: "\n", styles: [], isNewline: true }, { text: "line2", styles: [] }]
  */
 function parseMarkup(text) {
+  // Reset warnings on each parse call
+  parsingWarnings = [];
+
   if (!text || typeof text !== 'string') {
     return [];
   }
@@ -141,7 +164,7 @@ function parseMarkup(text) {
   }
 
   const segments = [];
-  const styleStack = []; // Stack of currently active styles
+  const styleStack = []; // Stack of currently active styles (with their tag names for matching)
   let currentText = '';
   let i = 0;
 
@@ -164,13 +187,17 @@ function parseMarkup(text) {
         const closingTagName = tagContent.substring(1).trim().toLowerCase();
 
         // Pop matching style from stack
-        // Find and remove the matching style (handle both named colors and color: prefix)
+        // Find and remove the matching style (handle both named colors, color: prefix, and style tags)
         let foundIndex = -1;
         for (let j = styleStack.length - 1; j >= 0; j--) {
-          const style = styleStack[j].toLowerCase();
-          if (style === closingTagName ||
-              style === closingTagName.replace('color:', '') ||
-              closingTagName === 'color' && isValidColor(style)) {
+          const stackEntry = styleStack[j];
+          const tagName = stackEntry.tagName.toLowerCase();
+          const value = stackEntry.value.toLowerCase();
+
+          if (tagName === closingTagName ||
+              value === closingTagName ||
+              tagName === closingTagName.replace('color:', '') ||
+              closingTagName === 'color' && isValidColor(value)) {
             foundIndex = j;
             break;
           }
@@ -178,11 +205,20 @@ function parseMarkup(text) {
 
         // If we found a matching opening tag, treat this as a valid closing tag
         if (foundIndex !== -1) {
+          // Check for malformed nesting (closing tag doesn't match the most recent opening tag)
+          if (foundIndex !== styleStack.length - 1) {
+            // We're closing a tag that isn't the most recent one - malformed nesting
+            const expectedTag = styleStack[styleStack.length - 1].tagName;
+            parsingWarnings.push(
+              `Malformed nesting: closing [/${closingTagName}] but expected [/${expectedTag}]`
+            );
+          }
+
           // Save current text segment if any
           if (currentText) {
             segments.push({
               text: currentText,
-              styles: [...styleStack]
+              styles: styleStack.map(s => s.value)
             });
             currentText = '';
           }
@@ -191,7 +227,7 @@ function parseMarkup(text) {
           continue;
         }
 
-        // No matching opening tag found - check if this is a valid color/newline tag format
+        // No matching opening tag found - check if this is a valid tag format
         // If so, it's an orphan closing tag (just skip it)
         // If not, treat as literal text
         const parsedClosingTag = parseTagContent(closingTagName);
@@ -200,7 +236,7 @@ function parseMarkup(text) {
           if (currentText) {
             segments.push({
               text: currentText,
-              styles: [...styleStack]
+              styles: styleStack.map(s => s.value)
             });
             currentText = '';
           }
@@ -222,7 +258,7 @@ function parseMarkup(text) {
         if (currentText) {
           segments.push({
             text: currentText,
-            styles: [...styleStack]
+            styles: styleStack.map(s => s.value)
           });
           currentText = '';
         }
@@ -231,12 +267,15 @@ function parseMarkup(text) {
           // Add newline segment
           segments.push({
             text: '\n',
-            styles: [...styleStack],
+            styles: styleStack.map(s => s.value),
             isNewline: true
           });
-        } else if (parsed.type === 'color') {
-          // Push color to style stack
-          styleStack.push(parsed.value);
+        } else if (parsed.type === 'color' || parsed.type === 'style') {
+          // Push color or style to stack with tag name for proper matching
+          styleStack.push({
+            tagName: tagContent.trim().toLowerCase(),
+            value: parsed.value
+          });
         }
 
         i = closingBracket + 1;
@@ -257,11 +296,19 @@ function parseMarkup(text) {
   if (currentText) {
     segments.push({
       text: currentText,
-      styles: [...styleStack]
+      styles: styleStack.map(s => s.value)
     });
   }
 
   return segments;
+}
+
+/**
+ * Get any warnings from the last parseMarkup call
+ * @returns {string[]} - Array of warning messages
+ */
+function getParseWarnings() {
+  return [...parsingWarnings];
 }
 
 /**
@@ -291,5 +338,7 @@ module.exports = {
   isValidColor,
   normalizeColor,
   getActiveColor,
-  NAMED_COLORS
+  getParseWarnings,
+  NAMED_COLORS,
+  STYLE_TAGS
 };

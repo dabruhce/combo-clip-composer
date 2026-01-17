@@ -8,7 +8,9 @@ const {
   isValidColor,
   normalizeColor,
   getActiveColor,
-  NAMED_COLORS
+  getParseWarnings,
+  NAMED_COLORS,
+  STYLE_TAGS
 } = require('../src/text/markupParser');
 
 describe('markupParser', () => {
@@ -108,9 +110,21 @@ describe('markupParser', () => {
 
     test('returns null for invalid tags', () => {
       expect(parseTagContent('notacolor')).toBe(null);
-      expect(parseTagContent('bold')).toBe(null); // Not supported in this phase
+      expect(parseTagContent('unknown')).toBe(null);
       expect(parseTagContent('')).toBe(null);
       expect(parseTagContent(null)).toBe(null);
+    });
+
+    test('parses style tags', () => {
+      expect(parseTagContent('bold')).toEqual({ type: 'style', value: 'bold' });
+      expect(parseTagContent('italic')).toEqual({ type: 'style', value: 'italic' });
+      expect(parseTagContent('underline')).toEqual({ type: 'style', value: 'underline' });
+    });
+
+    test('parses style tags case-insensitive', () => {
+      expect(parseTagContent('BOLD')).toEqual({ type: 'style', value: 'bold' });
+      expect(parseTagContent('Italic')).toEqual({ type: 'style', value: 'italic' });
+      expect(parseTagContent('UNDERLINE')).toEqual({ type: 'style', value: 'underline' });
     });
   });
 
@@ -285,6 +299,139 @@ describe('markupParser', () => {
         ]);
       });
     });
+
+    describe('style tags', () => {
+      test('parses bold tag', () => {
+        const result = parseMarkup('[bold]important[/bold]');
+        expect(result).toEqual([
+          { text: 'important', styles: ['bold'] }
+        ]);
+      });
+
+      test('parses italic tag', () => {
+        const result = parseMarkup('[italic]emphasis[/italic]');
+        expect(result).toEqual([
+          { text: 'emphasis', styles: ['italic'] }
+        ]);
+      });
+
+      test('parses underline tag', () => {
+        const result = parseMarkup('[underline]underlined[/underline]');
+        expect(result).toEqual([
+          { text: 'underlined', styles: ['underline'] }
+        ]);
+      });
+
+      test('parses style tags with surrounding text', () => {
+        const result = parseMarkup('normal [bold]important[/bold] normal');
+        expect(result).toEqual([
+          { text: 'normal ', styles: [] },
+          { text: 'important', styles: ['bold'] },
+          { text: ' normal', styles: [] }
+        ]);
+      });
+    });
+
+    describe('nested styles', () => {
+      test('parses nested color inside color', () => {
+        const result = parseMarkup('[red]outer [blue]inner[/blue] outer[/red]');
+        expect(result).toEqual([
+          { text: 'outer ', styles: ['red'] },
+          { text: 'inner', styles: ['red', 'blue'] },
+          { text: ' outer', styles: ['red'] }
+        ]);
+      });
+
+      test('parses bold inside red (style + color)', () => {
+        const result = parseMarkup('[red][bold]bold red[/bold][/red]');
+        expect(result).toEqual([
+          { text: 'bold red', styles: ['red', 'bold'] }
+        ]);
+      });
+
+      test('parses red inside bold (color + style)', () => {
+        const result = parseMarkup('[bold][red]red bold[/red][/bold]');
+        expect(result).toEqual([
+          { text: 'red bold', styles: ['bold', 'red'] }
+        ]);
+      });
+
+      test('parses triple nesting (bold + italic + color)', () => {
+        const result = parseMarkup('[bold][italic][red]styled[/red][/italic][/bold]');
+        expect(result).toEqual([
+          { text: 'styled', styles: ['bold', 'italic', 'red'] }
+        ]);
+      });
+
+      test('parses multiple style tags combined', () => {
+        const result = parseMarkup('[bold][underline]important[/underline][/bold]');
+        expect(result).toEqual([
+          { text: 'important', styles: ['bold', 'underline'] }
+        ]);
+      });
+
+      test('parses nested tags with text before and after', () => {
+        const result = parseMarkup('start [bold]bold [italic]both[/italic] bold[/bold] end');
+        expect(result).toEqual([
+          { text: 'start ', styles: [] },
+          { text: 'bold ', styles: ['bold'] },
+          { text: 'both', styles: ['bold', 'italic'] },
+          { text: ' bold', styles: ['bold'] },
+          { text: ' end', styles: [] }
+        ]);
+      });
+
+      test('handles complex combo notation with styles', () => {
+        const result = parseMarkup('[bold][yellow]COMBO:[/yellow][/bold] [red]qcf+P[/red]');
+        expect(result).toEqual([
+          { text: 'COMBO:', styles: ['bold', 'yellow'] },
+          { text: ' ', styles: [] },
+          { text: 'qcf+P', styles: ['red'] }
+        ]);
+      });
+    });
+
+    describe('malformed nesting', () => {
+      test('handles malformed nesting [a][b][/a][/b] gracefully', () => {
+        const result = parseMarkup('[red][bold]text[/red][/bold]');
+        // Still produces output, styles are removed in order closed
+        expect(result).toEqual([
+          { text: 'text', styles: ['red', 'bold'] }
+        ]);
+        const warnings = getParseWarnings();
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toContain('Malformed nesting');
+        expect(warnings[0]).toContain('[/red]');
+        expect(warnings[0]).toContain('[/bold]');
+      });
+
+      test('handles multiple malformed nestings', () => {
+        const result = parseMarkup('[a:#FF0000][b:bold][c:italic]text[/a][/b][/c]');
+        // We use color:red style syntax here that doesn't exist, so let's use proper tags
+        parseMarkup('[red][bold][italic]text[/red][/bold][/italic]');
+        const warnings = getParseWarnings();
+        expect(warnings.length).toBeGreaterThan(0);
+      });
+
+      test('warning contains expected tag information', () => {
+        parseMarkup('[bold][italic]text[/bold][/italic]');
+        const warnings = getParseWarnings();
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toMatch(/Malformed nesting.*\[\/bold\].*\[\/italic\]/);
+      });
+
+      test('properly nested tags produce no warnings', () => {
+        parseMarkup('[bold][italic]text[/italic][/bold]');
+        const warnings = getParseWarnings();
+        expect(warnings.length).toBe(0);
+      });
+
+      test('consecutive non-nested tags produce no warnings', () => {
+        parseMarkup('[red]one[/red][blue]two[/blue]');
+        const warnings = getParseWarnings();
+        expect(warnings.length).toBe(0);
+      });
+    });
   });
 
   describe('getActiveColor', () => {
@@ -318,6 +465,52 @@ describe('markupParser', () => {
     test('does not contain invalid colors', () => {
       expect(NAMED_COLORS.has('notacolor')).toBe(false);
       expect(NAMED_COLORS.has('rainbow')).toBe(false);
+    });
+  });
+
+  describe('STYLE_TAGS', () => {
+    test('contains expected style tags', () => {
+      expect(STYLE_TAGS.has('bold')).toBe(true);
+      expect(STYLE_TAGS.has('italic')).toBe(true);
+      expect(STYLE_TAGS.has('underline')).toBe(true);
+    });
+
+    test('does not contain color or other tags', () => {
+      expect(STYLE_TAGS.has('red')).toBe(false);
+      expect(STYLE_TAGS.has('br')).toBe(false);
+      expect(STYLE_TAGS.has('newline')).toBe(false);
+    });
+  });
+
+  describe('getParseWarnings', () => {
+    test('returns empty array when no warnings', () => {
+      parseMarkup('[bold]text[/bold]');
+      expect(getParseWarnings()).toEqual([]);
+    });
+
+    test('returns warnings array after malformed nesting', () => {
+      parseMarkup('[bold][italic]text[/bold][/italic]');
+      const warnings = getParseWarnings();
+      expect(warnings).toBeInstanceOf(Array);
+      expect(warnings.length).toBe(1);
+    });
+
+    test('warnings are reset on each parseMarkup call', () => {
+      // First call with malformed nesting
+      parseMarkup('[bold][italic]text[/bold][/italic]');
+      expect(getParseWarnings().length).toBe(1);
+
+      // Second call with proper nesting
+      parseMarkup('[bold][italic]text[/italic][/bold]');
+      expect(getParseWarnings().length).toBe(0);
+    });
+
+    test('returns a copy of warnings array', () => {
+      parseMarkup('[bold][italic]text[/bold][/italic]');
+      const warnings1 = getParseWarnings();
+      const warnings2 = getParseWarnings();
+      expect(warnings1).not.toBe(warnings2); // Different array instances
+      expect(warnings1).toEqual(warnings2); // Same content
     });
   });
 });

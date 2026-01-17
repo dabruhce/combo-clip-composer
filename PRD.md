@@ -131,12 +131,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to nest styles like `[bold][red]text[/red][/bold]` so that I can combine effects.
 
 **Acceptance Criteria:**
-- [ ] Parser handles nested tags correctly, maintaining style stack
-- [ ] Support `[bold]`, `[italic]`, `[underline]` style tags
-- [ ] Nested styles combine: bold+red text renders as bold and red
-- [ ] Malformed nesting (e.g., `[a][b][/a][/b]`) handled gracefully with warning
-- [ ] Typecheck passes
-- [ ] Unit tests cover nesting scenarios
+- [x] Parser handles nested tags correctly, maintaining style stack
+- [x] Support `[bold]`, `[italic]`, `[underline]` style tags
+- [x] Nested styles combine: bold+red text renders as bold and red
+- [x] Malformed nesting (e.g., `[a][b][/a][/b]`) handled gracefully with warning
+- [x] Typecheck passes
+- [x] Unit tests cover nesting scenarios
 
 #### US-011: Render Parsed Markup to Canvas
 **Description:** As a developer, I want to render parsed markup segments so that inline styles appear in the video.

@@ -124,3 +124,81 @@
   - Always reset shadow properties after drawing to avoid affecting subsequent operations
   - Use strict equality (=== true) for boolean checks to avoid truthy false positives
 ---
+
+## Iteration 7 - US-007: Implement Configurable Image Dimensions
+- What was implemented:
+  - Updated `drawInputImages` to accept config object and extract width, height, spacing from config.images
+  - Updated `calculateInputImagesDimensions` to accept config object instead of individual params
+  - Updated `redrawFrameWithComboImages` signature - removed inputWidth/inputHeight params, now just passes config
+  - Updated `processComboVideo` - changed inputWidth/inputHeight defaults from 50 to null for cleaner override logic
+  - Maintained backward compatibility - functions fallback to defaults (50, 50, 0) when no config provided
+  - Added 3 new tests specifically for US-007: large dimensions, small dimensions, non-square dimensions
+- Files changed:
+  - src/video/videoUtils.js (refactored drawInputImages, calculateInputImagesDimensions, redrawFrameWithComboImages, processComboVideo)
+  - tests/configurable-params.test.js (updated tests for new config-based API, added US-007 specific tests)
+  - PRD.md (marked US-007 as complete)
+- Learnings for future iterations:
+  - When refactoring function signatures to use config objects, maintain backward compatibility with null checks
+  - Pattern: `config && config.section ? config.section.property : defaultValue` for safe property access
+  - Using null as default param allows distinguishing "not provided" from "provided with default value (50)"
+  - Test helper functions (createConfig) reduce boilerplate and make tests more readable
+---
+
+## Iteration 8 - US-008: Implement Configurable Spacing, Padding, and Margins
+- What was implemented:
+  - Spacing already implemented in US-003/US-007 (drawInputImages and calculateInputImagesDimensions)
+  - Padding already implemented in US-003 (drawBlurredBackground accepts padding param)
+  - Added margin validation in `redrawFrameWithComboImages` to enforce frame edge constraints
+  - Updated boundary checks to validate overlay fits within frame with proper margin/padding
+  - Added 13 new tests for US-008: spacing (4), padding (3), margin (3), combined calculations (3)
+- Files changed:
+  - src/video/videoUtils.js (added margin validation, improved boundary error messages)
+  - tests/configurable-params.test.js (added US-008 test suite with comprehensive coverage)
+  - PRD.md (marked US-008 as complete)
+- Learnings for future iterations:
+  - Margin enforces minimum distance from overlay edge (including padding) to frame edge
+  - Boundary validation formula: xOffset - padding >= margin (left edge), xOffset + width + padding <= frameWidth - margin (right edge)
+  - Some acceptance criteria may already be satisfied by earlier iterations (spacing/padding from US-003/US-007)
+  - Good error messages help users understand how to fix positioning issues
+---
+
+## Iteration 9 - US-009: Create Inline Markup Parser
+- What was implemented:
+  - Created `src/text/markupParser.js` with `parseMarkup(text)` function
+  - Parser returns array of segments with text and styles array
+  - Supports color tags: `[red]`, `[#FF0000]`, `[color:red]`, `[rgb(255,0,0)]`, `[rgba(255,0,0,0.5)]`
+  - Supports newline tags: `[br]`, `[newline]`
+  - Helper functions: `isValidColor`, `normalizeColor`, `parseTagContent`, `getActiveColor`
+  - Edge case handling: unknown tags as literal text, unclosed tags, orphan closing tags
+  - Created 42 unit tests covering all functionality
+- Files changed:
+  - src/text/markupParser.js (new)
+  - tests/markupParser.test.js (new)
+  - PRD.md (marked US-009 as complete)
+- Learnings for future iterations:
+  - New feature modules should go in appropriate subdirectories (src/text/ for text-related features)
+  - Style stack pattern works well for nested tag handling
+  - When tag is invalid/unknown, treat as literal text for user-friendly behavior
+  - Orphan closing tags for valid tag types should be silently skipped (not an error)
+  - NAMED_COLORS should be synchronized with canvas.js for consistency
+---
+
+## Iteration 10 - US-010: Support Nested Markup Styles
+- What was implemented:
+  - Added STYLE_TAGS constant ('bold', 'italic', 'underline') to markupParser.js
+  - Updated parseTagContent to recognize and parse style tags (type: 'style')
+  - Refactored styleStack to store {tagName, value} objects for proper matching
+  - Added malformed nesting detection with warnings via getParseWarnings()
+  - Style and color tags can now be freely nested: [bold][red]text[/red][/bold]
+  - Malformed nesting like [a][b][/a][/b] handled gracefully - still parses, emits warning
+  - Added 24 new tests: style tags (6), nested styles (7), malformed nesting (5), STYLE_TAGS (2), getParseWarnings (4)
+- Files changed:
+  - src/text/markupParser.js (added STYLE_TAGS, parsingWarnings, getParseWarnings, updated parseTagContent and parseMarkup)
+  - tests/markupParser.test.js (added tests for style tags, nested styles, malformed nesting, STYLE_TAGS, getParseWarnings)
+  - PRD.md (marked US-010 as complete)
+- Learnings for future iterations:
+  - Style stack entries should store both tagName and value for proper closing tag matching
+  - Malformed nesting should be gracefully handled (still parse) but emit warnings for debugging
+  - Warning collection pattern: module-level array reset on each parse call, getter returns copy
+  - The parseMarkup function maps styleStack to values array using .map(s => s.value)
+---
