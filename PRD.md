@@ -44,12 +44,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to pass a config file path to `processComboVideo` so that my custom styles are applied.
 
 **Acceptance Criteria:**
-- [ ] Update `processComboVideo` signature to accept optional `configPath` parameter
-- [ ] Load and merge config at start of processing
-- [ ] Pass resolved config to `redrawFrameWithComboImages` and related functions
-- [ ] Existing calls without config continue to work (backward compatible)
-- [ ] Typecheck passes
-- [ ] Integration test verifies config is loaded and applied
+- [x] Update `processComboVideo` signature to accept optional `configPath` parameter
+- [x] Load and merge config at start of processing
+- [x] Pass resolved config to `redrawFrameWithComboImages` and related functions
+- [x] Existing calls without config continue to work (backward compatible)
+- [x] Typecheck passes
+- [x] Integration test verifies config is loaded and applied
 
 ---
 

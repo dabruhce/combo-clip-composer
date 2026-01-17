@@ -41,3 +41,24 @@
   - Always verify existing files before implementing to avoid duplication
   - The dropshadow color "#000000" is equivalent to "#000" (both valid hex formats)
 ---
+
+## Iteration 3 - US-003: Integrate Config Loader into Video Processing Pipeline
+- What was implemented:
+  - Updated `processComboVideo` signature to accept optional `configPath` parameter (9th parameter)
+  - Added `loadConfig` import and call at start of processing
+  - Updated `redrawFrameWithComboImages` to accept and use config object
+  - Updated `calculateInputImagesDimensions` to accept spacing parameter from config
+  - Updated `drawInputImages` to use spacing between images
+  - Updated `drawBlurredBackground` to use configurable padding
+  - Maintained backward compatibility - existing calls without config continue to work
+  - Added integration tests verifying config loading and application
+- Files changed:
+  - src/video/videoUtils.js (added configPath parameter, config loading, passing config to functions)
+  - tests/configurable-params.test.js (updated tests for new calculateInputImagesDimensions logic, added integration tests)
+  - PRD.md (marked US-003 as complete)
+- Learnings for future iterations:
+  - Config values should be resolved early (in processComboVideo) and passed to child functions
+  - The `null` check pattern (`config ? config.images.width : defaultValue`) allows backward compatibility
+  - The old calculateInputImagesDimensions had quirky logic (+20 constant); new logic is cleaner (numInputs * width + gaps * spacing)
+  - Integration tests should verify both config loading and the effect on downstream calculations
+---
