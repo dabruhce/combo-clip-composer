@@ -505,3 +505,78 @@
   - Position indicator uses fixed positioning with clientX/Y + offset for tooltip placement
   - CSS classes pattern (overlay-hoverable, overlay-dragging) for cursor state changes
 ---
+
+## Iteration 24 - US-024: Implement Config Property Panel
+- What was implemented:
+  - Added side panel showing all config properties organized in collapsible sections
+  - Created Text section with font dropdown (8 font options), font size input, color picker with text input
+  - Created Dropshadow section with enabled toggle, color picker, blur input, offset X/Y inputs
+  - Created Images section with width, height, spacing, padding, margin inputs
+  - All changes update preview in real-time via event listeners
+  - Added CSS for property sections, color picker wrapper, toggle switches, property grid layout
+  - Added colorNameToHex helper function for color picker synchronization
+  - Added getFullConfigFromInputs to collect all config values from inputs
+  - Added initializePropertyInputs to set default values on load
+  - Added toggleSection function for collapsible property sections
+- Files changed:
+  - editor/index.html (extensive CSS and JS additions for property panel)
+  - PRD.md (marked US-024 as complete)
+- Learnings for future iterations:
+  - Color picker (type="color") requires hex format, so colorNameToHex helper is needed
+  - Event listeners should use 'input' for real-time preview (color picker) and 'change' for text inputs
+  - Collapsible sections use CSS class toggling pattern (collapsed class hides content)
+  - Keep color text input and color picker synchronized via bidirectional event listeners
+  - Use getFullConfigFromInputs pattern to collect all config from multiple sections
+  - Initialize inputs with current config values when panel is shown
+---
+
+## Iteration 25 - US-025: Implement Keyframe Data Model
+- What was implemented:
+  - Created `editor/models/keyframe.js` with Keyframe, KeyframeTrack, and KeyframeManager classes
+  - Keyframe class stores: frame number, property name, value, and interpolation type
+  - KeyframeTrack class maintains ordered list of keyframes for one property with getValueAt() interpolation
+  - KeyframeManager class manages multiple tracks and provides convenient API for keyframe operations
+  - Supports interpolation types: linear, ease-in, ease-out, ease-in-out, step
+  - Added interpolate() function with easing curve implementations
+  - Added toJSON/fromJSON for serialization, clone() for copying
+  - Created 71 comprehensive unit tests covering all functionality
+- Files changed:
+  - editor/models/keyframe.js (new)
+  - tests/keyframe.test.js (new)
+  - PRD.md (marked US-025 as complete)
+- Learnings for future iterations:
+  - Keyframe interpolation uses normalized time t (0-1) then applies easing function
+  - Quadratic easing: ease-in = t^2, ease-out = 1-(1-t)^2
+  - Cubic ease-in-out uses 4*t^3 for first half, 1-(-2t+2)^3/2 for second half
+  - Step interpolation returns start value until reaching end frame (no interpolation)
+  - KeyframeTrack maintains sorted order on insert via findIndex + splice
+  - For serialization tests with easing, use linear interpolation to get predictable midpoint values
+  - Support both Node.js (module.exports) and browser (window) environments in editor modules
+---
+
+## Iteration 26 - US-026: Implement Keyframe UI on Timeline
+- What was implemented:
+  - Added CSS styles for keyframe tracks (container, labels, content areas) and diamond markers
+  - Keyframe markers show as orange diamonds with hover/select/drag states (yellow, blue, red)
+  - Created keyframe tracks container in timeline HTML structure
+  - Added keyframe state to editorState (manager, selectedKeyframe, isDragging, dragStartFrame, dragProperty)
+  - Imported KeyframeManager and classes from editor/models/keyframe.js
+  - Created KEYFRAME_PROPERTIES array for position.x, position.y, opacity, scale tracks
+  - Implemented initializeKeyframeManager(), createKeyframeTracks(), renderKeyframeMarkers()
+  - Added frameToKeyframePosition() and keyframePositionToFrame() for coordinate conversion
+  - Implemented selectKeyframe(), deselectKeyframe() for keyframe selection
+  - Implemented onKeyframeMouseDown(), onKeyframeDrag(), onKeyframeDragEnd() for drag-to-move
+  - Integrated keyframe UI initialization into showTimeline()
+  - Updated setTimelineZoom() and window resize handler to update keyframe track widths
+  - Added document-level mousemove/mouseup listeners for keyframe dragging
+- Files changed:
+  - editor/index.html (CSS styles, HTML structure, JS keyframe functions, event listeners)
+  - PRD.md (marked US-026 as complete)
+- Learnings for future iterations:
+  - Keyframe markers use CSS transform: rotate(45deg) to create diamond shape from square
+  - Track label width (80px) must be subtracted from visible width for content width calculations
+  - Frame-to-position conversion: (frame / (frameCount - 1)) * contentWidth
+  - Selected keyframe stored as { property, frame } object for easy comparison
+  - Use moveKeyframe() from KeyframeTrack for atomic move operations that preserve interpolation
+  - Keyframe tracks sync with timeline zoom via updateKeyframeTrackWidths() + renderKeyframeMarkers()
+---

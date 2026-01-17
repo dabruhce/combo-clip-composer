@@ -320,11 +320,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to see keyframes on the timeline so that I can manage animation points.
 
 **Acceptance Criteria:**
-- [ ] Display keyframe markers (diamonds) on timeline for each property track
-- [ ] Tracks for: position.x, position.y, opacity, scale
-- [ ] Click keyframe to select it
-- [ ] Drag keyframe to move it to different frame
-- [ ] Typecheck passes
+- [x] Display keyframe markers (diamonds) on timeline for each property track
+- [x] Tracks for: position.x, position.y, opacity, scale
+- [x] Click keyframe to select it
+- [x] Drag keyframe to move it to different frame
+- [x] Typecheck passes
 
 #### US-027: Implement Add/Remove Keyframe
 **Description:** As a user, I want to add and remove keyframes so that I can define animation points.

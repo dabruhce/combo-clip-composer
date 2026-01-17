@@ -840,6 +840,91 @@
       overflow-y: auto;
       padding-bottom: 20px;
     }
+
+    /* Keyframe track styles */
+    .keyframe-tracks-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 60px;
+    }
+
+    .keyframe-track {
+      display: flex;
+      height: 24px;
+      border-bottom: 1px solid #2d2d2d;
+      position: relative;
+    }
+
+    .keyframe-track:last-child {
+      border-bottom: none;
+    }
+
+    .keyframe-track-label {
+      width: 80px;
+      min-width: 80px;
+      padding: 0 8px;
+      font-size: 10px;
+      color: #888888;
+      display: flex;
+      align-items: center;
+      background-color: #252526;
+      border-right: 1px solid #3d3d3d;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .keyframe-track-content {
+      flex: 1;
+      position: relative;
+      background-color: #1e1e1e;
+    }
+
+    /* Keyframe diamond marker */
+    .keyframe-marker {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #f5a623;
+      transform: translate(-50%, -50%) rotate(45deg);
+      top: 50%;
+      cursor: pointer;
+      border: 1px solid #e69500;
+      z-index: 5;
+      transition: transform 0.1s, background-color 0.1s;
+    }
+
+    .keyframe-marker:hover {
+      background-color: #ffcc00;
+      transform: translate(-50%, -50%) rotate(45deg) scale(1.2);
+    }
+
+    .keyframe-marker.selected {
+      background-color: #00b4ff;
+      border-color: #0088cc;
+      box-shadow: 0 0 4px rgba(0, 180, 255, 0.5);
+    }
+
+    .keyframe-marker.dragging {
+      background-color: #ff6b6b;
+      border-color: #ff4444;
+      z-index: 10;
+    }
+
+    /* Keyframe track playhead extension */
+    .keyframe-tracks-container .timeline-playhead {
+      height: 100%;
+      top: 0;
+    }
+
+    /* No keyframes placeholder */
+    .keyframe-tracks-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 60px;
+      color: #555555;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -1134,6 +1219,9 @@
               </div>
             </div>
             <div class="timeline-track-area" id="timelineTrackArea">
+              <div class="keyframe-tracks-container" id="keyframeTracksContainer">
+                <!-- Keyframe tracks will be added dynamically -->
+              </div>
               <div class="timeline-playhead" id="timelinePlayheadTrack" style="left: 0;"></div>
             </div>
           </div>
@@ -1182,6 +1270,14 @@
         // Snap to grid
         snapToGrid: false,
         gridSize: 10
+      },
+      // Keyframe state
+      keyframes: {
+        manager: null, // KeyframeManager instance
+        selectedKeyframe: null, // { property: string, frame: number }
+        isDragging: false,
+        dragStartFrame: 0,
+        dragProperty: null
       }
     };
 
@@ -1258,6 +1354,13 @@
     const btnTimelineZoomOut = document.getElementById('btnTimelineZoomOut');
     const btnTimelineZoomFit = document.getElementById('btnTimelineZoomFit');
     const timelineZoomLabel = document.getElementById('timelineZoomLabel');
+    const keyframeTracksContainer = document.getElementById('keyframeTracksContainer');
+
+    // Import keyframe classes from keyframe.js
+    const { Keyframe, KeyframeTrack, KeyframeManager, INTERPOLATION_TYPES } = require('./models/keyframe.js');
+
+    // Property tracks to display (as specified in US-026)
+    const KEYFRAME_PROPERTIES = ['position.x', 'position.y', 'opacity', 'scale'];
 
     // Timeline state
     let isDraggingPlayhead = false;
@@ -1982,6 +2085,9 @@
       drawTimelineRuler();
       updatePlayheadPosition();
       updateTimelineDisplay();
+
+      // Initialize keyframe UI
+      initializeKeyframeUI();
     }
 
     /**
@@ -2075,6 +2181,10 @@
 
       // Update playhead position
       updatePlayheadPosition();
+
+      // Update keyframe track widths and re-render markers
+      updateKeyframeTrackWidths();
+      renderKeyframeMarkers();
 
       // Scroll to keep playhead visible if requested
       if (keepPlayheadVisible && editorState.frameCount > 0) {
@@ -2808,6 +2918,242 @@
       frameCanvas.classList.remove('overlay-hoverable');
     }
 
+    // ========================================
+    // KEYFRAME UI FUNCTIONS
+    // ========================================
+
+    /**
+     * Initializes the keyframe manager for this video
+     */
+    function initializeKeyframeManager() {
+      editorState.keyframes.manager = new KeyframeManager();
+      editorState.keyframes.selectedKeyframe = null;
+      editorState.keyframes.isDragging = false;
+    }
+
+    /**
+     * Creates the keyframe track DOM elements
+     */
+    function createKeyframeTracks() {
+      // Clear existing tracks
+      keyframeTracksContainer.innerHTML = '';
+
+      // Create a track for each property
+      for (const property of KEYFRAME_PROPERTIES) {
+        const track = document.createElement('div');
+        track.className = 'keyframe-track';
+        track.dataset.property = property;
+
+        const label = document.createElement('div');
+        label.className = 'keyframe-track-label';
+        label.textContent = property.replace('.', ' ');
+        track.appendChild(label);
+
+        const content = document.createElement('div');
+        content.className = 'keyframe-track-content';
+        content.dataset.property = property;
+        track.appendChild(content);
+
+        keyframeTracksContainer.appendChild(track);
+      }
+    }
+
+    /**
+     * Gets the display label for a property
+     */
+    function getPropertyLabel(property) {
+      const labels = {
+        'position.x': 'Pos X',
+        'position.y': 'Pos Y',
+        'opacity': 'Opacity',
+        'scale': 'Scale'
+      };
+      return labels[property] || property;
+    }
+
+    /**
+     * Converts a frame number to X position on the keyframe track
+     */
+    function frameToKeyframePosition(frame) {
+      if (editorState.frameCount <= 1) return 0;
+      const visibleWidth = getTimelineVisibleWidth() - 80; // Subtract label width
+      const contentWidth = visibleWidth * editorState.timelineZoom;
+      return (frame / (editorState.frameCount - 1)) * contentWidth;
+    }
+
+    /**
+     * Converts an X position to frame number
+     */
+    function keyframePositionToFrame(x) {
+      if (editorState.frameCount <= 1) return 0;
+      const visibleWidth = getTimelineVisibleWidth() - 80; // Subtract label width
+      const contentWidth = visibleWidth * editorState.timelineZoom;
+      const ratio = Math.max(0, Math.min(1, x / contentWidth));
+      return Math.round(ratio * (editorState.frameCount - 1));
+    }
+
+    /**
+     * Renders keyframe markers on all tracks
+     */
+    function renderKeyframeMarkers() {
+      if (!editorState.keyframes.manager) return;
+
+      // Render markers for each property track
+      for (const property of KEYFRAME_PROPERTIES) {
+        const trackContent = keyframeTracksContainer.querySelector(
+          `.keyframe-track-content[data-property="${property}"]`
+        );
+        if (!trackContent) continue;
+
+        // Clear existing markers
+        const existingMarkers = trackContent.querySelectorAll('.keyframe-marker');
+        existingMarkers.forEach(m => m.remove());
+
+        // Get track for this property
+        const track = editorState.keyframes.manager.tracks.get(property);
+        if (!track) continue;
+
+        // Add markers for each keyframe
+        for (const keyframe of track.keyframes) {
+          const marker = document.createElement('div');
+          marker.className = 'keyframe-marker';
+          marker.dataset.property = property;
+          marker.dataset.frame = keyframe.frame;
+
+          // Position the marker
+          const x = frameToKeyframePosition(keyframe.frame);
+          marker.style.left = `${x}px`;
+
+          // Check if this keyframe is selected
+          const selected = editorState.keyframes.selectedKeyframe &&
+            editorState.keyframes.selectedKeyframe.property === property &&
+            editorState.keyframes.selectedKeyframe.frame === keyframe.frame;
+          if (selected) {
+            marker.classList.add('selected');
+          }
+
+          // Check if this keyframe is being dragged
+          if (editorState.keyframes.isDragging &&
+              editorState.keyframes.dragProperty === property &&
+              editorState.keyframes.dragStartFrame === keyframe.frame) {
+            marker.classList.add('dragging');
+          }
+
+          // Add event listeners
+          marker.addEventListener('mousedown', (e) => onKeyframeMouseDown(e, property, keyframe.frame));
+
+          trackContent.appendChild(marker);
+        }
+      }
+    }
+
+    /**
+     * Selects a keyframe
+     */
+    function selectKeyframe(property, frame) {
+      editorState.keyframes.selectedKeyframe = { property, frame };
+      renderKeyframeMarkers();
+    }
+
+    /**
+     * Deselects the currently selected keyframe
+     */
+    function deselectKeyframe() {
+      editorState.keyframes.selectedKeyframe = null;
+      renderKeyframeMarkers();
+    }
+
+    /**
+     * Handles mouse down on a keyframe marker
+     */
+    function onKeyframeMouseDown(event, property, frame) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Select the keyframe
+      selectKeyframe(property, frame);
+
+      // Start dragging
+      editorState.keyframes.isDragging = true;
+      editorState.keyframes.dragStartFrame = frame;
+      editorState.keyframes.dragProperty = property;
+
+      // Add dragging class
+      const marker = event.target;
+      marker.classList.add('dragging');
+
+      // Store initial mouse position
+      editorState.keyframes.dragStartX = event.clientX;
+    }
+
+    /**
+     * Handles mouse move for keyframe dragging
+     */
+    function onKeyframeDrag(event) {
+      if (!editorState.keyframes.isDragging) return;
+
+      const property = editorState.keyframes.dragProperty;
+      const startFrame = editorState.keyframes.dragStartFrame;
+
+      // Calculate new frame from mouse position
+      const trackContent = keyframeTracksContainer.querySelector(
+        `.keyframe-track-content[data-property="${property}"]`
+      );
+      if (!trackContent) return;
+
+      const rect = trackContent.getBoundingClientRect();
+      const x = event.clientX - rect.left + timelineScrollContainer.scrollLeft;
+      const newFrame = keyframePositionToFrame(x);
+
+      // Clamp to valid range
+      const clampedFrame = Math.max(0, Math.min(newFrame, editorState.frameCount - 1));
+
+      // Only update if frame changed
+      if (clampedFrame !== startFrame) {
+        // Move the keyframe in the manager
+        const track = editorState.keyframes.manager.getTrack(property);
+        if (track.moveKeyframe(startFrame, clampedFrame)) {
+          editorState.keyframes.dragStartFrame = clampedFrame;
+          editorState.keyframes.selectedKeyframe = { property, frame: clampedFrame };
+          renderKeyframeMarkers();
+        }
+      }
+    }
+
+    /**
+     * Handles mouse up to end keyframe dragging
+     */
+    function onKeyframeDragEnd(event) {
+      if (!editorState.keyframes.isDragging) return;
+
+      editorState.keyframes.isDragging = false;
+      editorState.keyframes.dragProperty = null;
+      renderKeyframeMarkers();
+    }
+
+    /**
+     * Updates keyframe track widths based on timeline zoom
+     */
+    function updateKeyframeTrackWidths() {
+      const visibleWidth = getTimelineVisibleWidth() - 80; // Subtract label width
+      const contentWidth = visibleWidth * editorState.timelineZoom;
+
+      const trackContents = keyframeTracksContainer.querySelectorAll('.keyframe-track-content');
+      trackContents.forEach(tc => {
+        tc.style.width = `${contentWidth}px`;
+      });
+    }
+
+    /**
+     * Called when timeline is shown to set up keyframes
+     */
+    function initializeKeyframeUI() {
+      initializeKeyframeManager();
+      createKeyframeTracks();
+      updateKeyframeTrackWidths();
+      renderKeyframeMarkers();
+    }
+
     // Event listeners
     openVideoBtn.addEventListener('click', openVideo);
 
@@ -2982,6 +3328,10 @@
     document.addEventListener('mousemove', onPlayheadDrag);
     document.addEventListener('mouseup', onPlayheadDragEnd);
 
+    // Keyframe drag listeners
+    document.addEventListener('mousemove', onKeyframeDrag);
+    document.addEventListener('mouseup', onKeyframeDragEnd);
+
     // Control button listeners
     btnJumpStart.addEventListener('click', jumpToStart);
     btnStepBack.addEventListener('click', stepBack);
@@ -3055,6 +3405,9 @@
         updateTimelineContentWidth();
         drawTimelineRuler();
         updatePlayheadPosition();
+        // Update keyframe track widths and re-render
+        updateKeyframeTrackWidths();
+        renderKeyframeMarkers();
       }
     });
 
