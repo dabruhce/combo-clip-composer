@@ -163,10 +163,24 @@ function estimateTextSize(text, font, fontSize) {
       const fontSize = textConfig.fontSize || 50;
       const color = resolveColor(textConfig.color, 'yellow');
 
+      // Extract dropshadow config
+      const dropshadow = textConfig.dropshadow || {};
+      const shadowEnabled = dropshadow.enabled === true;
+      const shadowColor = resolveColor(dropshadow.color, '#000000');
+      const shadowBlur = typeof dropshadow.blur === 'number' ? dropshadow.blur : 0;
+      const shadowOffsetX = typeof dropshadow.offsetX === 'number' ? dropshadow.offsetX : -2;
+      const shadowOffsetY = typeof dropshadow.offsetY === 'number' ? dropshadow.offsetY : 3;
+
       const canvasSize = estimateTextSize(text, font, fontSize);
 
-      // Create canvas
-      const canvas = createCanvas(canvasSize.width, canvasSize.height);
+      // Calculate extra space needed for dropshadow
+      // Shadow can extend beyond text bounds, so we add padding
+      const shadowPadding = shadowEnabled ? Math.max(Math.abs(shadowOffsetX), Math.abs(shadowOffsetY)) + shadowBlur : 0;
+      const canvasWidth = canvasSize.width + (shadowPadding * 2);
+      const canvasHeight = canvasSize.height + (shadowPadding * 2);
+
+      // Create canvas with extra space for shadow
+      const canvas = createCanvas(canvasWidth, canvasHeight);
       const ctx = canvas.getContext('2d');
 
       // Set global alpha to 0.0 for a fully transparent background
@@ -183,8 +197,24 @@ function estimateTextSize(text, font, fontSize) {
       ctx.font = `${fontSize}px ${font}`;
       ctx.fillStyle = color;
 
-      // Draw text at baseline position (y = fontSize for baseline alignment)
-      ctx.fillText(text, 0, fontSize);
+      // Apply dropshadow if enabled
+      if (shadowEnabled) {
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowOffsetX = shadowOffsetX;
+        ctx.shadowOffsetY = shadowOffsetY;
+      }
+
+      // Draw text at baseline position, offset by shadow padding
+      ctx.fillText(text, shadowPadding, fontSize + shadowPadding);
+
+      // Reset shadow properties after drawing (good practice)
+      if (shadowEnabled) {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
 
       resolve(canvas);
     });

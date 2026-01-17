@@ -512,3 +512,316 @@ describe('createTextCanvasOfSize with color config', () => {
     expect(canvas.width).toBeGreaterThan(0);
   });
 });
+
+describe('createTextCanvasOfSize with dropshadow config', () => {
+  it('should render without dropshadow when disabled (default)', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        color: 'yellow',
+        dropshadow: {
+          enabled: false
+        }
+      }
+    };
+
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    const expectedSize = estimateTextSize(text, 'THEBOLDFONT', 50);
+
+    // Canvas size should match text size exactly (no shadow padding)
+    expect(canvas.width).toBe(expectedSize.width);
+    expect(canvas.height).toBe(expectedSize.height);
+  });
+
+  it('should render with dropshadow when enabled', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        color: 'yellow',
+        dropshadow: {
+          enabled: true,
+          color: '#000000',
+          blur: 5,
+          offsetX: 3,
+          offsetY: 3
+        }
+      }
+    };
+
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    const expectedSize = estimateTextSize(text, 'THEBOLDFONT', 50);
+
+    // Canvas should be larger than text size to accommodate shadow
+    // Shadow padding = max(|offsetX|, |offsetY|) + blur = 3 + 5 = 8
+    // Canvas should be expectedSize + (8 * 2) for each dimension
+    const shadowPadding = 8;
+    expect(canvas.width).toBe(expectedSize.width + (shadowPadding * 2));
+    expect(canvas.height).toBe(expectedSize.height + (shadowPadding * 2));
+  });
+
+  it('should apply custom shadow color', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        color: 'yellow',
+        dropshadow: {
+          enabled: true,
+          color: 'red',
+          blur: 0,
+          offsetX: 2,
+          offsetY: 2
+        }
+      }
+    };
+
+    // Should not throw - creates canvas with shadow
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    expect(canvas.width).toBeGreaterThan(0);
+    expect(canvas.height).toBeGreaterThan(0);
+  });
+
+  it('should apply custom shadow blur', async () => {
+    const text = 'Test';
+    const configNoBlur = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        dropshadow: {
+          enabled: true,
+          color: '#000000',
+          blur: 0,
+          offsetX: 2,
+          offsetY: 2
+        }
+      }
+    };
+    const configWithBlur = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        dropshadow: {
+          enabled: true,
+          color: '#000000',
+          blur: 10,
+          offsetX: 2,
+          offsetY: 2
+        }
+      }
+    };
+
+    const canvasNoBlur = await createTextCanvasOfSize(text, null, null, configNoBlur);
+    const canvasWithBlur = await createTextCanvasOfSize(text, null, null, configWithBlur);
+
+    // Canvas with blur should be larger due to blur padding
+    expect(canvasWithBlur.width).toBeGreaterThan(canvasNoBlur.width);
+    expect(canvasWithBlur.height).toBeGreaterThan(canvasNoBlur.height);
+  });
+
+  it('should apply negative shadow offsets correctly', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        dropshadow: {
+          enabled: true,
+          color: '#000000',
+          blur: 0,
+          offsetX: -5,
+          offsetY: -5
+        }
+      }
+    };
+
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    const expectedSize = estimateTextSize(text, 'THEBOLDFONT', 50);
+
+    // Shadow padding should use absolute values: max(|-5|, |-5|) + 0 = 5
+    const shadowPadding = 5;
+    expect(canvas.width).toBe(expectedSize.width + (shadowPadding * 2));
+    expect(canvas.height).toBe(expectedSize.height + (shadowPadding * 2));
+  });
+
+  it('should use default shadow values when not specified', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        dropshadow: {
+          enabled: true
+          // color, blur, offsetX, offsetY not specified - use defaults
+        }
+      }
+    };
+
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    const expectedSize = estimateTextSize(text, 'THEBOLDFONT', 50);
+
+    // Default shadow values: blur=0, offsetX=-2, offsetY=3
+    // Shadow padding = max(|-2|, |3|) + 0 = 3
+    const shadowPadding = 3;
+    expect(canvas.width).toBe(expectedSize.width + (shadowPadding * 2));
+    expect(canvas.height).toBe(expectedSize.height + (shadowPadding * 2));
+  });
+
+  it('should not apply shadow when dropshadow object is missing', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        color: 'yellow'
+        // No dropshadow property
+      }
+    };
+
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    const expectedSize = estimateTextSize(text, 'THEBOLDFONT', 50);
+
+    // No shadow padding should be added
+    expect(canvas.width).toBe(expectedSize.width);
+    expect(canvas.height).toBe(expectedSize.height);
+  });
+
+  it('should handle dropshadow with hex color', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        dropshadow: {
+          enabled: true,
+          color: '#FF0000',
+          blur: 2,
+          offsetX: 2,
+          offsetY: 2
+        }
+      }
+    };
+
+    // Should not throw
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    expect(canvas.width).toBeGreaterThan(0);
+  });
+
+  it('should handle dropshadow with rgba color', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        dropshadow: {
+          enabled: true,
+          color: 'rgba(0, 0, 0, 0.5)',
+          blur: 4,
+          offsetX: 3,
+          offsetY: 3
+        }
+      }
+    };
+
+    // Should not throw
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    expect(canvas.width).toBeGreaterThan(0);
+  });
+
+  it('should fall back to default shadow color for invalid color', async () => {
+    const text = 'Test';
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        dropshadow: {
+          enabled: true,
+          color: 'notavalidcolor',
+          blur: 2,
+          offsetX: 2,
+          offsetY: 2
+        }
+      }
+    };
+
+    // Should not throw - falls back to #000000
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    expect(canvas.width).toBeGreaterThan(0);
+  });
+
+  it('should render text with shadow pixels when dropshadow is enabled', async () => {
+    const text = 'X'; // Simple character for easier pixel analysis
+    const config = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        color: 'white',
+        dropshadow: {
+          enabled: true,
+          color: 'black',
+          blur: 0,
+          offsetX: 5,
+          offsetY: 5
+        }
+      }
+    };
+
+    const canvas = await createTextCanvasOfSize(text, null, null, config);
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+    // Check that there are non-transparent pixels (text + shadow)
+    let hasVisiblePixels = false;
+    for (let i = 0; i < imageData.length; i += 4) {
+      const a = imageData[i + 3];
+      if (a > 0) {
+        hasVisiblePixels = true;
+        break;
+      }
+    }
+    expect(hasVisiblePixels).toBe(true);
+  });
+
+  it('should render text without shadow pixels when dropshadow is disabled', async () => {
+    const text = 'X';
+    const configDisabled = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        color: 'yellow',
+        dropshadow: {
+          enabled: false,
+          color: 'black',
+          blur: 10,
+          offsetX: 10,
+          offsetY: 10
+        }
+      }
+    };
+    const configEnabled = {
+      text: {
+        font: 'THEBOLDFONT',
+        fontSize: 50,
+        color: 'yellow',
+        dropshadow: {
+          enabled: true,
+          color: 'black',
+          blur: 10,
+          offsetX: 10,
+          offsetY: 10
+        }
+      }
+    };
+
+    const canvasDisabled = await createTextCanvasOfSize(text, null, null, configDisabled);
+    const canvasEnabled = await createTextCanvasOfSize(text, null, null, configEnabled);
+
+    // Canvas with disabled shadow should be smaller
+    expect(canvasDisabled.width).toBeLessThan(canvasEnabled.width);
+    expect(canvasDisabled.height).toBeLessThan(canvasEnabled.height);
+  });
+});

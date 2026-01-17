@@ -82,3 +82,45 @@
   - Functions should extract defaults inline (`textConfig.font || 'THEBOLDFONT'`) for clean fallback handling
   - The config parameter should be last and default to null for backward compatibility
 ---
+
+## Iteration 5 - US-005: Implement Configurable Text Color and Position
+- What was implemented:
+  - Added `parseColor()` function to validate color strings (hex #RGB/#RRGGBB/#RRGGBBAA, named colors, rgb()/rgba() formats)
+  - Added `resolveColor()` function to return valid color or fall back to default
+  - Added `getPosition()` function to read position from config with CLI override capability
+  - Updated `createTextCanvasOfSize` to use `resolveColor()` for color validation
+  - createTextCanvasOfSize already used `color` from config.text (from US-004), now with proper validation
+  - Added 37 new unit tests for color parsing, position handling, and color config
+- Files changed:
+  - src/image/canvas.js (added parseColor, resolveColor, getPosition functions; updated exports)
+  - tests/canvas.test.js (added tests for parseColor, resolveColor, getPosition, and color config)
+  - PRD.md (marked US-005 as complete)
+- Learnings for future iterations:
+  - Node-canvas pixel rendering is unreliable in Jest test environment - avoid pixel-based color verification
+  - Test color functions (parseColor, resolveColor) directly rather than via canvas pixel output
+  - Use null checks (cliX !== null) instead of falsy checks to allow 0 as a valid position value
+  - Named colors should be normalized to lowercase for consistency
+  - The NAMED_COLORS Set provides a subset of CSS named colors supported by canvas
+---
+
+## Iteration 6 - US-006: Implement Text Dropshadow Effect
+- What was implemented:
+  - Added dropshadow rendering in `createTextCanvasOfSize` using canvas shadow API
+  - Extracts dropshadow settings (enabled, color, blur, offsetX, offsetY) from config
+  - Applies ctx.shadowColor, ctx.shadowBlur, ctx.shadowOffsetX, ctx.shadowOffsetY when enabled
+  - Calculates extra canvas padding to accommodate shadow extent beyond text bounds
+  - Uses resolveColor for shadow color validation with fallback to #000000
+  - Resets shadow properties after drawing (good practice)
+  - Dropshadow only applied when dropshadow.enabled === true
+  - Added 14 comprehensive unit tests for dropshadow functionality
+- Files changed:
+  - src/image/canvas.js (added dropshadow logic to createTextCanvasOfSize)
+  - tests/canvas.test.js (added dropshadow test suite with 14 tests)
+  - PRD.md (marked US-006 as complete)
+- Learnings for future iterations:
+  - Canvas shadow API uses ctx.shadowColor, ctx.shadowBlur, ctx.shadowOffsetX, ctx.shadowOffsetY
+  - Shadows can extend beyond text bounds, so canvas must be larger to accommodate
+  - Shadow padding formula: max(|offsetX|, |offsetY|) + blur
+  - Always reset shadow properties after drawing to avoid affecting subsequent operations
+  - Use strict equality (=== true) for boolean checks to avoid truthy false positives
+---

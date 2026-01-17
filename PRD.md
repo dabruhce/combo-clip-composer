@@ -80,11 +80,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want dropshadow on text so that it stands out against busy backgrounds.
 
 **Acceptance Criteria:**
-- [ ] Add dropshadow rendering in `createTextCanvasOfSize` using canvas shadow API
-- [ ] Apply `ctx.shadowColor`, `ctx.shadowBlur`, `ctx.shadowOffsetX`, `ctx.shadowOffsetY` from config
-- [ ] Dropshadow only applied when `dropshadow.enabled` is true in config
-- [ ] Typecheck passes
-- [ ] Unit tests verify shadow is rendered when enabled, not rendered when disabled
+- [x] Add dropshadow rendering in `createTextCanvasOfSize` using canvas shadow API
+- [x] Apply `ctx.shadowColor`, `ctx.shadowBlur`, `ctx.shadowOffsetX`, `ctx.shadowOffsetY` from config
+- [x] Dropshadow only applied when `dropshadow.enabled` is true in config
+- [x] Typecheck passes
+- [x] Unit tests verify shadow is rendered when enabled, not rendered when disabled
 
 ---
 
