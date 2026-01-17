@@ -19,6 +19,10 @@ let currentVideoPath = null;
 let extractedFramesDir = null;
 let framePaths = [];
 
+// Store project state
+let currentProjectPath = null;
+let hasUnsavedChanges = false;
+
 /**
  * Gets video metadata using ffprobe
  */
@@ -118,6 +122,220 @@ async function extractVideoFrames(videoPath, progressCallback) {
 }
 
 /**
+ * Opens a dialog to select a project file
+ */
+async function openProjectDialog() {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Open Project',
+    filters: [
+      { name: 'Combo Clip Composer Project', extensions: ['ccc'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    properties: ['openFile']
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+}
+
+/**
+ * Opens a dialog to save a project file
+ */
+async function saveProjectDialog() {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Save Project',
+    filters: [
+      { name: 'Combo Clip Composer Project', extensions: ['ccc'] }
+    ],
+    defaultPath: currentProjectPath || 'untitled.ccc'
+  });
+
+  if (result.canceled) {
+    return null;
+  }
+
+  return result.filePath;
+}
+
+/**
+ * Handle project open request from renderer
+ */
+async function handleOpenProject() {
+  try {
+    const projectPath = await openProjectDialog();
+    if (!projectPath) {
+      return { success: false, canceled: true };
+    }
+
+    // Read and parse project file
+    const projectData = JSON.parse(fs.readFileSync(projectPath, 'utf-8'));
+
+    // Validate project file structure
+    if (!projectData.version || !projectData.sourceVideoPath) {
+      return {
+        success: false,
+        error: 'Invalid project file format'
+      };
+    }
+
+    // Check if source video exists
+    if (!fs.existsSync(projectData.sourceVideoPath)) {
+      return {
+        success: false,
+        error: `Source video not found: ${projectData.sourceVideoPath}`
+      };
+    }
+
+    currentProjectPath = projectPath;
+    hasUnsavedChanges = false;
+    updateWindowTitle();
+
+    return {
+      success: true,
+      projectPath,
+      projectData
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Handle project save request from renderer
+ */
+async function handleSaveProject(event, { projectData, saveAs }) {
+  try {
+    let savePath = currentProjectPath;
+
+    // Show save dialog if no current path or "Save As"
+    if (!savePath || saveAs) {
+      savePath = await saveProjectDialog();
+      if (!savePath) {
+        return { success: false, canceled: true };
+      }
+    }
+
+    // Ensure .ccc extension
+    if (!savePath.toLowerCase().endsWith('.ccc')) {
+      savePath += '.ccc';
+    }
+
+    // Write project file
+    fs.writeFileSync(savePath, JSON.stringify(projectData, null, 2), 'utf-8');
+
+    currentProjectPath = savePath;
+    hasUnsavedChanges = false;
+    updateWindowTitle();
+
+    return {
+      success: true,
+      projectPath: savePath
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Handle unsaved changes mark from renderer
+ */
+function handleMarkUnsavedChanges(event, { hasChanges }) {
+  hasUnsavedChanges = hasChanges;
+  updateWindowTitle();
+}
+
+/**
+ * Updates the window title to reflect project state
+ */
+function updateWindowTitle() {
+  if (!mainWindow) return;
+
+  let title = 'Combo Clip Composer Editor';
+  if (currentProjectPath) {
+    title = path.basename(currentProjectPath) + ' - ' + title;
+  }
+  if (hasUnsavedChanges) {
+    title = '• ' + title;
+  }
+  mainWindow.setTitle(title);
+}
+
+/**
+ * Shows unsaved changes dialog and returns user's choice
+ * @returns {Promise<'save'|'discard'|'cancel'>}
+ */
+async function showUnsavedChangesDialog() {
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: 'warning',
+    title: 'Unsaved Changes',
+    message: 'You have unsaved changes. Do you want to save before closing?',
+    buttons: ['Save', "Don't Save", 'Cancel'],
+    defaultId: 0,
+    cancelId: 2
+  });
+
+  switch (result.response) {
+    case 0: return 'save';
+    case 1: return 'discard';
+    default: return 'cancel';
+  }
+}
+
+/**
+ * Handle loading video by path (for project loading)
+ */
+async function handleLoadVideoByPath(event, videoPath) {
+  try {
+    if (!videoPath || !fs.existsSync(videoPath)) {
+      return {
+        success: false,
+        error: 'Video file not found: ' + videoPath
+      };
+    }
+
+    // Notify renderer that extraction is starting
+    event.sender.send('video-loading-started', { videoPath });
+
+    // Extract frames
+    const result = await extractVideoFrames(videoPath);
+
+    // Store state
+    currentVideoPath = videoPath;
+    extractedFramesDir = result.framesDir;
+    framePaths = result.framePaths;
+
+    // Send success to renderer
+    return {
+      success: true,
+      videoPath,
+      framesDir: result.framesDir,
+      framePaths: result.framePaths,
+      frameCount: result.framePaths.length,
+      metadata: {
+        fps: result.metadata.fps,
+        duration: result.metadata.duration,
+        width: result.metadata.width,
+        height: result.metadata.height
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Handle video loading request from renderer
  */
 async function handleLoadVideo(event) {
@@ -170,6 +388,30 @@ function createMenu() {
       label: 'File',
       submenu: [
         {
+          label: 'New Project',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('new-project');
+            }
+          }
+        },
+        {
+          label: 'Open Project...',
+          accelerator: 'CmdOrCtrl+Shift+O',
+          click: async () => {
+            if (mainWindow) {
+              const result = await handleOpenProject();
+              if (result.success) {
+                mainWindow.webContents.send('project-opened', result);
+              } else if (result.error) {
+                mainWindow.webContents.send('project-open-error', { error: result.error });
+              }
+            }
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Open Video',
           accelerator: 'CmdOrCtrl+O',
           click: async () => {
@@ -180,6 +422,25 @@ function createMenu() {
               } else if (result.error) {
                 mainWindow.webContents.send('video-load-error', { error: result.error });
               }
+            }
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Save',
+          accelerator: 'CmdOrCtrl+S',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('save-project', { saveAs: false });
+            }
+          }
+        },
+        {
+          label: 'Save As...',
+          accelerator: 'CmdOrCtrl+Shift+S',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('save-project', { saveAs: true });
             }
           }
         },
@@ -234,6 +495,24 @@ function createWindow() {
   // Set window title explicitly
   mainWindow.setTitle('Combo Clip Composer Editor');
 
+  // Handle close event to warn about unsaved changes
+  mainWindow.on('close', async (event) => {
+    if (hasUnsavedChanges) {
+      event.preventDefault();
+      const choice = await showUnsavedChangesDialog();
+
+      if (choice === 'save') {
+        // Request renderer to save project
+        mainWindow.webContents.send('save-project-before-close');
+      } else if (choice === 'discard') {
+        // Force close without saving
+        hasUnsavedChanges = false;
+        mainWindow.close();
+      }
+      // If 'cancel', do nothing (close was already prevented)
+    }
+  });
+
   // Emitted when the window is closed
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -247,12 +526,26 @@ app.whenReady().then(() => {
 
   // Set up IPC handlers
   ipcMain.handle('open-video', handleLoadVideo);
+  ipcMain.handle('load-video-by-path', handleLoadVideoByPath);
   ipcMain.handle('get-frame-paths', () => framePaths);
   ipcMain.handle('get-current-video', () => ({
     videoPath: currentVideoPath,
     framesDir: extractedFramesDir,
     framePaths: framePaths
   }));
+
+  // Project IPC handlers
+  ipcMain.handle('open-project', handleOpenProject);
+  ipcMain.handle('save-project', handleSaveProject);
+  ipcMain.handle('get-project-path', () => currentProjectPath);
+  ipcMain.on('mark-unsaved-changes', handleMarkUnsavedChanges);
+  ipcMain.handle('check-unsaved-changes', async () => {
+    if (!hasUnsavedChanges) {
+      return { action: 'proceed' };
+    }
+    const choice = await showUnsavedChangesDialog();
+    return { action: choice };
+  });
 
   // On macOS, re-create window when dock icon is clicked and no windows exist
   app.on('activate', () => {
@@ -281,4 +574,14 @@ app.on('will-quit', () => {
 });
 
 // Export for testing purposes
-module.exports = { createWindow, getVideoMetadata, extractVideoFrames, openVideoDialog };
+module.exports = {
+  createWindow,
+  getVideoMetadata,
+  extractVideoFrames,
+  openVideoDialog,
+  openProjectDialog,
+  saveProjectDialog,
+  handleOpenProject,
+  handleSaveProject,
+  handleLoadVideoByPath
+};

@@ -356,12 +356,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to save my project so that I can continue editing later.
 
 **Acceptance Criteria:**
-- [ ] Save project as JSON file (`.ccc` extension - Combo Clip Composer)
-- [ ] Project file includes: source video path, config, keyframes, combo text
-- [ ] "Save" and "Save As" menu items with Ctrl+S shortcut
-- [ ] "Open Project" loads saved project file
-- [ ] Warn on unsaved changes when closing
-- [ ] Typecheck passes
+- [x] Save project as JSON file (`.ccc` extension - Combo Clip Composer)
+- [x] Project file includes: source video path, config, keyframes, combo text
+- [x] "Save" and "Save As" menu items with Ctrl+S shortcut
+- [x] "Open Project" loads saved project file
+- [x] Warn on unsaved changes when closing
+- [x] Typecheck passes
 
 #### US-030: Implement Video Export
 **Description:** As a user, I want to export the final video so that I can share my combo video.

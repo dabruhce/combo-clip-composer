@@ -624,3 +624,31 @@
   - Pre-existing test failures (pipeline.test.js, combos.test.js) are ffmpeg/ytdl-core environment issues, not code bugs
   - When all acceptance criteria are already satisfied, task completion is a verification exercise
 ---
+
+## Iteration 29 - US-029: Implement Project Save/Load
+- What was implemented:
+  - Added project state tracking in editorState (path, hasUnsavedChanges)
+  - Added PROJECT_VERSION constant ('1.0') for project file versioning
+  - Added project save functions: createProjectData(), saveProject(), applyProjectData()
+  - Added project load functions: openProject(), loadProjectFromData(), extractVideoFramesByPath()
+  - Added newProject() to reset editor state for new projects
+  - Added hideOverlayControls() and hideFrameCanvas() helper functions
+  - Added IPC handlers in main.js: handleOpenProject, handleSaveProject, handleLoadVideoByPath, handleMarkUnsavedChanges
+  - Added openProjectDialog() and saveProjectDialog() for file dialogs
+  - Added File menu items: New Project (Ctrl+N), Open Project (Ctrl+Shift+O), Save (Ctrl+S), Save As (Ctrl+Shift+S)
+  - Added window close handler to warn about unsaved changes
+  - Added updateWindowTitle() to show project name and unsaved indicator (• prefix)
+  - Project file format (.ccc): version, sourceVideoPath, comboText, config, keyframes, overlay settings, currentFrame
+  - Marked changes as unsaved when keyframes or overlay settings change
+- Files changed:
+  - editor/main.js (added project state, IPC handlers, menu items, close handler)
+  - editor/index.html (added project state, save/load functions, IPC listeners)
+  - PRD.md (marked US-029 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Use ipcMain.handle for async IPC with return values, ipcMain.on for fire-and-forget messages
+  - Window close event can be intercepted with event.preventDefault() for unsaved changes warning
+  - Project files should store absolute video paths for reliable re-opening
+  - KeyframeManager.fromJSON() and .toJSON() enable easy serialization of keyframe data
+  - Mark unsaved changes at the source (applyOverlayFromInputs, pushToUndoStack) for comprehensive tracking
+---

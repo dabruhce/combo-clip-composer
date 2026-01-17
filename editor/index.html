@@ -1367,8 +1367,16 @@
         isDragging: false,
         dragStartFrame: 0,
         dragProperty: null
+      },
+      // Project state
+      project: {
+        path: null,
+        hasUnsavedChanges: false
       }
     };
+
+    // Project file version
+    const PROJECT_VERSION = '1.0';
 
     // DOM elements
     const openVideoBtn = document.getElementById('openVideoBtn');
@@ -1882,6 +1890,11 @@
       const config = getOverlayConfigFromInputs();
 
       await updateOverlay(comboText, xOffset, yOffset, config);
+
+      // Mark project as having unsaved changes
+      if (typeof markUnsavedChanges === 'function') {
+        markUnsavedChanges();
+      }
     }
 
     /**
@@ -3949,6 +3962,343 @@
     ipcRenderer.on('video-load-error', (event, data) => {
       onVideoLoadError(data.error);
     });
+
+    // ========================================
+    // PROJECT SAVE/LOAD FUNCTIONS
+    // ========================================
+
+    /**
+     * Marks the project as having unsaved changes
+     */
+    function markUnsavedChanges() {
+      if (!editorState.project.hasUnsavedChanges) {
+        editorState.project.hasUnsavedChanges = true;
+        ipcRenderer.send('mark-unsaved-changes', { hasChanges: true });
+      }
+    }
+
+    /**
+     * Clears the unsaved changes flag
+     */
+    function clearUnsavedChanges() {
+      editorState.project.hasUnsavedChanges = false;
+      ipcRenderer.send('mark-unsaved-changes', { hasChanges: false });
+    }
+
+    /**
+     * Creates a project data object from current editor state
+     * @returns {Object} Project data for saving
+     */
+    function createProjectData() {
+      return {
+        version: PROJECT_VERSION,
+        sourceVideoPath: editorState.videoPath,
+        comboText: editorState.overlay.comboText || '',
+        config: getFullConfigFromInputs(),
+        keyframes: editorState.keyframes.manager ? editorState.keyframes.manager.toJSON() : { tracks: [] },
+        overlay: {
+          enabled: editorState.overlay.enabled,
+          xOffset: editorState.overlay.xOffset,
+          yOffset: editorState.overlay.yOffset,
+          snapToGrid: editorState.overlay.snapToGrid,
+          gridSize: editorState.overlay.gridSize
+        },
+        currentFrame: editorState.currentFrame
+      };
+    }
+
+    /**
+     * Applies project data to the editor state
+     * @param {Object} projectData - The loaded project data
+     */
+    function applyProjectData(projectData) {
+      // Apply combo text
+      comboTextInput.value = projectData.comboText || '';
+
+      // Apply config to inputs
+      if (projectData.config) {
+        const cfg = projectData.config;
+
+        // Text config
+        if (cfg.text) {
+          textFontSelect.value = cfg.text.font || 'Arial';
+          textFontSizeInput.value = cfg.text.fontSize || 50;
+          textColorText.value = cfg.text.color || 'yellow';
+          textColorPicker.value = colorNameToHex(cfg.text.color || 'yellow');
+
+          if (cfg.text.dropshadow) {
+            dropshadowEnabledCheckbox.checked = cfg.text.dropshadow.enabled || false;
+            dropshadowColorText.value = cfg.text.dropshadow.color || '#000000';
+            dropshadowColorPicker.value = cfg.text.dropshadow.color || '#000000';
+            dropshadowBlurInput.value = cfg.text.dropshadow.blur || 0;
+            dropshadowOffsetXInput.value = cfg.text.dropshadow.offsetX || -2;
+            dropshadowOffsetYInput.value = cfg.text.dropshadow.offsetY || 3;
+          }
+        }
+
+        // Images config
+        if (cfg.images) {
+          imgWidthInput.value = cfg.images.width || 50;
+          imgHeightInput.value = cfg.images.height || 50;
+          imgSpacingInput.value = cfg.images.spacing || 0;
+          imgPaddingInput.value = cfg.images.padding || 5;
+          imgMarginInput.value = cfg.images.margin || 5;
+        }
+      }
+
+      // Apply overlay settings
+      if (projectData.overlay) {
+        overlayXInput.value = projectData.overlay.xOffset || 10;
+        overlayYInput.value = projectData.overlay.yOffset || 10;
+        editorState.overlay.xOffset = projectData.overlay.xOffset || 10;
+        editorState.overlay.yOffset = projectData.overlay.yOffset || 10;
+        editorState.overlay.snapToGrid = projectData.overlay.snapToGrid || false;
+        editorState.overlay.gridSize = projectData.overlay.gridSize || 10;
+        snapToGridCheckbox.checked = editorState.overlay.snapToGrid;
+        gridSizeInput.value = editorState.overlay.gridSize;
+      }
+
+      // Apply keyframes
+      if (projectData.keyframes && projectData.keyframes.tracks) {
+        editorState.keyframes.manager = KeyframeManager.fromJSON(projectData.keyframes);
+      }
+
+      // Go to saved frame position
+      if (projectData.currentFrame !== undefined && editorState.frameCount > 0) {
+        goToFrame(Math.min(projectData.currentFrame, editorState.frameCount - 1));
+      }
+
+      // Apply overlay if enabled
+      if (projectData.overlay && projectData.overlay.enabled && projectData.comboText) {
+        overlayEnabledCheckbox.checked = true;
+        applyOverlayFromInputs();
+      }
+    }
+
+    /**
+     * Saves the current project
+     * @param {boolean} saveAs - Whether to show save dialog even if path exists
+     */
+    async function saveProject(saveAs = false) {
+      if (!editorState.videoPath) {
+        alert('No video loaded. Please load a video before saving.');
+        return;
+      }
+
+      const projectData = createProjectData();
+
+      try {
+        const result = await ipcRenderer.invoke('save-project', { projectData, saveAs });
+
+        if (result.success) {
+          editorState.project.path = result.projectPath;
+          clearUnsavedChanges();
+          updateStatusBar();
+          console.log('Project saved:', result.projectPath);
+        } else if (result.error) {
+          alert('Failed to save project: ' + result.error);
+        }
+      } catch (error) {
+        alert('Failed to save project: ' + error.message);
+      }
+    }
+
+    /**
+     * Opens a project file
+     */
+    async function openProject() {
+      try {
+        const result = await ipcRenderer.invoke('open-project');
+
+        if (result.success) {
+          await loadProjectFromData(result.projectPath, result.projectData);
+        } else if (result.error) {
+          alert('Failed to open project: ' + result.error);
+        }
+      } catch (error) {
+        alert('Failed to open project: ' + error.message);
+      }
+    }
+
+    /**
+     * Loads a project from the given data
+     * @param {string} projectPath - Path to the project file
+     * @param {Object} projectData - The project data
+     */
+    async function loadProjectFromData(projectPath, projectData) {
+      editorState.project.path = projectPath;
+
+      // First, load the source video
+      showLoading('Loading project video...');
+
+      try {
+        // Extract frames from the source video
+        const extractResult = await extractVideoFramesByPath(projectData.sourceVideoPath);
+
+        if (!extractResult.success) {
+          hideLoading();
+          alert('Failed to load video: ' + (extractResult.error || 'Unknown error'));
+          return;
+        }
+
+        // Apply the video data
+        editorState.videoPath = projectData.sourceVideoPath;
+        editorState.framesDir = extractResult.framesDir;
+        editorState.framePaths = extractResult.framePaths;
+        editorState.frameCount = extractResult.framePaths.length;
+        editorState.metadata = extractResult.metadata;
+        editorState.currentFrame = 0;
+
+        // Show UI
+        hideLoading();
+        showFrameCanvas();
+        showOverlayControls();
+        showTimeline();
+
+        // Load first frame
+        loadFrame(0);
+
+        // Apply project data
+        applyProjectData(projectData);
+
+        // Render keyframes
+        renderKeyframeMarkers();
+
+        clearUnsavedChanges();
+        updateStatusBar();
+
+        console.log('Project loaded:', projectPath);
+      } catch (error) {
+        hideLoading();
+        alert('Failed to load project: ' + error.message);
+      }
+    }
+
+    /**
+     * Extracts frames from a video file by path (for project loading)
+     * @param {string} videoPath - Path to the video file
+     * @returns {Promise<Object>} Extraction result
+     */
+    async function extractVideoFramesByPath(videoPath) {
+      return ipcRenderer.invoke('load-video-by-path', videoPath);
+    }
+
+    /**
+     * Creates a new empty project
+     */
+    function newProject() {
+      // Reset editor state
+      editorState.videoPath = null;
+      editorState.framesDir = null;
+      editorState.framePaths = [];
+      editorState.frameCount = 0;
+      editorState.currentFrame = 0;
+      editorState.metadata = null;
+      editorState.frameImage = null;
+      editorState.zoom = 'fit';
+      editorState.timelineZoom = 1;
+
+      // Reset overlay state
+      editorState.overlay.enabled = false;
+      editorState.overlay.comboText = '';
+      editorState.overlay.xOffset = 10;
+      editorState.overlay.yOffset = 10;
+      editorState.overlay.inputImages = [];
+      editorState.overlay.config = null;
+      editorState.overlay.snapToGrid = false;
+      editorState.overlay.gridSize = 10;
+
+      // Reset keyframe state
+      editorState.keyframes.manager = new KeyframeManager();
+      editorState.keyframes.selectedKeyframe = null;
+
+      // Reset project state
+      editorState.project.path = null;
+
+      // Reset UI
+      hideFrameCanvas();
+      hideOverlayControls();
+      hideTimeline();
+
+      // Reset controls to defaults
+      initializePropertyInputs();
+      comboTextInput.value = '';
+      overlayXInput.value = 10;
+      overlayYInput.value = 10;
+      overlayEnabledCheckbox.checked = false;
+      snapToGridCheckbox.checked = false;
+      gridSizeInput.value = 10;
+
+      clearUnsavedChanges();
+      updateStatusBar();
+    }
+
+    /**
+     * Hides the overlay controls
+     */
+    function hideOverlayControls() {
+      propertiesPlaceholder.style.display = 'block';
+      overlayControls.style.display = 'none';
+
+      // Disable all overlay inputs
+      comboTextInput.disabled = true;
+      overlayXInput.disabled = true;
+      overlayYInput.disabled = true;
+      snapToGridCheckbox.disabled = true;
+      gridSizeInput.disabled = true;
+      applyOverlayBtn.disabled = true;
+    }
+
+    /**
+     * Hides the frame canvas
+     */
+    function hideFrameCanvas() {
+      frameCanvasContainer.classList.remove('visible');
+      previewPlaceholder.style.display = 'block';
+      zoomControls.classList.add('hidden');
+    }
+
+    // Project IPC event listeners
+    ipcRenderer.on('save-project', async (event, { saveAs }) => {
+      await saveProject(saveAs);
+    });
+
+    ipcRenderer.on('save-project-before-close', async () => {
+      await saveProject(false);
+      // After saving, allow the window to close
+      ipcRenderer.send('mark-unsaved-changes', { hasChanges: false });
+    });
+
+    ipcRenderer.on('project-opened', async (event, result) => {
+      if (result.success) {
+        await loadProjectFromData(result.projectPath, result.projectData);
+      }
+    });
+
+    ipcRenderer.on('project-open-error', (event, { error }) => {
+      alert('Failed to open project: ' + error);
+    });
+
+    ipcRenderer.on('new-project', async () => {
+      // Check for unsaved changes first
+      if (editorState.project.hasUnsavedChanges) {
+        const result = await ipcRenderer.invoke('check-unsaved-changes');
+        if (result.action === 'save') {
+          await saveProject(false);
+        } else if (result.action === 'cancel') {
+          return;
+        }
+      }
+      newProject();
+    });
+
+    // Mark changes as unsaved when relevant state changes
+    // Add listener to keyframe operations to mark unsaved
+    const originalPushToUndoStack = pushToUndoStack;
+    pushToUndoStack = function(action) {
+      originalPushToUndoStack(action);
+      markUnsavedChanges();
+    };
 
     // Initialize
     console.log('Combo Clip Composer Editor initialized');
