@@ -198,6 +198,34 @@
       white-space: nowrap;
     }
 
+    /* Drag position indicator */
+    .drag-position-indicator {
+      position: fixed;
+      background-color: rgba(0, 122, 204, 0.9);
+      color: #ffffff;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      pointer-events: none;
+      z-index: 1000;
+      white-space: nowrap;
+      display: none;
+    }
+
+    .drag-position-indicator.visible {
+      display: block;
+    }
+
+    /* Canvas cursor when hovering over overlay */
+    #frameCanvas.overlay-hoverable {
+      cursor: move;
+    }
+
+    #frameCanvas.overlay-dragging {
+      cursor: grabbing;
+    }
+
     /* Right panel - Layers/Elements */
     .panel-right {
       width: 280px;
@@ -669,6 +697,20 @@
               <label class="property-sublabel" for="overlayY">Y:</label>
               <input type="number" id="overlayY" class="property-input-small" value="10" min="0" disabled>
             </div>
+            <p class="property-hint">Drag overlay on canvas to reposition</p>
+          </div>
+
+          <!-- Snap to Grid Controls -->
+          <div class="property-group">
+            <label class="property-label">
+              <input type="checkbox" id="snapToGrid" disabled>
+              Snap to Grid
+            </label>
+            <div class="property-row" style="margin-top: 6px;">
+              <label class="property-sublabel" for="gridSize">Size:</label>
+              <input type="number" id="gridSize" class="property-input-small" value="10" min="1" max="100" disabled>
+              <span style="font-size: 11px; color: #666666;">px</span>
+            </div>
           </div>
 
           <!-- Image Size Controls -->
@@ -732,6 +774,8 @@
           <div class="loading-text">Loading Video</div>
           <div class="loading-subtext" id="loadingSubtext">Extracting frames...</div>
         </div>
+        <!-- Drag position indicator -->
+        <div class="drag-position-indicator" id="dragPositionIndicator">X: 0, Y: 0</div>
       </div>
     </div>
 
@@ -816,7 +860,16 @@
         xOffset: 10,
         yOffset: 10,
         inputImages: [], // Loaded input images [{name, image}]
-        config: null // Config object for styling
+        config: null, // Config object for styling
+        // Drag state
+        isDragging: false,
+        dragStartX: 0,
+        dragStartY: 0,
+        dragOffsetStartX: 0,
+        dragOffsetStartY: 0,
+        // Snap to grid
+        snapToGrid: false,
+        gridSize: 10
       }
     };
 
@@ -849,6 +902,9 @@
     const imgSpacingInput = document.getElementById('imgSpacing');
     const imgPaddingInput = document.getElementById('imgPadding');
     const applyOverlayBtn = document.getElementById('applyOverlayBtn');
+    const snapToGridCheckbox = document.getElementById('snapToGrid');
+    const gridSizeInput = document.getElementById('gridSize');
+    const dragPositionIndicator = document.getElementById('dragPositionIndicator');
 
     // Timeline DOM elements
     const timelinePlaceholder = document.getElementById('timelinePlaceholder');
@@ -1109,6 +1165,8 @@
       imgSpacingInput.disabled = false;
       imgPaddingInput.disabled = false;
       applyOverlayBtn.disabled = false;
+      snapToGridCheckbox.disabled = false;
+      gridSizeInput.disabled = false;
     }
 
     /**
@@ -1128,6 +1186,8 @@
       imgSpacingInput.disabled = true;
       imgPaddingInput.disabled = true;
       applyOverlayBtn.disabled = true;
+      snapToGridCheckbox.disabled = true;
+      gridSizeInput.disabled = true;
     }
 
     /**
@@ -2056,6 +2116,238 @@
       updatePreview();
     }
 
+    // ========================================
+    // DRAG-TO-POSITION FUNCTIONS
+    // ========================================
+
+    /**
+     * Gets the bounding box of the overlay in canvas coordinates (scaled)
+     */
+    function getOverlayBounds() {
+      if (!editorState.overlay.enabled || !editorState.overlay.inputImages || editorState.overlay.inputImages.length === 0) {
+        return null;
+      }
+
+      const config = editorState.overlay.config || defaultConfig;
+      const imgConfig = config.images || defaultConfig.images;
+      const padding = imgConfig.padding || 5;
+
+      const dimensions = calculateInputImagesDimensions(
+        editorState.overlay.inputImages,
+        config
+      );
+
+      const scale = getZoomScale();
+
+      return {
+        x: Math.round((editorState.overlay.xOffset - padding) * scale),
+        y: Math.round((editorState.overlay.yOffset - padding) * scale),
+        width: Math.round((dimensions.width + padding * 2) * scale),
+        height: Math.round((dimensions.height + padding * 2) * scale)
+      };
+    }
+
+    /**
+     * Checks if a point (in canvas coordinates) is inside the overlay
+     */
+    function isPointInOverlay(canvasX, canvasY) {
+      const bounds = getOverlayBounds();
+      if (!bounds) return false;
+
+      return canvasX >= bounds.x && canvasX <= bounds.x + bounds.width &&
+             canvasY >= bounds.y && canvasY <= bounds.y + bounds.height;
+    }
+
+    /**
+     * Converts mouse event coordinates to canvas coordinates
+     */
+    function mouseToCanvasCoords(event) {
+      const rect = frameCanvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    /**
+     * Converts canvas coordinates to frame (video) coordinates
+     */
+    function canvasToFrameCoords(canvasX, canvasY) {
+      const scale = getZoomScale();
+      return {
+        x: Math.round(canvasX / scale),
+        y: Math.round(canvasY / scale)
+      };
+    }
+
+    /**
+     * Snaps a value to the grid if snap is enabled
+     */
+    function snapToGridValue(value) {
+      if (!editorState.overlay.snapToGrid) return value;
+      const gridSize = editorState.overlay.gridSize || 10;
+      return Math.round(value / gridSize) * gridSize;
+    }
+
+    /**
+     * Updates the drag position indicator position and text
+     */
+    function updateDragPositionIndicator(mouseX, mouseY, frameX, frameY) {
+      dragPositionIndicator.textContent = `X: ${frameX}, Y: ${frameY}`;
+      dragPositionIndicator.style.left = `${mouseX + 15}px`;
+      dragPositionIndicator.style.top = `${mouseY + 15}px`;
+    }
+
+    /**
+     * Shows the drag position indicator
+     */
+    function showDragPositionIndicator() {
+      dragPositionIndicator.classList.add('visible');
+    }
+
+    /**
+     * Hides the drag position indicator
+     */
+    function hideDragPositionIndicator() {
+      dragPositionIndicator.classList.remove('visible');
+    }
+
+    /**
+     * Updates the position input fields with current overlay position
+     */
+    function updatePositionInputs() {
+      overlayXInput.value = editorState.overlay.xOffset;
+      overlayYInput.value = editorState.overlay.yOffset;
+    }
+
+    /**
+     * Handles mouse down on the canvas for drag start
+     */
+    function onCanvasMouseDown(event) {
+      if (!editorState.overlay.enabled) return;
+
+      const canvasCoords = mouseToCanvasCoords(event);
+
+      if (isPointInOverlay(canvasCoords.x, canvasCoords.y)) {
+        event.preventDefault();
+
+        editorState.overlay.isDragging = true;
+        editorState.overlay.dragStartX = event.clientX;
+        editorState.overlay.dragStartY = event.clientY;
+        editorState.overlay.dragOffsetStartX = editorState.overlay.xOffset;
+        editorState.overlay.dragOffsetStartY = editorState.overlay.yOffset;
+
+        frameCanvas.classList.add('overlay-dragging');
+        frameCanvas.classList.remove('overlay-hoverable');
+
+        // Show position indicator
+        showDragPositionIndicator();
+        updateDragPositionIndicator(
+          event.clientX,
+          event.clientY,
+          editorState.overlay.xOffset,
+          editorState.overlay.yOffset
+        );
+      }
+    }
+
+    /**
+     * Handles mouse move for dragging overlay
+     */
+    function onCanvasMouseMove(event) {
+      // Handle drag
+      if (editorState.overlay.isDragging) {
+        const scale = getZoomScale();
+        const deltaX = event.clientX - editorState.overlay.dragStartX;
+        const deltaY = event.clientY - editorState.overlay.dragStartY;
+
+        // Convert delta to frame coordinates
+        let newX = editorState.overlay.dragOffsetStartX + Math.round(deltaX / scale);
+        let newY = editorState.overlay.dragOffsetStartY + Math.round(deltaY / scale);
+
+        // Apply snap to grid
+        newX = snapToGridValue(newX);
+        newY = snapToGridValue(newY);
+
+        // Clamp to frame bounds
+        if (editorState.metadata) {
+          const config = editorState.overlay.config || defaultConfig;
+          const imgConfig = config.images || defaultConfig.images;
+          const padding = imgConfig.padding || 5;
+          const dimensions = calculateInputImagesDimensions(
+            editorState.overlay.inputImages,
+            config
+          );
+
+          // Ensure overlay stays within frame
+          newX = Math.max(padding, Math.min(newX, editorState.metadata.width - dimensions.width - padding));
+          newY = Math.max(padding, Math.min(newY, editorState.metadata.height - dimensions.height - padding));
+
+          // Snap clamped values again
+          newX = snapToGridValue(newX);
+          newY = snapToGridValue(newY);
+        }
+
+        // Update position
+        editorState.overlay.xOffset = newX;
+        editorState.overlay.yOffset = newY;
+
+        // Update position inputs
+        updatePositionInputs();
+
+        // Update position indicator
+        updateDragPositionIndicator(event.clientX, event.clientY, newX, newY);
+
+        // Redraw preview
+        updatePreview();
+
+        return;
+      }
+
+      // Handle hover cursor update
+      if (!editorState.overlay.enabled) {
+        frameCanvas.classList.remove('overlay-hoverable');
+        return;
+      }
+
+      const canvasCoords = mouseToCanvasCoords(event);
+      if (isPointInOverlay(canvasCoords.x, canvasCoords.y)) {
+        frameCanvas.classList.add('overlay-hoverable');
+      } else {
+        frameCanvas.classList.remove('overlay-hoverable');
+      }
+    }
+
+    /**
+     * Handles mouse up to end dragging
+     */
+    function onCanvasMouseUp(event) {
+      if (editorState.overlay.isDragging) {
+        editorState.overlay.isDragging = false;
+        frameCanvas.classList.remove('overlay-dragging');
+
+        // Hide position indicator
+        hideDragPositionIndicator();
+
+        // Check if still hovering over overlay
+        const canvasCoords = mouseToCanvasCoords(event);
+        if (isPointInOverlay(canvasCoords.x, canvasCoords.y)) {
+          frameCanvas.classList.add('overlay-hoverable');
+        }
+      }
+    }
+
+    /**
+     * Handles mouse leave to cancel drag state if mouse leaves canvas
+     */
+    function onCanvasMouseLeave(event) {
+      if (editorState.overlay.isDragging) {
+        // Don't cancel drag, just hide indicator temporarily
+        // Drag continues with document-level mousemove
+      }
+      frameCanvas.classList.remove('overlay-hoverable');
+    }
+
     // Event listeners
     openVideoBtn.addEventListener('click', openVideo);
 
@@ -2111,6 +2403,35 @@
     imgPaddingInput.addEventListener('change', () => {
       if (overlayEnabledCheckbox.checked) {
         applyOverlayFromInputs();
+      }
+    });
+
+    // Snap to grid control listeners
+    snapToGridCheckbox.addEventListener('change', (e) => {
+      editorState.overlay.snapToGrid = e.target.checked;
+    });
+
+    gridSizeInput.addEventListener('change', (e) => {
+      const value = parseInt(e.target.value) || 10;
+      editorState.overlay.gridSize = Math.max(1, Math.min(100, value));
+      gridSizeInput.value = editorState.overlay.gridSize;
+    });
+
+    // Canvas drag event listeners for overlay positioning
+    frameCanvas.addEventListener('mousedown', onCanvasMouseDown);
+    frameCanvas.addEventListener('mousemove', onCanvasMouseMove);
+    frameCanvas.addEventListener('mouseleave', onCanvasMouseLeave);
+
+    // Document-level listeners for drag continuation outside canvas
+    document.addEventListener('mousemove', (event) => {
+      if (editorState.overlay.isDragging) {
+        onCanvasMouseMove(event);
+      }
+    });
+
+    document.addEventListener('mouseup', (event) => {
+      if (editorState.overlay.isDragging) {
+        onCanvasMouseUp(event);
       }
     });
 

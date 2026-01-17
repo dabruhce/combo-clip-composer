@@ -284,11 +284,11 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to drag overlays to position them so that I don't need to guess coordinates.
 
 **Acceptance Criteria:**
-- [ ] Click and drag overlay elements on canvas
-- [ ] Update x, y position in config as user drags
-- [ ] Show position coordinates while dragging
-- [ ] Snap to grid option (configurable grid size)
-- [ ] Typecheck passes
+- [x] Click and drag overlay elements on canvas
+- [x] Update x, y position in config as user drags
+- [x] Show position coordinates while dragging
+- [x] Snap to grid option (configurable grid size)
+- [x] Typecheck passes
 
 #### US-024: Implement Config Property Panel
 **Description:** As a user, I want a property panel so that I can edit all config values.

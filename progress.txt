@@ -483,3 +483,25 @@
   - updatePreview() pattern: drawFrame() followed by drawOverlay() for layered rendering
   - Input elements need disabled state toggling for proper UX
 ---
+
+## Iteration 23 - US-023: Implement Drag-to-Position Overlays
+- What was implemented:
+  - Click and drag overlay elements on canvas with mouse
+  - Mouse cursor changes to 'move' when hovering over overlay, 'grabbing' while dragging
+  - Position indicator tooltip follows mouse during drag showing "X: N, Y: N" coordinates
+  - Updates x, y position in editorState.overlay and position input fields as user drags
+  - Snap to grid option with configurable grid size (1-100px, default 10px)
+  - Overlay position clamped to frame bounds accounting for padding
+  - Document-level mouse events allow drag to continue outside canvas
+  - Added drag state tracking (isDragging, dragStartX/Y, dragOffsetStartX/Y)
+- Files changed:
+  - editor/index.html (added CSS styles for drag cursor/indicator, snap-to-grid UI controls, drag state, drag functions, event listeners)
+  - PRD.md (marked US-023 as complete)
+- Learnings for future iterations:
+  - Use getBoundingClientRect() for mouse-to-canvas coordinate conversion
+  - Overlay bounds must account for padding to detect hover/click correctly
+  - Document-level mousemove/mouseup needed for smooth drag when mouse leaves canvas
+  - Snap formula: Math.round(value / gridSize) * gridSize
+  - Position indicator uses fixed positioning with clientX/Y + offset for tooltip placement
+  - CSS classes pattern (overlay-hoverable, overlay-dragging) for cursor state changes
+---
