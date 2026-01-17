@@ -1,106 +1,294 @@
 # Combo Clip Composer
 
-Combo Clip Composer is a tool that allows users to create combo videos, highlight reels, or instructional content for fighting game players by stitching together videos and inputs based on text inputs.
-
-## Overview
-
-Combo Clip Composer is a command-line tool that uses text inputs to create video clips. It provides an easy way for users to create instructional content for fighting games by overlaying combo inputs on top of gameplay footage.
+Combo Clip Composer is a tool for creating fighting game combo videos by overlaying input notation images onto gameplay footage. It provides both a command-line interface for batch processing and a desktop editor for visual composition.
 
 ## Features
 
-- Stitch together videos and combo inputs based on text inputs.
-- Specify the position of the combo input overlay within the video.
-- Customize the output directory for the generated clip.
-- Download video from youtube, turn it into a combo video
+- **Video Processing**: Overlay combo inputs on any video file
+- **YouTube Integration**: Download and process YouTube videos directly
+- **Desktop Editor**: Visual GUI for composing and previewing overlays
+- **Animation System**: Fade-in/fade-out effects with per-character staggering
+- **Keyframe Animation**: Animate properties over time with interpolation
+- **Text Markup**: Inline styling with colors and formatting tags
+- **Configuration System**: JSON-based settings with validation
+- **Project Files**: Save and load editor projects (.ccc format)
 
 ## Getting Started
 
-To use Combo Clip Composer, follow these steps:
+### Prerequisites
 
-1. Clone the repository using `git clone https://github.com/dabruhce/combo-clip-composer.git`.
-2. Navigate to the project directory using `cd combo-clip-composer`.
-3. Install the required dependencies using `yarn`.
+- Node.js >= 10.0.0
+- npm >= 6.0.0 or Yarn
+- ffmpeg (installed automatically via npm dependencies)
 
-## Usage Local
+### Installation
 
-To use Combo Clip Composer on a local file, run the following command:
+```bash
+git clone https://github.com/dabruhce/combo-clip-composer.git
+cd combo-clip-composer
+yarn
+```
 
-node main.js [VIDEO_PATH] "[COMBO_INPUT]" [XPos] [YPos] [OUTPUT_PATH]
+## Usage
 
+### Command Line - Local Video
 
-Here's an explanation of each of the command-line arguments:
+```bash
+node main.js <VIDEO_PATH> "<COMBO_INPUT>" <X_POS> <Y_POS> <OUTPUT_PATH> [START_TIME] [START_OFFSET] [END_TIME] [END_OFFSET]
+```
 
-- `VIDEO_PATH`: The path to the video file you want to use as the base for the clip.
-- `COMBO_INPUT`: The text input representing the combo sequence you want to display on the clip.
-- `XPos`: The horizontal position (in pixels) where the clip should be placed within the video.
-- `YPos`: The vertical position (in pixels) where the clip should be placed within the video.
-- `OUTPUT_PATH`: The directory where the output clip should be saved.
+**Arguments:**
+- `VIDEO_PATH` - Path to source video file
+- `COMBO_INPUT` - Combo notation string (space-separated inputs)
+- `X_POS` - Horizontal position (pixels) for overlay
+- `Y_POS` - Vertical position (pixels) for overlay
+- `OUTPUT_PATH` - Directory for output files
+- `START_TIME` (optional) - Trim start time
+- `START_OFFSET` (optional) - Offset from start time
+- `END_TIME` (optional) - Trim end time
+- `END_OFFSET` (optional) - Offset from end time
 
-## Usage Youtube
-To use Combo Clip Composer on video from youtube, run the following command:
+**Example:**
+```bash
+node main.js ./assets/tests/video/video.mp4 "d df f 2" 100 900 ./artifacts/
+```
 
-node main-pipeline.js [VIDEO_ID] [DOWNLOAD_DESTINATION_VIDEO] [DOWNLOAD_DESTINATION_AUDIO] [FINAL_DESTINATION] "[COMBO_INPUT]" [XPos] [YPos]
+### Command Line - YouTube Video
 
+```bash
+node main-pipeline.js <VIDEO_ID> <VIDEO_DEST> <AUDIO_DEST> <FINAL_DEST> "<COMBO_INPUT>" <X_POS> <Y_POS>
+```
 
-Here's an explanation of each of the command-line arguments:
+**Example:**
+```bash
+node main-pipeline.js xHdlyUh0e5Q ./artifacts/pipeline/temp-video.mp4 ./artifacts/pipeline/temp-audio.aac ./artifacts/pipeline/final.mp4 "d df f 2" 100 900
+```
 
-- `VIDEO_ID`: Youtube video id of the clip.
-- `DOWNLOAD_DESTINATION_VIDEO`: destination to save video.
-- `DOWNLOAD_DESTINATION_AUDIO`: destination to save audio.
-- `FINAL_DESTINATION`: final destination
-- `COMBO_INPUT`: The text input representing the combo sequence you want to display on the clip.
-- `XPos`: The horizontal position (in pixels) where the clip should be placed within the video.
-- `YPos`: The vertical position (in pixels) where the clip should be placed within the video.
+### Desktop Editor
+
+Launch the visual editor:
+```bash
+yarn editor:dev
+```
+
+**Editor Features:**
+- Open and preview video files (MP4, AVI, MOV, MKV, WebM)
+- Frame-by-frame navigation
+- Visual overlay positioning
+- Project save/load (.ccc files)
+- Export to video (MP4)
+- Export configuration to JSON
+
+**Keyboard Shortcuts:**
+- `Ctrl+N` - New project
+- `Ctrl+O` - Open video
+- `Ctrl+Shift+O` - Open project
+- `Ctrl+S` - Save project
+- `Ctrl+Shift+S` - Save as
+- `Ctrl+E` - Export video
+- `Ctrl+Shift+E` - Export config
+
+## Combo Notation
+
+### Basic Inputs
+- Directional: `d`, `df`, `f`, `uf`, `u`, `ub`, `b`, `db`, `n` (neutral)
+- Buttons: `1`, `2`, `3`, `4` (Tekken notation)
+- Comma separates combos: `d df f 2, w! ss, df 1`
+
+### Shortcuts
+| Shortcut | Expands To |
+|----------|------------|
+| `qcf` | `d df f` |
+| `qcb` | `d db b` |
+| `hcf` | `b db d df f` |
+| `hcb` | `f df d db b` |
+| `dp` | `f d df` |
+
+### Held Inputs
+Uppercase = held input (e.g., `F` renders as held forward)
+
+## Configuration
+
+Configuration is managed through JSON files. Default settings are in `config/defaults.json`.
+
+### Configuration Sections
+
+**Text Settings:**
+```json
+{
+  "text": {
+    "font": "THEBOLDFONT",
+    "fontSize": 50,
+    "color": "yellow",
+    "position": { "x": 10, "y": 50 },
+    "dropshadow": {
+      "enabled": false,
+      "color": "#000000",
+      "blur": 0,
+      "offsetX": -2,
+      "offsetY": 3
+    }
+  }
+}
+```
+
+**Image Settings:**
+```json
+{
+  "images": {
+    "width": 50,
+    "height": 50,
+    "spacing": 0,
+    "padding": 5,
+    "margin": 5
+  }
+}
+```
+
+**Animation Settings:**
+```json
+{
+  "animation": {
+    "type": "fade",
+    "duration": 500,
+    "delay": 0,
+    "perCharacter": false,
+    "fadeOutStart": 0.8,
+    "fadeOutDuration": 300
+  }
+}
+```
+
+## Text Markup
+
+Use inline tags for styled text overlays:
+
+### Color Tags
+- Named: `[red]text[/red]`
+- Hex: `[#FF0000]text[/#FF0000]`
+- Explicit: `[color:red]text[/color]`
+- RGB: `[rgb(255,0,0)]text[/rgb]`
+
+### Style Tags
+- `[bold]text[/bold]`
+- `[italic]text[/italic]`
+- `[underline]text[/underline]`
+
+### Newlines
+- `[br]` or `[newline]`
+
+**Supported Colors:**
+black, white, red, green, blue, yellow, cyan, magenta, orange, purple, pink, brown, gray, grey, lime, navy, teal, aqua, fuchsia, silver, maroon, olive, transparent
+
+## Keyframe Animation
+
+The editor supports keyframe-based animation for dynamic overlays:
+
+**Interpolation Types:**
+- `linear` - Constant rate of change
+- `ease-in` - Starts slow, accelerates
+- `ease-out` - Starts fast, decelerates
+- `ease-in-out` - Smooth acceleration and deceleration
+- `step` - Instant change at keyframe
+
+## Adding Custom Images
+
+Add or replace images in the asset directories:
+
+```bash
+# Add a custom image
+cp ./my-image.svg ./assets/games/common/images/custom.svg
+
+# Use in combo notation
+node main.js ./video.mp4 "d df f 2 custom" 100 900 ./artifacts/
+```
+
+**Requirements:**
+- Images must be SVG format
+- Filenames are used as input names (without extension)
+- Don't use commas in filenames
+
+**Asset Directories:**
+- `assets/games/Tekken7/images/` - Game-specific buttons
+- `assets/games/common/images/` - Directional arrows, shared inputs
+
+## Development
+
+```bash
+# Run tests
+yarn test
+
+# Run single test file
+yarn test tests/combos.test.js
+
+# Watch mode
+yarn test:watch
+
+# Coverage report
+yarn coverage
+
+# Clean artifacts
+yarn clean
+```
+
 ## Examples
 
-Here's an example command that creates a clip that displays the combo `d df f 2` from a video located at `./assets/tests/video/video.mp4` starting at XPos YPos and saves the output in the `./artifacts/` directory:
+### Before and After
 
-node main.js ./assets/tests/video/video.mp4 "d df f 2" 100 900 ./artifacts/
+Original YouTube video:
 
-node main-pipeline.js xHdlyUh0e5Q ./artifacts/pipeline/temp-pipeline-video.mp4 ./artifacts/pipeline/temp-pipeline-audio.aac ./artifacts/pipeline/final-pipeline-video.mp4 "d df f 2" 100 900
+[![Before](https://img.youtube.com/vi/xHdlyUh0e5Q/0.jpg)](https://www.youtube.com/watch?v=xHdlyUh0e5Q)
 
-## Adding custom images
-Combo Clip Composer is intended to be easy to add and customize without knowing how to code. If users want to add or replace images in this POC they can add or replace images in './assets/games/Tekken7/images' or './assets/games/common/images'. 
+Processed with combo overlay:
 
-Caveats, 
-1. images must be SVG
-2. when you refer to an image it will take the entire string as a compare
-3. dont use commas
+[![After](https://img.youtube.com/vi/6P9Be5N8zHs/0.jpg)](https://www.youtube.com/watch?v=6P9Be5N8zHs)
 
+### Custom Image Example
 
-### adding new images example
-````bash
-cp ./assets/tests/image/smile.svg ./assets/games/common/images/smile.svg
-node main.js ./assets/tests/video/video.mp4 "d df f 2 smile" 100 900 ./artifacts/
-````
+[![Custom](https://img.youtube.com/vi/MYL4ngDcN80/0.jpg)](https://www.youtube.com/watch?v=MYL4ngDcN80)
 
-### replacing images
-Users can replace existing images in ./assets/games/Tekken7/images & ./assets/games/common/images with ones they prefer.
+## Project Structure
 
-
-
-### Example of Youtube video before and after
-This shows the before and after of running a job which
-- pulls xHdlyUh0e5Q to the local PC in highest audio/video quality
-- reassembles audio/video
-- breaks video into frames
-- inserts the combo images on all frames
-- reassembles the video from the frames
-
-[![Before Pipeline Video](https://img.youtube.com/vi/xHdlyUh0e5Q/0.jpg)](https://www.youtube.com/watch?v=xHdlyUh0e5Q)
-
-[![After Pipeline Video](https://img.youtube.com/vi/6P9Be5N8zHs/0.jpg)](https://www.youtube.com/watch?v=6P9Be5N8zHs)
-
-### Example of using custom image, from adding new images example
-[![Video](https://img.youtube.com/vi/MYL4ngDcN80/0.jpg)](https://www.youtube.com/watch?v=MYL4ngDcN80)
-
+```
+combo-clip-composer/
+├── main.js                 # CLI entry point (local files)
+├── main-pipeline.js        # CLI entry point (YouTube)
+├── config/
+│   └── defaults.json       # Default configuration
+├── editor/
+│   ├── main.js             # Electron main process
+│   ├── index.html          # Editor UI
+│   └── models/
+│       └── keyframe.js     # Keyframe animation model
+├── src/
+│   ├── animation/
+│   │   └── fadeAnimation.js    # Fade animation system
+│   ├── config/
+│   │   ├── configLoader.js     # Configuration loading
+│   │   └── schema.js           # Config validation schema
+│   ├── image/
+│   │   ├── canvas.js           # Canvas rendering
+│   │   ├── createSVG.js        # SVG handling
+│   │   └── imageGen.js         # Image generation
+│   ├── text/
+│   │   ├── markupParser.js     # Text markup parsing
+│   │   └── markupRenderer.js   # Styled text rendering
+│   ├── utils/                  # Utility functions
+│   └── video/
+│       ├── videoUtils.js       # Video processing
+│       └── youtube.js          # YouTube downloading
+├── assets/
+│   ├── fonts/                  # Font files
+│   └── games/                  # Input notation images
+└── tests/                      # Test files
+```
 
 ## Contributing
 
-If you want to contribute to Combo Clip Composer, please read the [contributing guidelines](CONTRIBUTING.md) first.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-Arrow & Button Images from https://github.com/dabruhce/tk7movespretty
+Arrow and button images from [tk7movespretty](https://github.com/dabruhce/tk7movespretty).
 
 ## License
 
-Combo Clip Composer is released under the [MIT License](LICENSE).
+MIT License - see [LICENSE](LICENSE) for details.
