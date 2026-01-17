@@ -315,3 +315,24 @@
   - Backward compatibility maintained by defaulting animationState to null and alpha to 1
   - The for loop needs index tracking (for let i = 0) instead of for-of for frame numbering
 ---
+
+## Iteration 16 - US-016: Create Electron App Shell
+- What was implemented:
+  - Created `editor/` directory with Electron main process (`main.js`)
+  - Created `editor/index.html` with placeholder layout (toolbar, properties panel, video preview, layers panel, timeline, status bar)
+  - Added npm scripts: `editor:dev` (electron editor/main.js) and `editor:build` (electron-builder --dir)
+  - Added electron ^28.0.0 and electron-builder ^24.9.1 as devDependencies
+  - Window displays with title "Combo Clip Composer Editor"
+  - All 298 existing tests continue to pass
+- Files changed:
+  - editor/main.js (new)
+  - editor/index.html (new)
+  - package.json (added scripts and devDependencies)
+  - PRD.md (marked US-016 as complete)
+- Learnings for future iterations:
+  - Electron 28+ is modern version with good security features
+  - Use `show: false` + `ready-to-show` event to prevent visual flash on window open
+  - BrowserWindow webPreferences: nodeIntegration and contextIsolation settings needed for full Node.js access
+  - Placeholder layout should include all major UI regions to guide future implementation
+  - Dark theme (#1e1e1e background, #252526 panels) matches VS Code for professional look
+---

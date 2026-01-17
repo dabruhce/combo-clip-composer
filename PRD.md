@@ -203,12 +203,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want to launch a preview editor so that I can see my changes visually.
 
 **Acceptance Criteria:**
-- [ ] Create `editor/` directory with Electron main process (`main.js`)
-- [ ] Create basic `index.html` with placeholder layout
-- [ ] Add npm scripts: `editor:dev` and `editor:build`
-- [ ] App launches and displays window with title "Combo Clip Composer Editor"
-- [ ] Add electron and electron-builder as devDependencies
-- [ ] Typecheck passes
+- [x] Create `editor/` directory with Electron main process (`main.js`)
+- [x] Create basic `index.html` with placeholder layout
+- [x] Add npm scripts: `editor:dev` and `editor:build`
+- [x] App launches and displays window with title "Combo Clip Composer Editor"
+- [x] Add electron and electron-builder as devDependencies
+- [x] Typecheck passes
 
 #### US-017: Implement Video Loading in Editor
 **Description:** As a user, I want to load a video file so that I can preview overlays on it.
