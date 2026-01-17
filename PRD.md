@@ -239,12 +239,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want a timeline so that I can scrub through the video.
 
 **Acceptance Criteria:**
-- [ ] Create timeline component showing frame range
-- [ ] Playhead indicator shows current frame
-- [ ] Click on timeline to jump to frame
-- [ ] Drag playhead to scrub through frames
-- [ ] Display current frame number and timecode
-- [ ] Typecheck passes
+- [x] Create timeline component showing frame range
+- [x] Playhead indicator shows current frame
+- [x] Click on timeline to jump to frame
+- [x] Drag playhead to scrub through frames
+- [x] Display current frame number and timecode
+- [x] Typecheck passes
 
 #### US-020: Implement Timeline Playback Controls
 **Description:** As a user, I want play/pause controls so that I can preview the video in motion.

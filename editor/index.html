@@ -242,6 +242,117 @@
       font-size: 13px;
     }
 
+    /* Timeline ruler and scrubber */
+    .timeline-ruler-container {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .timeline-ruler {
+      position: relative;
+      height: 28px;
+      background-color: #2d2d2d;
+      border-bottom: 1px solid #3d3d3d;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .timeline-ruler-ticks {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+    }
+
+    .timeline-tick {
+      position: absolute;
+      top: 0;
+      width: 1px;
+      background-color: #3d3d3d;
+    }
+
+    .timeline-tick.major {
+      height: 12px;
+      background-color: #555555;
+    }
+
+    .timeline-tick.minor {
+      height: 6px;
+      top: auto;
+      bottom: 0;
+    }
+
+    .timeline-tick-label {
+      position: absolute;
+      top: 12px;
+      font-size: 9px;
+      color: #888888;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    .timeline-playhead {
+      position: absolute;
+      top: 0;
+      width: 1px;
+      background-color: #ff4444;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .timeline-playhead-head {
+      position: absolute;
+      top: 0;
+      left: -6px;
+      width: 13px;
+      height: 10px;
+      background-color: #ff4444;
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
+      pointer-events: all;
+      cursor: ew-resize;
+    }
+
+    .timeline-track-area {
+      flex: 1;
+      position: relative;
+      background-color: #1e1e1e;
+      min-height: 60px;
+    }
+
+    .timeline-track-area .timeline-playhead {
+      top: -28px;
+      bottom: 0;
+      height: auto;
+    }
+
+    .timeline-frame-display {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-left: auto;
+      font-size: 12px;
+      color: #cccccc;
+    }
+
+    .timeline-frame-number {
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      color: #ffffff;
+      min-width: 100px;
+      text-align: right;
+    }
+
+    .timeline-timecode {
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      color: #cccccc;
+      min-width: 120px;
+    }
+
     /* Button styles */
     .btn {
       padding: 4px 12px;
@@ -389,15 +500,29 @@
   <!-- Timeline -->
   <div class="timeline">
     <div class="timeline-controls">
-      <button class="btn" disabled>⏮</button>
-      <button class="btn" disabled>◀</button>
-      <button class="btn" disabled>▶</button>
-      <button class="btn" disabled>⏭</button>
-      <span style="color: #888888; font-size: 12px; margin-left: 8px;">00:00:00 / 00:00:00</span>
+      <button class="btn" id="btnJumpStart" disabled title="Jump to Start">⏮</button>
+      <button class="btn" id="btnStepBack" disabled title="Step Back">◀</button>
+      <button class="btn" id="btnStepForward" disabled title="Step Forward">▶</button>
+      <button class="btn" id="btnJumpEnd" disabled title="Jump to End">⏭</button>
+      <div class="timeline-frame-display">
+        <span class="timeline-frame-number" id="frameNumberDisplay">Frame: 0 / 0</span>
+        <span class="timeline-timecode" id="timecodeDisplay">00:00:00.00 / 00:00:00.00</span>
+      </div>
     </div>
-    <div class="timeline-tracks">
-      <div class="timeline-placeholder">
+    <div class="timeline-tracks" id="timelineTracks">
+      <div class="timeline-placeholder" id="timelinePlaceholder">
         Load a video to see the timeline
+      </div>
+      <div class="timeline-ruler-container" id="timelineRulerContainer" style="display: none;">
+        <div class="timeline-ruler" id="timelineRuler">
+          <div class="timeline-ruler-ticks" id="timelineRulerTicks"></div>
+          <div class="timeline-playhead" id="timelinePlayhead" style="left: 0;">
+            <div class="timeline-playhead-head" id="timelinePlayheadHead"></div>
+          </div>
+        </div>
+        <div class="timeline-track-area" id="timelineTrackArea">
+          <div class="timeline-playhead" id="timelinePlayheadTrack" style="left: 0;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -441,6 +566,25 @@
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     const frameInfo = document.getElementById('frameInfo');
     const ctx = frameCanvas.getContext('2d');
+
+    // Timeline DOM elements
+    const timelinePlaceholder = document.getElementById('timelinePlaceholder');
+    const timelineRulerContainer = document.getElementById('timelineRulerContainer');
+    const timelineRuler = document.getElementById('timelineRuler');
+    const timelineRulerTicks = document.getElementById('timelineRulerTicks');
+    const timelinePlayhead = document.getElementById('timelinePlayhead');
+    const timelinePlayheadHead = document.getElementById('timelinePlayheadHead');
+    const timelinePlayheadTrack = document.getElementById('timelinePlayheadTrack');
+    const timelineTrackArea = document.getElementById('timelineTrackArea');
+    const frameNumberDisplay = document.getElementById('frameNumberDisplay');
+    const timecodeDisplay = document.getElementById('timecodeDisplay');
+    const btnJumpStart = document.getElementById('btnJumpStart');
+    const btnStepBack = document.getElementById('btnStepBack');
+    const btnStepForward = document.getElementById('btnStepForward');
+    const btnJumpEnd = document.getElementById('btnJumpEnd');
+
+    // Timeline state
+    let isDraggingPlayhead = false;
 
     /**
      * Updates the status bar with current state
@@ -644,18 +788,8 @@
       setZoom('fit');
       loadFrame(0);
 
-      // Update timeline time display
-      const timeDisplay = document.querySelector('.timeline-controls span');
-      if (timeDisplay) {
-        const totalSeconds = data.metadata.duration;
-        const formatTime = (s) => {
-          const mins = Math.floor(s / 60);
-          const secs = Math.floor(s % 60);
-          const frames = Math.floor((s % 1) * data.metadata.fps);
-          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
-        };
-        timeDisplay.textContent = `00:00:00 / ${formatTime(totalSeconds)}`;
-      }
+      // Show timeline and update display
+      showTimeline();
 
       console.log('Video loaded:', editorState);
     }
@@ -693,8 +827,265 @@
       }
     }
 
+    /**
+     * Formats time in seconds to HH:MM:SS.FF timecode format
+     */
+    function formatTimecode(seconds, fps) {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      const frames = Math.floor((seconds % 1) * fps);
+      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${frames.toString().padStart(2, '0')}`;
+    }
+
+    /**
+     * Converts frame number to time in seconds
+     */
+    function frameToTime(frameNumber, fps) {
+      return frameNumber / fps;
+    }
+
+    /**
+     * Updates the timeline display (frame number and timecode)
+     */
+    function updateTimelineDisplay() {
+      if (!editorState.metadata) {
+        frameNumberDisplay.textContent = 'Frame: 0 / 0';
+        timecodeDisplay.textContent = '00:00:00.00 / 00:00:00.00';
+        return;
+      }
+
+      const currentFrame = editorState.currentFrame;
+      const totalFrames = editorState.frameCount;
+      const fps = editorState.metadata.fps;
+      const duration = editorState.metadata.duration;
+
+      const currentTime = frameToTime(currentFrame, fps);
+
+      frameNumberDisplay.textContent = `Frame: ${currentFrame + 1} / ${totalFrames}`;
+      timecodeDisplay.textContent = `${formatTimecode(currentTime, fps)} / ${formatTimecode(duration, fps)}`;
+    }
+
+    /**
+     * Draws the timeline ruler ticks and labels
+     */
+    function drawTimelineRuler() {
+      if (!editorState.metadata || editorState.frameCount === 0) return;
+
+      const rulerWidth = timelineRuler.clientWidth;
+      const totalFrames = editorState.frameCount;
+      const fps = editorState.metadata.fps;
+      const duration = editorState.metadata.duration;
+
+      // Clear existing ticks
+      timelineRulerTicks.innerHTML = '';
+
+      // Determine tick spacing based on total frames and width
+      // We want major ticks every ~100 pixels and minor ticks in between
+      const pixelsPerFrame = rulerWidth / totalFrames;
+
+      // Calculate frames per major tick (aim for ~100px spacing)
+      let framesPerMajorTick = Math.ceil(100 / pixelsPerFrame);
+
+      // Round to nice numbers (1, 5, 10, 30, 60, etc.)
+      const niceIntervals = [1, 5, 10, 15, 30, 60, 120, 300, 600];
+      const frameInterval = niceIntervals.find(interval =>
+        (interval * pixelsPerFrame) >= 80
+      ) || Math.ceil(framesPerMajorTick);
+
+      // Draw major ticks and labels
+      for (let frame = 0; frame <= totalFrames; frame += frameInterval) {
+        const x = (frame / totalFrames) * rulerWidth;
+
+        const tick = document.createElement('div');
+        tick.className = 'timeline-tick major';
+        tick.style.left = `${x}px`;
+        tick.style.height = '12px';
+        timelineRulerTicks.appendChild(tick);
+
+        // Add label
+        const time = frameToTime(frame, fps);
+        const label = document.createElement('div');
+        label.className = 'timeline-tick-label';
+        label.style.left = `${x}px`;
+        label.textContent = formatTimecode(time, fps).substring(3); // Remove hours for brevity
+        timelineRulerTicks.appendChild(label);
+      }
+
+      // Draw minor ticks (5 per major interval)
+      const minorInterval = frameInterval / 5;
+      if (minorInterval >= 1 && (minorInterval * pixelsPerFrame) >= 10) {
+        for (let frame = 0; frame <= totalFrames; frame += minorInterval) {
+          if (frame % frameInterval !== 0) {
+            const x = (frame / totalFrames) * rulerWidth;
+
+            const tick = document.createElement('div');
+            tick.className = 'timeline-tick minor';
+            tick.style.left = `${x}px`;
+            tick.style.height = '6px';
+            timelineRulerTicks.appendChild(tick);
+          }
+        }
+      }
+    }
+
+    /**
+     * Updates the playhead position on the timeline
+     */
+    function updatePlayheadPosition() {
+      if (editorState.frameCount === 0) return;
+
+      const rulerWidth = timelineRuler.clientWidth;
+      const x = (editorState.currentFrame / (editorState.frameCount - 1 || 1)) * rulerWidth;
+
+      timelinePlayhead.style.left = `${x}px`;
+      timelinePlayheadTrack.style.left = `${x}px`;
+    }
+
+    /**
+     * Calculates frame number from X position on timeline
+     */
+    function getFrameFromPosition(clientX) {
+      const rect = timelineRuler.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const rulerWidth = rect.width;
+      const ratio = Math.max(0, Math.min(1, x / rulerWidth));
+      return Math.round(ratio * (editorState.frameCount - 1));
+    }
+
+    /**
+     * Jumps to a specific frame
+     */
+    function goToFrame(frameNumber) {
+      if (editorState.frameCount === 0) return;
+
+      const frame = Math.max(0, Math.min(frameNumber, editorState.frameCount - 1));
+      if (frame !== editorState.currentFrame) {
+        editorState.currentFrame = frame;
+        loadFrame(frame);
+        updatePlayheadPosition();
+        updateTimelineDisplay();
+      }
+    }
+
+    /**
+     * Jumps to first frame
+     */
+    function jumpToStart() {
+      goToFrame(0);
+    }
+
+    /**
+     * Jumps to last frame
+     */
+    function jumpToEnd() {
+      goToFrame(editorState.frameCount - 1);
+    }
+
+    /**
+     * Steps back one frame
+     */
+    function stepBack() {
+      goToFrame(editorState.currentFrame - 1);
+    }
+
+    /**
+     * Steps forward one frame
+     */
+    function stepForward() {
+      goToFrame(editorState.currentFrame + 1);
+    }
+
+    /**
+     * Shows the timeline and enables controls
+     */
+    function showTimeline() {
+      timelinePlaceholder.style.display = 'none';
+      timelineRulerContainer.style.display = 'flex';
+
+      // Enable control buttons
+      btnJumpStart.disabled = false;
+      btnStepBack.disabled = false;
+      btnStepForward.disabled = false;
+      btnJumpEnd.disabled = false;
+
+      // Draw ruler and position playhead
+      drawTimelineRuler();
+      updatePlayheadPosition();
+      updateTimelineDisplay();
+    }
+
+    /**
+     * Hides the timeline and disables controls
+     */
+    function hideTimeline() {
+      timelinePlaceholder.style.display = '';
+      timelineRulerContainer.style.display = 'none';
+
+      // Disable control buttons
+      btnJumpStart.disabled = true;
+      btnStepBack.disabled = true;
+      btnStepForward.disabled = true;
+      btnJumpEnd.disabled = true;
+    }
+
+    /**
+     * Handles click on timeline ruler to jump to frame
+     */
+    function onTimelineClick(event) {
+      if (editorState.frameCount === 0) return;
+
+      const frame = getFrameFromPosition(event.clientX);
+      goToFrame(frame);
+    }
+
+    /**
+     * Handles playhead drag start
+     */
+    function onPlayheadDragStart(event) {
+      event.preventDefault();
+      isDraggingPlayhead = true;
+      document.body.style.cursor = 'ew-resize';
+    }
+
+    /**
+     * Handles playhead drag
+     */
+    function onPlayheadDrag(event) {
+      if (!isDraggingPlayhead) return;
+
+      const frame = getFrameFromPosition(event.clientX);
+      goToFrame(frame);
+    }
+
+    /**
+     * Handles playhead drag end
+     */
+    function onPlayheadDragEnd(event) {
+      if (!isDraggingPlayhead) return;
+
+      isDraggingPlayhead = false;
+      document.body.style.cursor = '';
+    }
+
     // Event listeners
     openVideoBtn.addEventListener('click', openVideo);
+
+    // Timeline event listeners
+    timelineRuler.addEventListener('click', onTimelineClick);
+    timelineRulerTicks.addEventListener('click', onTimelineClick);
+    timelineTrackArea.addEventListener('click', onTimelineClick);
+
+    // Playhead drag listeners
+    timelinePlayheadHead.addEventListener('mousedown', onPlayheadDragStart);
+    document.addEventListener('mousemove', onPlayheadDrag);
+    document.addEventListener('mouseup', onPlayheadDragEnd);
+
+    // Control button listeners
+    btnJumpStart.addEventListener('click', jumpToStart);
+    btnStepBack.addEventListener('click', stepBack);
+    btnStepForward.addEventListener('click', stepForward);
+    btnJumpEnd.addEventListener('click', jumpToEnd);
 
     // Zoom control event listeners
     zoomSelect.addEventListener('change', (e) => {
@@ -705,10 +1096,15 @@
     zoomInBtn.addEventListener('click', zoomIn);
     zoomOutBtn.addEventListener('click', zoomOut);
 
-    // Handle window resize to recalculate fit zoom
+    // Handle window resize to recalculate fit zoom and timeline
     window.addEventListener('resize', () => {
       if (editorState.zoom === 'fit' && editorState.frameImage) {
         drawFrame();
+      }
+      // Redraw timeline ruler and update playhead position on resize
+      if (editorState.frameCount > 0) {
+        drawTimelineRuler();
+        updatePlayheadPosition();
       }
     });
 
