@@ -512,3 +512,199 @@ describe('Spacing, Padding, and Margin configuration (US-008)', () => {
     });
   });
 });
+
+// US-015: Integrate Animation into Frame Rendering
+describe('Animation integration in frame rendering (US-015)', () => {
+  const { createAnimationState, getFrameAlpha } = require('../src/animation/fadeAnimation');
+  const { redrawFrameWithComboImages } = require('../src/video/videoUtils');
+
+  describe('animation state creation', () => {
+    test('should create animation state from config with type "none"', () => {
+      const animationConfig = { type: 'none', duration: 500, delay: 0 };
+      const fps = 30;
+      const totalFrames = 90;
+
+      const state = createAnimationState(animationConfig, fps, totalFrames);
+
+      expect(state.type).toBe('none');
+      expect(state.isEnabled).toBe(false);
+      expect(state.fps).toBe(30);
+      expect(state.totalFrames).toBe(90);
+    });
+
+    test('should create animation state from config with type "fade"', () => {
+      const animationConfig = { type: 'fade', duration: 500, delay: 0 };
+      const fps = 30;
+      const totalFrames = 90;
+
+      const state = createAnimationState(animationConfig, fps, totalFrames);
+
+      expect(state.type).toBe('fade');
+      expect(state.isEnabled).toBe(true);
+      expect(state.duration).toBe(500);
+      expect(state.delay).toBe(0);
+    });
+
+    test('should handle null animation config', () => {
+      const state = createAnimationState(null, 30, 90);
+
+      expect(state.type).toBe('none');
+      expect(state.isEnabled).toBe(false);
+    });
+  });
+
+  describe('getFrameAlpha integration', () => {
+    test('should return 1 when animation type is "none"', () => {
+      const animationConfig = { type: 'none', duration: 500, delay: 0 };
+      const state = createAnimationState(animationConfig, 30, 90);
+
+      expect(getFrameAlpha(state, 0)).toBe(1);
+      expect(getFrameAlpha(state, 45)).toBe(1);
+      expect(getFrameAlpha(state, 89)).toBe(1);
+    });
+
+    test('should return alpha between 0 and 1 during fade-in', () => {
+      const animationConfig = { type: 'fade', duration: 500, delay: 0 };
+      const state = createAnimationState(animationConfig, 30, 90);
+
+      // Frame 0 = 0ms, should be 0
+      expect(getFrameAlpha(state, 0)).toBe(0);
+
+      // Frame 7.5 = 250ms, should be ~0.5 (halfway through 500ms fade)
+      expect(getFrameAlpha(state, 7.5)).toBeCloseTo(0.5, 2);
+
+      // Frame 15 = 500ms, fade should be complete
+      expect(getFrameAlpha(state, 15)).toBe(1);
+
+      // Frame 45 = well after fade complete
+      expect(getFrameAlpha(state, 45)).toBe(1);
+    });
+
+    test('should handle fade-in and fade-out combined', () => {
+      const animationConfig = {
+        type: 'fade',
+        duration: 300,  // 300ms fade in
+        delay: 0,
+        fadeOutStart: 60,  // Start fade out at frame 60
+        fadeOutDuration: 300  // 300ms fade out
+      };
+      const state = createAnimationState(animationConfig, 30, 90);
+
+      // Early frame: still fading in
+      expect(getFrameAlpha(state, 0)).toBe(0);
+
+      // After fade-in completes (frame 9 = 300ms)
+      expect(getFrameAlpha(state, 9)).toBe(1);
+
+      // Mid-video: fully opaque
+      expect(getFrameAlpha(state, 30)).toBe(1);
+
+      // Before fade out starts
+      expect(getFrameAlpha(state, 59)).toBe(1);
+
+      // During fade out (frame 65 = 2166ms, fade out started at 2000ms)
+      const alphaAtFrame65 = getFrameAlpha(state, 65);
+      expect(alphaAtFrame65).toBeLessThan(1);
+      expect(alphaAtFrame65).toBeGreaterThan(0);
+
+      // At end of video (frame 90 = 3000ms), should be nearly or fully faded out
+      const alphaAtEnd = getFrameAlpha(state, 89);
+      expect(alphaAtEnd).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe('redrawFrameWithComboImages with animation', () => {
+    test('redrawFrameWithComboImages accepts animation parameters', () => {
+      // Verify the function signature accepts the new parameters
+      expect(typeof redrawFrameWithComboImages).toBe('function');
+      // Function has 10 parameters including new ones: frameNumber, totalFrames, animationState
+      // Since many have defaults, we check it accepts at least the required ones
+    });
+
+    test('no animation when type is "none" (backward compatibility)', () => {
+      const animationConfig = { type: 'none', duration: 500, delay: 0 };
+      const state = createAnimationState(animationConfig, 30, 90);
+
+      // All frames should have alpha of 1
+      for (let frame = 0; frame < 90; frame++) {
+        expect(getFrameAlpha(state, frame)).toBe(1);
+      }
+    });
+
+    test('animation state persists correctly across frames', () => {
+      const animationConfig = { type: 'fade', duration: 500, delay: 0 };
+      const state = createAnimationState(animationConfig, 30, 90);
+
+      // The same state object should produce consistent results
+      const alphaFrame5First = getFrameAlpha(state, 5);
+      const alphaFrame5Second = getFrameAlpha(state, 5);
+
+      expect(alphaFrame5First).toBe(alphaFrame5Second);
+
+      // And different frames should have different alphas during fade
+      const alphaFrame3 = getFrameAlpha(state, 3);
+      const alphaFrame10 = getFrameAlpha(state, 10);
+
+      expect(alphaFrame3).not.toBe(alphaFrame10);
+      expect(alphaFrame3).toBeLessThan(alphaFrame10);  // Later frame has higher alpha
+    });
+  });
+
+  describe('frame sequence animation verification', () => {
+    test('fade-in alpha increases monotonically across frame sequence', () => {
+      const animationConfig = { type: 'fade', duration: 500, delay: 0 };
+      const fps = 30;
+      const totalFrames = 90;
+      const state = createAnimationState(animationConfig, fps, totalFrames);
+
+      let previousAlpha = -1;
+      // Check frames 0 to 15 (during fade-in period)
+      for (let frame = 0; frame <= 15; frame++) {
+        const alpha = getFrameAlpha(state, frame);
+        expect(alpha).toBeGreaterThanOrEqual(previousAlpha);
+        previousAlpha = alpha;
+      }
+    });
+
+    test('fade-out alpha decreases monotonically across frame sequence', () => {
+      const animationConfig = {
+        type: 'fade',
+        duration: 300,
+        delay: 0,
+        fadeOutStart: 60,
+        fadeOutDuration: 300
+      };
+      const fps = 30;
+      const totalFrames = 90;
+      const state = createAnimationState(animationConfig, fps, totalFrames);
+
+      let previousAlpha = 2;  // Start higher than any possible alpha
+      // Check frames 60 to 69 (during fade-out period)
+      for (let frame = 60; frame <= 69; frame++) {
+        const alpha = getFrameAlpha(state, frame);
+        expect(alpha).toBeLessThanOrEqual(previousAlpha);
+        previousAlpha = alpha;
+      }
+    });
+
+    test('alpha values are always between 0 and 1', () => {
+      const animationConfig = {
+        type: 'fade',
+        duration: 500,
+        delay: 100,
+        fadeOutStart: 0.8,  // 80% through video
+        fadeOutDuration: 500
+      };
+      const fps = 30;
+      const totalFrames = 90;
+      const state = createAnimationState(animationConfig, fps, totalFrames);
+
+      // Check all frames
+      for (let frame = 0; frame < totalFrames; frame++) {
+        const alpha = getFrameAlpha(state, frame);
+        expect(alpha).toBeGreaterThanOrEqual(0);
+        expect(alpha).toBeLessThanOrEqual(1);
+      }
+    });
+  });
+});

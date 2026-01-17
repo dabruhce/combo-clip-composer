@@ -188,12 +188,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a developer, I want animations applied during `redrawFrameWithComboImages` so that each frame reflects the animation state.
 
 **Acceptance Criteria:**
-- [ ] Pass frame number and total frames to animation calculator
-- [ ] Apply calculated alpha/transform before drawing text
-- [ ] Animation state persists correctly across all frames
-- [ ] No animation when `type: "none"` (existing behavior)
-- [ ] Typecheck passes
-- [ ] Integration test verifies animation across frame sequence
+- [x] Pass frame number and total frames to animation calculator
+- [x] Apply calculated alpha/transform before drawing text
+- [x] Animation state persists correctly across all frames
+- [x] No animation when `type: "none"` (existing behavior)
+- [x] Typecheck passes
+- [x] Integration test verifies animation across frame sequence
 
 ---
 

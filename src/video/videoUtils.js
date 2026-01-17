@@ -19,6 +19,7 @@ const { generateJobId } = require('../utils/generateJobId');
 const { createTextCanvasOfSize, estimateTextSize } = require('../image/canvas');
 const { recreateDirectory } = require('../utils/createDirectory');
 const { loadConfig } = require('../config/configLoader');
+const { createAnimationState, getFrameAlpha, applyAlphaToContext, resetContextAlpha } = require('../animation/fadeAnimation');
 
 registerFont('./assets/fonts/THEBOLDFONT/THEBOLDFONT.ttf', { family: 'THEBOLDFONT' });
 
@@ -84,9 +85,14 @@ ffmpeg.setFfprobePath(ffprobePath);
     // Redraw each frame with text and coordinates
     const fileNames = await fs.promises.readdir(initialFramesDirectory);
     const filePaths = fileNames.map(name => path.join(initialFramesDirectory, name));
+    const totalFrames = filePaths.length;
 
-    for (const filePath of filePaths) {
-      await redrawFrameWithComboImages(filePath, updatedFramesDirectory, text, x, y, imagesDirectory, config)
+    // Create animation state for consistent animation across all frames
+    const animationState = createAnimationState(config.animation, fps, totalFrames);
+
+    for (let frameIndex = 0; frameIndex < filePaths.length; frameIndex++) {
+      const filePath = filePaths[frameIndex];
+      await redrawFrameWithComboImages(filePath, updatedFramesDirectory, text, x, y, imagesDirectory, config, frameIndex, totalFrames, animationState)
     }
 
     // Stitch frames into video
@@ -198,7 +204,7 @@ async function splitwords(initialFrames, updatedFramesPath, game, comboText, xOf
   });
 }
 
-async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comboText, xOffset, yOffset, imageJobPath, config = null) {
+async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comboText, xOffset, yOffset, imageJobPath, config = null, frameNumber = 0, totalFrames = 1, animationState = null) {
   try {
     // Get padding and margin from config
     const resolvedPadding = config && config.images ? config.images.padding : 5;
@@ -248,9 +254,18 @@ async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comb
       throw new Error("The overlay extends beyond the bottom edge. Decrease yOffset, image sizes, or margin/padding.");
     }
 
+    // Apply animation alpha before drawing overlay elements
+    // When animation is enabled (type !== 'none'), apply calculated alpha
+    // When animation is disabled (type === 'none' or no animationState), alpha is 1 (fully opaque)
+    const alpha = animationState ? getFrameAlpha(animationState, frameNumber) : 1;
+    applyAlphaToContext(context, alpha);
+
     await drawBlurredBackground(context, xOffset, yOffset, inputImagesDimensions.width, inputImagesDimensions.height, "#008B8B99", resolvedPadding);
 
     await drawInputImages(context, splitInputs, xOffset, yOffset, imageJobPath, config);
+
+    // Reset context alpha after drawing overlay
+    resetContextAlpha(context);
 
     const outputFilename = path.join(updatedFramesPath, path.basename(filename));
     const finalOutput = canvas.toBuffer("image/png");
@@ -593,4 +608,4 @@ async function trimVideo(data) {
   });
 }
 
-module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo, parseFrameRate, calculateInputImagesDimensions, parseTimecode, calculateFrameOffsetTime };
+module.exports = { processComboVideo, trimVideo, processVideo, addAudioToVideo, parseFrameRate, calculateInputImagesDimensions, parseTimecode, calculateFrameOffsetTime, redrawFrameWithComboImages };

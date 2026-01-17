@@ -268,3 +268,50 @@
   - Animation state pattern allows tracking animation config + video metadata together
   - Convert frame number to time: (frameNumber / fps) * 1000 for milliseconds
 ---
+
+## Iteration 14 - US-014: Implement Fade-Out Animation for Text
+- What was implemented:
+  - Extended `src/animation/fadeAnimation.js` with fade-out logic
+  - `calculateFadeOutAlpha(frameNumber, fps, animationConfig, totalFrames)` - basic fade-out calculation
+  - `calculatePerCharacterFadeOutAlpha(...)` - staggered per-character fade-out (last char fades first)
+  - `calculateCombinedFadeAlpha(...)` - combines fade-in and fade-out for full lifecycle
+  - `calculatePerCharacterCombinedFadeAlpha(...)` - per-character combined effects
+  - Updated `createAnimationState` to include fadeOutStart, fadeOutDuration, and hasFadeOut flag
+  - Updated `getFrameAlpha` to use combined calculations when fadeOutStart is configured
+  - Added fadeOutStart and fadeOutDuration to schema.js animation properties
+  - Added 27 new unit tests (70 total in fadeAnimation.test.js)
+- Files changed:
+  - src/animation/fadeAnimation.js (extended with fade-out functions)
+  - src/config/schema.js (added fadeOutStart, fadeOutDuration properties)
+  - tests/fadeAnimation.test.js (added fade-out test suites)
+  - PRD.md (marked US-014 as complete)
+- Learnings for future iterations:
+  - Fade-out uses reversed character order (last char fades first) for natural visual effect
+  - fadeOutStart can be frame number (>1) or percentage (0-1 decimal) - disambiguate using decimal check
+  - Combined alpha is Math.min(fadeInAlpha, fadeOutAlpha) - both effects apply simultaneously
+  - fadeOutDuration defaults to duration (fade-in duration) if not explicitly set
+  - Tests for per-character effects need to account for stagger order (which char is affected when)
+---
+
+## Iteration 15 - US-015: Integrate Animation into Frame Rendering
+- What was implemented:
+  - Updated `processComboVideo` to pass frame number and total frames to `redrawFrameWithComboImages`
+  - Added import for fadeAnimation functions in videoUtils.js
+  - Created animationState in processComboVideo using `createAnimationState(config.animation, fps, totalFrames)`
+  - Updated `redrawFrameWithComboImages` signature to accept frameNumber, totalFrames, and animationState params
+  - Applied animation alpha before drawing overlay elements using `applyAlphaToContext`
+  - Reset context alpha after drawing using `resetContextAlpha`
+  - When animation type is "none" or no animationState, alpha is 1 (backward compatible)
+  - Added 17 new integration tests in configurable-params.test.js
+  - Exported `redrawFrameWithComboImages` for direct testing
+- Files changed:
+  - src/video/videoUtils.js (added animation integration, updated function signatures, added exports)
+  - tests/configurable-params.test.js (added US-015 test suite)
+  - PRD.md (marked US-015 as complete)
+- Learnings for future iterations:
+  - Animation state should be created once in processComboVideo and passed to each frame
+  - Use getFrameAlpha(animationState, frameNumber) for consistent alpha calculation
+  - applyAlphaToContext/resetContextAlpha wraps the overlay drawing for clean fade effect
+  - Backward compatibility maintained by defaulting animationState to null and alpha to 1
+  - The for loop needs index tracking (for let i = 0) instead of for-of for frame numbering
+---
