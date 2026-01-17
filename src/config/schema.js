@@ -47,7 +47,8 @@ const configSchema = {
     properties: {
       type: { type: 'string', enum: ['none', 'fade'], description: 'Animation type' },
       duration: { type: 'number', minimum: 0, description: 'Animation duration in milliseconds' },
-      delay: { type: 'number', minimum: 0, description: 'Delay before animation starts in milliseconds' }
+      delay: { type: 'number', minimum: 0, description: 'Delay before animation starts in milliseconds' },
+      perCharacter: { type: 'boolean', description: 'Whether to animate each character separately (staggered effect)' }
     }
   }
 };

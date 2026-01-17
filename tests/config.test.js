@@ -236,6 +236,67 @@ describe('Config Schema', () => {
       expect(result.valid).toBe(false);
       expect(result.errors.some(e => e.includes('animation.type'))).toBe(true);
     });
+
+    test('should validate perCharacter boolean true', () => {
+      const config = {
+        animation: {
+          type: 'fade',
+          duration: 500,
+          delay: 0,
+          perCharacter: true
+        }
+      };
+      const result = validateConfig(config);
+      expect(result.valid).toBe(true);
+    });
+
+    test('should validate perCharacter boolean false', () => {
+      const config = {
+        animation: {
+          type: 'fade',
+          duration: 500,
+          delay: 0,
+          perCharacter: false
+        }
+      };
+      const result = validateConfig(config);
+      expect(result.valid).toBe(true);
+    });
+
+    test('should reject invalid perCharacter type (string)', () => {
+      const config = {
+        animation: {
+          perCharacter: 'true'
+        }
+      };
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.includes('perCharacter') && e.includes('expected boolean'))).toBe(true);
+    });
+
+    test('should reject invalid perCharacter type (number)', () => {
+      const config = {
+        animation: {
+          perCharacter: 1
+        }
+      };
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.includes('perCharacter') && e.includes('expected boolean'))).toBe(true);
+    });
+
+    test('should validate complete animation config with perCharacter', () => {
+      const config = {
+        animation: {
+          type: 'fade',
+          duration: 1000,
+          delay: 200,
+          perCharacter: true
+        }
+      };
+      const result = validateConfig(config);
+      expect(result.valid).toBe(true);
+    });
   });
 });
 
@@ -367,6 +428,26 @@ describe('Config Loader', () => {
       expect(defaults.text).toBeDefined();
       expect(defaults.images).toBeDefined();
       expect(defaults.animation).toBeDefined();
+    });
+
+    test('should have animation.type set to "none" for backward compatibility', () => {
+      const defaults = loadDefaults();
+      expect(defaults.animation.type).toBe('none');
+    });
+
+    test('should have animation.perCharacter set to false by default', () => {
+      const defaults = loadDefaults();
+      expect(defaults.animation.perCharacter).toBe(false);
+    });
+
+    test('should have complete animation defaults', () => {
+      const defaults = loadDefaults();
+      expect(defaults.animation).toEqual({
+        type: 'none',
+        duration: 500,
+        delay: 0,
+        perCharacter: false
+      });
     });
   });
 

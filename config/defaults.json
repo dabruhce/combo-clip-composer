@@ -25,6 +25,7 @@
   "animation": {
     "type": "none",
     "duration": 500,
-    "delay": 0
+    "delay": 0,
+    "perCharacter": false
   }
 }

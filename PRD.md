@@ -158,10 +158,10 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a developer, I want animation settings in config so that fade effects can be controlled.
 
 **Acceptance Criteria:**
-- [ ] Add animation schema: `{type: "none"|"fade", duration: number, delay: number, perCharacter: boolean}`
-- [ ] Validate animation config in schema loader
-- [ ] Default animation type is "none" for backward compatibility
-- [ ] Typecheck passes
+- [x] Add animation schema: `{type: "none"|"fade", duration: number, delay: number, perCharacter: boolean}`
+- [x] Validate animation config in schema loader
+- [x] Default animation type is "none" for backward compatibility
+- [x] Typecheck passes
 
 #### US-013: Implement Fade-In Animation for Text
 **Description:** As a user, I want text to fade in so that overlays appear smoothly.
