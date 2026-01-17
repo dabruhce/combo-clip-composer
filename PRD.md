@@ -294,12 +294,12 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 **Description:** As a user, I want a property panel so that I can edit all config values.
 
 **Acceptance Criteria:**
-- [ ] Side panel showing all config properties
-- [ ] Input fields for text: font dropdown, size number input, color picker
-- [ ] Input fields for images: width, height, spacing, padding, margin
-- [ ] Input fields for dropshadow: enabled toggle, color, blur, offsets
-- [ ] Changes update preview in real-time
-- [ ] Typecheck passes
+- [x] Side panel showing all config properties
+- [x] Input fields for text: font dropdown, size number input, color picker
+- [x] Input fields for images: width, height, spacing, padding, margin
+- [x] Input fields for dropshadow: enabled toggle, color, blur, offsets
+- [x] Changes update preview in real-time
+- [x] Typecheck passes
 
 ---
 

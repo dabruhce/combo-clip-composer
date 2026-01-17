@@ -654,6 +654,192 @@
     input[type="checkbox"] {
       margin-right: 8px;
     }
+
+    /* Property section headers */
+    .property-section {
+      margin-bottom: 16px;
+      border-bottom: 1px solid #3d3d3d;
+      padding-bottom: 12px;
+    }
+
+    .property-section:last-child {
+      border-bottom: none;
+    }
+
+    .property-section-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #888888;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .property-section-header:hover {
+      color: #cccccc;
+    }
+
+    .property-section-header .toggle-icon {
+      margin-right: 6px;
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+
+    .property-section.collapsed .property-section-content {
+      display: none;
+    }
+
+    .property-section.collapsed .toggle-icon {
+      transform: rotate(-90deg);
+    }
+
+    /* Font dropdown styling */
+    .property-select {
+      width: 100%;
+      padding: 6px 8px;
+      background-color: #3c3c3c;
+      border: 1px solid #555555;
+      border-radius: 3px;
+      color: #ffffff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .property-select:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .property-select:disabled {
+      background-color: #2d2d2d;
+      color: #666666;
+      cursor: not-allowed;
+    }
+
+    /* Color picker styling */
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .property-color-input {
+      width: 36px;
+      height: 28px;
+      padding: 2px;
+      background-color: #3c3c3c;
+      border: 1px solid #555555;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .property-color-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .property-color-input:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .color-text-input {
+      flex: 1;
+      padding: 6px 8px;
+      background-color: #3c3c3c;
+      border: 1px solid #555555;
+      border-radius: 3px;
+      color: #ffffff;
+      font-size: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
+    .color-text-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .color-text-input:disabled {
+      background-color: #2d2d2d;
+      color: #666666;
+      cursor: not-allowed;
+    }
+
+    /* Toggle switch styling */
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 40px;
+      height: 20px;
+      background-color: #3c3c3c;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .toggle-switch:hover {
+      background-color: #4c4c4c;
+    }
+
+    .toggle-switch.active {
+      background-color: #0e639c;
+    }
+
+    .toggle-switch.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .toggle-switch .toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      transition: left 0.2s;
+    }
+
+    .toggle-switch.active .toggle-knob {
+      left: 22px;
+    }
+
+    .toggle-label {
+      font-size: 12px;
+      color: #cccccc;
+    }
+
+    /* Grid layout for property rows */
+    .property-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .property-grid-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .property-grid-item label {
+      font-size: 11px;
+      color: #888888;
+    }
+
+    /* Scrollable panel content */
+    .panel-content.scrollable {
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -668,76 +854,202 @@
     <!-- Left Panel - Properties -->
     <div class="panel-left">
       <div class="panel-header">Properties</div>
-      <div class="panel-content">
+      <div class="panel-content scrollable">
         <div id="propertiesPlaceholder">
           <p style="color: #666666; font-size: 13px;">Load a video to see properties</p>
         </div>
         <div id="overlayControls" style="display: none;">
-          <!-- Overlay Toggle -->
-          <div class="property-group">
-            <label class="property-label">
-              <input type="checkbox" id="overlayEnabled">
-              Enable Overlay Preview
-            </label>
-          </div>
-
-          <!-- Combo Text Input -->
-          <div class="property-group">
-            <label class="property-label" for="comboTextInput">Combo Notation</label>
-            <input type="text" id="comboTextInput" class="property-input" placeholder="e.g., d df f 2, w! ss" disabled>
-            <p class="property-hint">Separate combos with commas</p>
-          </div>
-
-          <!-- Position Controls -->
-          <div class="property-group">
-            <label class="property-label">Position</label>
-            <div class="property-row">
-              <label class="property-sublabel" for="overlayX">X:</label>
-              <input type="number" id="overlayX" class="property-input-small" value="10" min="0" disabled>
-              <label class="property-sublabel" for="overlayY">Y:</label>
-              <input type="number" id="overlayY" class="property-input-small" value="10" min="0" disabled>
+          <!-- Overlay Toggle Section -->
+          <div class="property-section" id="sectionOverlay">
+            <div class="property-section-header" onclick="toggleSection('sectionOverlay')">
+              <span class="toggle-icon">▼</span>
+              Overlay
             </div>
-            <p class="property-hint">Drag overlay on canvas to reposition</p>
-          </div>
+            <div class="property-section-content">
+              <!-- Overlay Toggle -->
+              <div class="property-group">
+                <label class="property-label">
+                  <input type="checkbox" id="overlayEnabled">
+                  Enable Overlay Preview
+                </label>
+              </div>
 
-          <!-- Snap to Grid Controls -->
-          <div class="property-group">
-            <label class="property-label">
-              <input type="checkbox" id="snapToGrid" disabled>
-              Snap to Grid
-            </label>
-            <div class="property-row" style="margin-top: 6px;">
-              <label class="property-sublabel" for="gridSize">Size:</label>
-              <input type="number" id="gridSize" class="property-input-small" value="10" min="1" max="100" disabled>
-              <span style="font-size: 11px; color: #666666;">px</span>
-            </div>
-          </div>
+              <!-- Combo Text Input -->
+              <div class="property-group">
+                <label class="property-label" for="comboTextInput">Combo Notation</label>
+                <input type="text" id="comboTextInput" class="property-input" placeholder="e.g., d df f 2, w! ss" disabled>
+                <p class="property-hint">Separate combos with commas</p>
+              </div>
 
-          <!-- Image Size Controls -->
-          <div class="property-group">
-            <label class="property-label">Image Size</label>
-            <div class="property-row">
-              <label class="property-sublabel" for="imgWidth">W:</label>
-              <input type="number" id="imgWidth" class="property-input-small" value="50" min="10" max="200" disabled>
-              <label class="property-sublabel" for="imgHeight">H:</label>
-              <input type="number" id="imgHeight" class="property-input-small" value="50" min="10" max="200" disabled>
-            </div>
-          </div>
+              <!-- Position Controls -->
+              <div class="property-group">
+                <label class="property-label">Position</label>
+                <div class="property-row">
+                  <label class="property-sublabel" for="overlayX">X:</label>
+                  <input type="number" id="overlayX" class="property-input-small" value="10" min="0" disabled>
+                  <label class="property-sublabel" for="overlayY">Y:</label>
+                  <input type="number" id="overlayY" class="property-input-small" value="10" min="0" disabled>
+                </div>
+                <p class="property-hint">Drag overlay on canvas to reposition</p>
+              </div>
 
-          <!-- Spacing Controls -->
-          <div class="property-group">
-            <label class="property-label">Spacing</label>
-            <div class="property-row">
-              <label class="property-sublabel" for="imgSpacing">Gap:</label>
-              <input type="number" id="imgSpacing" class="property-input-small" value="0" min="0" max="50" disabled>
-              <label class="property-sublabel" for="imgPadding">Pad:</label>
-              <input type="number" id="imgPadding" class="property-input-small" value="5" min="0" max="50" disabled>
+              <!-- Snap to Grid Controls -->
+              <div class="property-group">
+                <label class="property-label">
+                  <input type="checkbox" id="snapToGrid" disabled>
+                  Snap to Grid
+                </label>
+                <div class="property-row" style="margin-top: 6px;">
+                  <label class="property-sublabel" for="gridSize">Size:</label>
+                  <input type="number" id="gridSize" class="property-input-small" value="10" min="1" max="100" disabled>
+                  <span style="font-size: 11px; color: #666666;">px</span>
+                </div>
+              </div>
+
+              <!-- Apply Button -->
+              <div class="property-group">
+                <button class="btn btn-full" id="applyOverlayBtn" disabled>Apply Overlay</button>
+              </div>
             </div>
           </div>
 
-          <!-- Apply Button -->
-          <div class="property-group">
-            <button class="btn btn-full" id="applyOverlayBtn" disabled>Apply Overlay</button>
+          <!-- Text Section -->
+          <div class="property-section" id="sectionText">
+            <div class="property-section-header" onclick="toggleSection('sectionText')">
+              <span class="toggle-icon">▼</span>
+              Text
+            </div>
+            <div class="property-section-content">
+              <!-- Font Family -->
+              <div class="property-group">
+                <label class="property-label" for="textFont">Font Family</label>
+                <select id="textFont" class="property-select" disabled>
+                  <option value="Arial">Arial</option>
+                  <option value="THEBOLDFONT">THEBOLDFONT</option>
+                  <option value="Verdana">Verdana</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Courier New">Courier New</option>
+                  <option value="Impact">Impact</option>
+                  <option value="Comic Sans MS">Comic Sans MS</option>
+                </select>
+              </div>
+
+              <!-- Font Size -->
+              <div class="property-group">
+                <label class="property-label" for="textFontSize">Font Size</label>
+                <div class="property-row">
+                  <input type="number" id="textFontSize" class="property-input-small" value="50" min="8" max="200" disabled>
+                  <span style="font-size: 11px; color: #666666;">px</span>
+                </div>
+              </div>
+
+              <!-- Text Color -->
+              <div class="property-group">
+                <label class="property-label">Text Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="textColorPicker" class="property-color-input" value="#ffff00" disabled>
+                  <input type="text" id="textColorText" class="color-text-input" value="yellow" placeholder="#RRGGBB or name" disabled>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dropshadow Section -->
+          <div class="property-section" id="sectionDropshadow">
+            <div class="property-section-header" onclick="toggleSection('sectionDropshadow')">
+              <span class="toggle-icon">▼</span>
+              Dropshadow
+            </div>
+            <div class="property-section-content">
+              <!-- Dropshadow Enabled -->
+              <div class="property-group">
+                <label class="property-label">
+                  <input type="checkbox" id="dropshadowEnabled" disabled>
+                  Enable Dropshadow
+                </label>
+              </div>
+
+              <!-- Dropshadow Color -->
+              <div class="property-group">
+                <label class="property-label">Shadow Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="dropshadowColorPicker" class="property-color-input" value="#000000" disabled>
+                  <input type="text" id="dropshadowColorText" class="color-text-input" value="#000000" placeholder="#RRGGBB" disabled>
+                </div>
+              </div>
+
+              <!-- Dropshadow Blur -->
+              <div class="property-group">
+                <label class="property-label" for="dropshadowBlur">Blur</label>
+                <div class="property-row">
+                  <input type="number" id="dropshadowBlur" class="property-input-small" value="0" min="0" max="50" disabled>
+                  <span style="font-size: 11px; color: #666666;">px</span>
+                </div>
+              </div>
+
+              <!-- Dropshadow Offset -->
+              <div class="property-group">
+                <label class="property-label">Offset</label>
+                <div class="property-row">
+                  <label class="property-sublabel" for="dropshadowOffsetX">X:</label>
+                  <input type="number" id="dropshadowOffsetX" class="property-input-small" value="-2" min="-50" max="50" disabled>
+                  <label class="property-sublabel" for="dropshadowOffsetY">Y:</label>
+                  <input type="number" id="dropshadowOffsetY" class="property-input-small" value="3" min="-50" max="50" disabled>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Images Section -->
+          <div class="property-section" id="sectionImages">
+            <div class="property-section-header" onclick="toggleSection('sectionImages')">
+              <span class="toggle-icon">▼</span>
+              Images
+            </div>
+            <div class="property-section-content">
+              <!-- Image Dimensions -->
+              <div class="property-group">
+                <label class="property-label">Dimensions</label>
+                <div class="property-grid">
+                  <div class="property-grid-item">
+                    <label for="imgWidth">Width</label>
+                    <input type="number" id="imgWidth" class="property-input-small" value="50" min="10" max="200" disabled>
+                  </div>
+                  <div class="property-grid-item">
+                    <label for="imgHeight">Height</label>
+                    <input type="number" id="imgHeight" class="property-input-small" value="50" min="10" max="200" disabled>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Spacing -->
+              <div class="property-group">
+                <label class="property-label" for="imgSpacing">Spacing (between images)</label>
+                <div class="property-row">
+                  <input type="number" id="imgSpacing" class="property-input-small" value="0" min="0" max="50" disabled>
+                  <span style="font-size: 11px; color: #666666;">px</span>
+                </div>
+              </div>
+
+              <!-- Padding -->
+              <div class="property-group">
+                <label class="property-label" for="imgPadding">Padding (background edge)</label>
+                <div class="property-row">
+                  <input type="number" id="imgPadding" class="property-input-small" value="5" min="0" max="50" disabled>
+                  <span style="font-size: 11px; color: #666666;">px</span>
+                </div>
+              </div>
+
+              <!-- Margin -->
+              <div class="property-group">
+                <label class="property-label" for="imgMargin">Margin (from frame edge)</label>
+                <div class="property-row">
+                  <input type="number" id="imgMargin" class="property-input-small" value="5" min="0" max="100" disabled>
+                  <span style="font-size: 11px; color: #666666;">px</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -901,10 +1213,25 @@
     const imgHeightInput = document.getElementById('imgHeight');
     const imgSpacingInput = document.getElementById('imgSpacing');
     const imgPaddingInput = document.getElementById('imgPadding');
+    const imgMarginInput = document.getElementById('imgMargin');
     const applyOverlayBtn = document.getElementById('applyOverlayBtn');
     const snapToGridCheckbox = document.getElementById('snapToGrid');
     const gridSizeInput = document.getElementById('gridSize');
     const dragPositionIndicator = document.getElementById('dragPositionIndicator');
+
+    // Text config DOM elements
+    const textFontSelect = document.getElementById('textFont');
+    const textFontSizeInput = document.getElementById('textFontSize');
+    const textColorPicker = document.getElementById('textColorPicker');
+    const textColorText = document.getElementById('textColorText');
+
+    // Dropshadow config DOM elements
+    const dropshadowEnabledCheckbox = document.getElementById('dropshadowEnabled');
+    const dropshadowColorPicker = document.getElementById('dropshadowColorPicker');
+    const dropshadowColorText = document.getElementById('dropshadowColorText');
+    const dropshadowBlurInput = document.getElementById('dropshadowBlur');
+    const dropshadowOffsetXInput = document.getElementById('dropshadowOffsetX');
+    const dropshadowOffsetYInput = document.getElementById('dropshadowOffsetY');
 
     // Timeline DOM elements
     const timelinePlaceholder = document.getElementById('timelinePlaceholder');
@@ -1155,18 +1482,38 @@
       propertiesPlaceholder.style.display = 'none';
       overlayControls.style.display = 'block';
 
-      // Enable inputs
+      // Enable overlay section inputs
       overlayEnabledCheckbox.disabled = false;
       comboTextInput.disabled = false;
       overlayXInput.disabled = false;
       overlayYInput.disabled = false;
+      applyOverlayBtn.disabled = false;
+      snapToGridCheckbox.disabled = false;
+      gridSizeInput.disabled = false;
+
+      // Enable text section inputs
+      textFontSelect.disabled = false;
+      textFontSizeInput.disabled = false;
+      textColorPicker.disabled = false;
+      textColorText.disabled = false;
+
+      // Enable dropshadow section inputs
+      dropshadowEnabledCheckbox.disabled = false;
+      dropshadowColorPicker.disabled = false;
+      dropshadowColorText.disabled = false;
+      dropshadowBlurInput.disabled = false;
+      dropshadowOffsetXInput.disabled = false;
+      dropshadowOffsetYInput.disabled = false;
+
+      // Enable images section inputs
       imgWidthInput.disabled = false;
       imgHeightInput.disabled = false;
       imgSpacingInput.disabled = false;
       imgPaddingInput.disabled = false;
-      applyOverlayBtn.disabled = false;
-      snapToGridCheckbox.disabled = false;
-      gridSizeInput.disabled = false;
+      imgMarginInput.disabled = false;
+
+      // Initialize inputs with default values
+      initializePropertyInputs();
     }
 
     /**
@@ -1176,34 +1523,147 @@
       propertiesPlaceholder.style.display = 'block';
       overlayControls.style.display = 'none';
 
-      // Disable inputs
+      // Disable overlay section inputs
       overlayEnabledCheckbox.disabled = true;
       comboTextInput.disabled = true;
       overlayXInput.disabled = true;
       overlayYInput.disabled = true;
+      applyOverlayBtn.disabled = true;
+      snapToGridCheckbox.disabled = true;
+      gridSizeInput.disabled = true;
+
+      // Disable text section inputs
+      textFontSelect.disabled = true;
+      textFontSizeInput.disabled = true;
+      textColorPicker.disabled = true;
+      textColorText.disabled = true;
+
+      // Disable dropshadow section inputs
+      dropshadowEnabledCheckbox.disabled = true;
+      dropshadowColorPicker.disabled = true;
+      dropshadowColorText.disabled = true;
+      dropshadowBlurInput.disabled = true;
+      dropshadowOffsetXInput.disabled = true;
+      dropshadowOffsetYInput.disabled = true;
+
+      // Disable images section inputs
       imgWidthInput.disabled = true;
       imgHeightInput.disabled = true;
       imgSpacingInput.disabled = true;
       imgPaddingInput.disabled = true;
-      applyOverlayBtn.disabled = true;
-      snapToGridCheckbox.disabled = true;
-      gridSizeInput.disabled = true;
+      imgMarginInput.disabled = true;
+    }
+
+    /**
+     * Toggles a property section collapsed state
+     */
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.classList.toggle('collapsed');
+      }
+    }
+
+    /**
+     * Initializes property input fields with default config values
+     */
+    function initializePropertyInputs() {
+      const config = editorState.overlay.config || defaultConfig;
+
+      // Text properties
+      textFontSelect.value = config.text?.font || defaultConfig.text.font;
+      textFontSizeInput.value = config.text?.fontSize || defaultConfig.text.fontSize;
+      const textColor = config.text?.color || defaultConfig.text.color;
+      textColorText.value = textColor;
+      textColorPicker.value = colorNameToHex(textColor);
+
+      // Dropshadow properties
+      const dropshadow = config.text?.dropshadow || defaultConfig.text.dropshadow;
+      dropshadowEnabledCheckbox.checked = dropshadow.enabled;
+      dropshadowColorText.value = dropshadow.color;
+      dropshadowColorPicker.value = dropshadow.color;
+      dropshadowBlurInput.value = dropshadow.blur;
+      dropshadowOffsetXInput.value = dropshadow.offsetX;
+      dropshadowOffsetYInput.value = dropshadow.offsetY;
+
+      // Image properties
+      const images = config.images || defaultConfig.images;
+      imgWidthInput.value = images.width;
+      imgHeightInput.value = images.height;
+      imgSpacingInput.value = images.spacing;
+      imgPaddingInput.value = images.padding;
+      imgMarginInput.value = images.margin;
+    }
+
+    /**
+     * Converts a color name to hex format for color picker
+     */
+    function colorNameToHex(color) {
+      if (!color) return '#ffffff';
+      if (color.startsWith('#')) return color;
+
+      // Map of common color names to hex
+      const colorMap = {
+        'yellow': '#ffff00',
+        'red': '#ff0000',
+        'blue': '#0000ff',
+        'green': '#00ff00',
+        'white': '#ffffff',
+        'black': '#000000',
+        'orange': '#ffa500',
+        'purple': '#800080',
+        'cyan': '#00ffff',
+        'magenta': '#ff00ff',
+        'lime': '#00ff00',
+        'pink': '#ffc0cb',
+        'gray': '#808080',
+        'grey': '#808080',
+        'silver': '#c0c0c0',
+        'navy': '#000080',
+        'teal': '#008080',
+        'maroon': '#800000',
+        'olive': '#808000'
+      };
+
+      return colorMap[color.toLowerCase()] || '#ffffff';
+    }
+
+    /**
+     * Gets current config from all property inputs
+     */
+    function getFullConfigFromInputs() {
+      return {
+        text: {
+          font: textFontSelect.value || 'Arial',
+          fontSize: parseInt(textFontSizeInput.value) || 50,
+          color: textColorText.value || 'yellow',
+          position: {
+            x: parseInt(overlayXInput.value) || 10,
+            y: parseInt(overlayYInput.value) || 10
+          },
+          dropshadow: {
+            enabled: dropshadowEnabledCheckbox.checked,
+            color: dropshadowColorText.value || '#000000',
+            blur: parseInt(dropshadowBlurInput.value) || 0,
+            offsetX: parseInt(dropshadowOffsetXInput.value) || -2,
+            offsetY: parseInt(dropshadowOffsetYInput.value) || 3
+          }
+        },
+        images: {
+          width: parseInt(imgWidthInput.value) || 50,
+          height: parseInt(imgHeightInput.value) || 50,
+          spacing: parseInt(imgSpacingInput.value) || 0,
+          padding: parseInt(imgPaddingInput.value) || 5,
+          margin: parseInt(imgMarginInput.value) || 5
+        }
+      };
     }
 
     /**
      * Gets current config from overlay control inputs
      */
     function getOverlayConfigFromInputs() {
-      return {
-        text: { ...defaultConfig.text },
-        images: {
-          width: parseInt(imgWidthInput.value) || 50,
-          height: parseInt(imgHeightInput.value) || 50,
-          spacing: parseInt(imgSpacingInput.value) || 0,
-          padding: parseInt(imgPaddingInput.value) || 5,
-          margin: 5
-        }
-      };
+      return getFullConfigFromInputs();
     }
 
     /**
@@ -2401,6 +2861,83 @@
     });
 
     imgPaddingInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    imgMarginInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    // Text config change listeners - update preview in real-time
+    textFontSelect.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    textFontSizeInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    textColorText.addEventListener('change', (e) => {
+      // Update color picker to match text input
+      textColorPicker.value = colorNameToHex(e.target.value);
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    textColorPicker.addEventListener('input', (e) => {
+      // Update text input to match color picker
+      textColorText.value = e.target.value;
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    // Dropshadow config change listeners - update preview in real-time
+    dropshadowEnabledCheckbox.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    dropshadowColorText.addEventListener('change', (e) => {
+      // Update color picker to match text input
+      const hexColor = e.target.value.startsWith('#') ? e.target.value : colorNameToHex(e.target.value);
+      dropshadowColorPicker.value = hexColor;
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    dropshadowColorPicker.addEventListener('input', (e) => {
+      // Update text input to match color picker
+      dropshadowColorText.value = e.target.value;
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    dropshadowBlurInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    dropshadowOffsetXInput.addEventListener('change', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
+    });
+
+    dropshadowOffsetYInput.addEventListener('change', () => {
       if (overlayEnabledCheckbox.checked) {
         applyOverlayFromInputs();
       }
