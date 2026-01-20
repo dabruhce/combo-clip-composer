@@ -9,7 +9,7 @@ async function downloadVideo(videoID, videoFilePath) {
     const videoStream = ytdl(videoURL, { quality: 'highest' });
     videoStream.on('progress', (chunkSize, downloadedBytes, totalBytes) => {
         const percentComplete = downloadedBytes / totalBytes;
-   //     console.log(`Downloaded ${Math.round(percentComplete * 100)}%`);
+        console.log(`Downloaded ${Math.round(percentComplete * 100)}%`);
     });
 
     const output = fs.createWriteStream(videoFilePath);
