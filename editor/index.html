@@ -349,6 +349,49 @@
       white-space: nowrap;
     }
 
+    /* View toggle button */
+    .view-toggle-separator {
+      width: 1px;
+      height: 20px;
+      background-color: #3d3d3d;
+      margin: 0 4px;
+    }
+
+    .view-toggle-btn {
+      padding: 4px 8px;
+      background-color: #2d2d2d;
+      border: 1px solid #3d3d3d;
+      border-radius: 3px;
+      color: #cccccc;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .view-toggle-btn:hover {
+      background-color: #3d3d3d;
+    }
+
+    .view-toggle-btn:active {
+      background-color: #4d4d4d;
+    }
+
+    .view-toggle-btn.active {
+      background-color: #0078d4;
+      border-color: #0078d4;
+    }
+
+    .view-toggle-btn:disabled {
+      color: #555555;
+      cursor: not-allowed;
+    }
+
+    .view-toggle-btn:disabled:hover {
+      background-color: #2d2d2d;
+    }
+
     /* Drag position indicator */
     .drag-position-indicator {
       position: fixed;
@@ -1646,6 +1689,11 @@
           </select>
           <button class="zoom-btn" id="zoomInBtn" title="Zoom In">+</button>
           <span class="frame-info" id="frameInfo">0x0</span>
+          <div class="view-toggle-separator" id="viewToggleSeparator" style="display: none;"></div>
+          <button class="view-toggle-btn" id="viewToggleBtn" style="display: none;" title="Switch between Video Player and Frame Canvas view (V)">
+            <span id="viewToggleIcon">🎬</span>
+            <span id="viewToggleLabel">Video</span>
+          </button>
         </div>
         <!-- Loading overlay -->
         <div class="loading-overlay hidden" id="loadingOverlay">
@@ -1826,6 +1874,7 @@
       isLoading: false,
       isExtractionComplete: false, // Whether frame extraction has completed
       extractionProgress: 0, // Extraction progress percentage (0-100)
+      currentView: 'video', // 'video' or 'frames' - which view is currently displayed
       zoom: 'fit', // 'fit', 0.5, 1, 2
       frameImage: null, // Cached current frame image
       timelineZoom: 1, // Timeline zoom level (1 = 100%, 2 = 200%, etc.)
@@ -1889,6 +1938,10 @@
     const zoomInBtn = document.getElementById('zoomInBtn');
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     const frameInfo = document.getElementById('frameInfo');
+    const viewToggleSeparator = document.getElementById('viewToggleSeparator');
+    const viewToggleBtn = document.getElementById('viewToggleBtn');
+    const viewToggleIcon = document.getElementById('viewToggleIcon');
+    const viewToggleLabel = document.getElementById('viewToggleLabel');
     const ctx = frameCanvas.getContext('2d');
 
     // Overlay controls DOM elements
@@ -2188,6 +2241,131 @@
     }
 
     /**
+     * Switches to video player view
+     */
+    function switchToVideoView() {
+      if (!editorState.videoPath) return;
+
+      editorState.currentView = 'video';
+
+      // Hide frame canvas, show video player
+      frameCanvasContainer.classList.remove('visible');
+      videoPlayerContainer.classList.add('visible');
+
+      // Update toggle button appearance
+      viewToggleIcon.textContent = '🖼️';
+      viewToggleLabel.textContent = 'Frames';
+      viewToggleBtn.title = 'Switch to Frame Canvas view (V)';
+
+      // Sync video player time to current frame position
+      if (editorState.metadata && editorState.frameCount > 0) {
+        const fps = editorState.metadata.fps || 30;
+        const targetTime = editorState.currentFrame / fps;
+        if (Math.abs(videoPlayer.currentTime - targetTime) > 0.001) {
+          videoPlayer.currentTime = targetTime;
+        }
+      }
+
+      // Show video player source if needed (may have been cleared)
+      if (!videoPlayer.src && editorState.videoPath) {
+        videoPlayer.src = `file://${editorState.videoPath}`;
+        videoPlayer.load();
+      }
+    }
+
+    /**
+     * Switches to frame canvas view
+     */
+    function switchToFrameView() {
+      if (!editorState.isExtractionComplete) return;
+
+      editorState.currentView = 'frames';
+
+      // Pause video if playing
+      if (!videoPlayer.paused) {
+        videoPlayer.pause();
+      }
+
+      // Hide video player, show frame canvas
+      videoPlayerContainer.classList.remove('visible');
+      frameCanvasContainer.classList.add('visible');
+
+      // Update toggle button appearance
+      viewToggleIcon.textContent = '🎬';
+      viewToggleLabel.textContent = 'Video';
+      viewToggleBtn.title = 'Switch to Video Player view (V)';
+
+      // Sync frame canvas to video player position
+      syncFrameCanvasToVideoTime();
+    }
+
+    /**
+     * Toggles between video player and frame canvas view
+     */
+    function toggleView() {
+      if (!editorState.isExtractionComplete) return;
+
+      if (editorState.currentView === 'video') {
+        switchToFrameView();
+      } else {
+        switchToVideoView();
+      }
+    }
+
+    /**
+     * Syncs the frame canvas to the current video player time
+     */
+    function syncFrameCanvasToVideoTime() {
+      if (!editorState.isExtractionComplete || !editorState.metadata) return;
+
+      const fps = editorState.metadata.fps || 30;
+      const frameFromVideo = Math.round(videoPlayer.currentTime * fps);
+      const clampedFrame = Math.max(0, Math.min(frameFromVideo, editorState.frameCount - 1));
+
+      // Only update if different to avoid redundant redraws
+      if (clampedFrame !== editorState.currentFrame || !editorState.frameImage) {
+        editorState.currentFrame = clampedFrame;
+        loadFrame(clampedFrame);
+        updateTimelineDisplay();
+        updatePlayhead();
+      }
+    }
+
+    /**
+     * Syncs the video player to a specific frame number
+     */
+    function syncVideoToFrame(frameNumber) {
+      if (!editorState.metadata) return;
+
+      const fps = editorState.metadata.fps || 30;
+      const targetTime = frameNumber / fps;
+
+      // Only update if different to avoid seek loops
+      if (Math.abs(videoPlayer.currentTime - targetTime) > 0.001) {
+        videoPlayer.currentTime = targetTime;
+      }
+    }
+
+    /**
+     * Shows/hides the view toggle button
+     */
+    function updateViewToggleVisibility() {
+      if (editorState.isExtractionComplete && editorState.videoPath) {
+        viewToggleSeparator.style.display = '';
+        viewToggleBtn.style.display = '';
+        viewToggleBtn.disabled = false;
+      } else if (editorState.videoPath && !editorState.isExtractionComplete) {
+        // Video loaded but extraction not complete - show button but disabled
+        viewToggleSeparator.style.display = '';
+        viewToggleBtn.style.display = '';
+        viewToggleBtn.disabled = true;
+      } else {
+        viewToggleSeparator.style.display = 'none';
+        viewToggleBtn.style.display = 'none';
+      }
+    }
+
+    /**
      * Updates the loading subtext
      */
     function updateLoadingSubtext(text) {
@@ -2202,6 +2380,7 @@
       editorState.videoPath = data.videoPath;
       editorState.metadata = data.metadata;
       editorState.currentFrame = 0;
+      editorState.currentView = 'video';
       editorState.zoom = 'fit';
 
       // Reset extraction state
@@ -2220,6 +2399,9 @@
 
       // Update frame info display with video dimensions
       updateFrameInfo();
+
+      // Show view toggle button (disabled until extraction completes)
+      updateViewToggleVisibility();
 
       console.log('Video selected, displaying immediately:', data.videoPath);
     }
@@ -2453,18 +2635,30 @@
       editorState.isExtractionComplete = true;
       editorState.extractionProgress = 100;
 
-      // Preserve current frame position (may have been set by video player)
-      const currentFrame = editorState.currentFrame || 0;
-      editorState.currentFrame = Math.min(currentFrame, data.frameCount - 1);
+      // Map current video time to nearest extracted frame
+      // This ensures the frame canvas shows the same frame as the video player position
+      const fps = data.metadata.fps || 30;
+      const frameFromVideo = Math.round(videoPlayer.currentTime * fps);
+      const clampedFrame = Math.max(0, Math.min(frameFromVideo, data.frameCount - 1));
+      editorState.currentFrame = clampedFrame;
       editorState.zoom = 'fit';
 
       hideLoading();
 
-      // Hide video player and show frame canvas for overlay editing
+      // Switch to frame canvas view for overlay editing
+      editorState.currentView = 'frames';
       hideVideoPlayer();
       showFrameCanvas();
       setZoom('fit');
       loadFrame(editorState.currentFrame);
+
+      // Update view toggle button appearance (now in frame view, button shows "Video")
+      viewToggleIcon.textContent = '🎬';
+      viewToggleLabel.textContent = 'Video';
+      viewToggleBtn.title = 'Switch to Video Player view (V)';
+
+      // Update view toggle button visibility and state
+      updateViewToggleVisibility();
 
       // Show timeline and update display
       showTimeline();
@@ -2859,6 +3053,9 @@
         loadFrame(frame);
         updatePlayheadPosition();
         updateTimelineDisplay();
+
+        // Sync video player to match frame position (for when switching back to video view)
+        syncVideoToFrame(frame);
 
         // Auto-scroll to keep playhead visible when timeline is zoomed
         if (editorState.timelineZoom > 1) {
@@ -4713,6 +4910,13 @@
           event.preventDefault();
           removeSelectedKeyframe();
           break;
+        case 'KeyV':
+          // Toggle view between video player and frame canvas
+          if (editorState.isExtractionComplete) {
+            event.preventDefault();
+            toggleView();
+          }
+          break;
       }
     });
 
@@ -4724,6 +4928,9 @@
 
     zoomInBtn.addEventListener('click', zoomIn);
     zoomOutBtn.addEventListener('click', zoomOut);
+
+    // View toggle button event listener
+    viewToggleBtn.addEventListener('click', toggleView);
 
     // Timeline zoom control event listeners
     timelineZoomSlider.addEventListener('input', (e) => {
@@ -5079,6 +5286,7 @@
       editorState.timelineZoom = 1;
       editorState.isExtractionComplete = false;
       editorState.extractionProgress = 0;
+      editorState.currentView = 'video';
 
       // Reset overlay state
       editorState.overlay.enabled = false;
@@ -5099,8 +5307,10 @@
 
       // Reset UI
       hideFrameCanvas();
+      hideVideoPlayer();
       hideOverlayControls();
       hideTimeline();
+      updateViewToggleVisibility();
 
       // Reset controls to defaults
       initializePropertyInputs();

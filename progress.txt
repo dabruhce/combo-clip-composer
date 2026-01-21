@@ -819,3 +819,49 @@
   - Sync timeline display from timeupdate for consistent UI when video plays via native controls
   - Pause video before stepping ensures clean frame-by-frame navigation
 ---
+
+## Iteration 36 - US-036: Background Frame Extraction with Progress
+- What was implemented:
+  - Created `extractVideoFramesWithProgress()` function using fluent-ffmpeg directly for progress tracking
+  - Progress callback sends percentage updates via IPC `extraction-progress` events
+  - Updated `handleLoadVideo` and `handleLoadVideoByPath` to use new extraction function
+  - Added IPC events: `video-extraction-started`, `extraction-progress`, `extraction-complete`
+  - Updated status bar to show extraction progress (e.g., "Extracting... 45%")
+  - Loading overlay hidden when video metadata loads so video remains playable
+  - Added `isExtractionComplete` and `extractionProgress` to editorState
+  - Overlay controls only enabled after extraction completes via existing `showOverlayControls()` flow
+  - Video player visible and playable while frames extract in background
+- Files changed:
+  - editor/main.js (added extractVideoFramesWithProgress, extraction state, progress IPC events)
+  - editor/index.html (added extraction state, IPC listeners, updated status bar progress display)
+  - PRD.md (marked US-036 as complete)
+- Learnings for future iterations:
+  - fluent-ffmpeg provides progress events with timemark or percent (percent may be undefined)
+  - Parse timemark (HH:MM:SS.mm) to calculate progress percentage when percent is not available
+  - Hide loading overlay when video metadata loads, show progress only in status bar
+  - Extraction state (isExtractionComplete, extractionProgress) needed for tracking background operation
+  - Existing flow already disabled overlay controls until onVideoLoaded, just needed state tracking
+---
+
+## Iteration 37 - US-037: Sync Video Player with Frame Canvas
+- What was implemented:
+  - Added view toggle button (🎬 Video / 🖼️ Frames) in zoom controls area
+  - Added currentView state property to track video vs frames view
+  - Added switchToVideoView() and switchToFrameView() functions
+  - Added toggleView() function and keyboard shortcut 'V'
+  - Added syncFrameCanvasToVideoTime() to map video currentTime to nearest frame
+  - Added syncVideoToFrame() to sync video player when navigating frames
+  - Modified onVideoLoaded() to map video time to frame when extraction completes
+  - Modified goToFrame() to sync video player position
+  - Added updateViewToggleVisibility() to show/hide toggle button based on state
+  - Updated newProject() and onVideoSelected() to handle view state
+- Files changed:
+  - editor/index.html (CSS for view toggle, HTML button, JS functions for view sync)
+  - PRD.md (marked US-037 as complete)
+- Learnings for future iterations:
+  - Frame-to-time conversion: time = frame / fps; Time-to-frame conversion: frame = Math.round(time * fps)
+  - Use tolerance check (Math.abs(diff) > 0.001) to avoid redundant seeks
+  - View toggle button shows opposite action: when in video view, button says "Frames"
+  - Sync is bidirectional: goToFrame syncs video, switchToFrameView syncs frame canvas
+  - Keep video player source loaded even when hidden (may need to restore when switching back)
+---

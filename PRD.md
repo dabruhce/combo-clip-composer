@@ -496,11 +496,11 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 **Description:** As an editor user, I want the frame canvas to show the same frame as the video player position, so that I can see overlays on the current frame.
 
 **Acceptance Criteria:**
-- [ ] When extraction completes, current video time maps to nearest extracted frame
-- [ ] Seeking/scrubbing in video player updates the frame canvas to matching frame
-- [ ] Frame stepping updates both video position and frame canvas simultaneously
-- [ ] Add toggle button/checkbox to switch between video player view and frame canvas view
-- [ ] Verify in browser: pausing video and switching to frame canvas shows same frame
+- [x] When extraction completes, current video time maps to nearest extracted frame
+- [x] Seeking/scrubbing in video player updates the frame canvas to matching frame
+- [x] Frame stepping updates both video position and frame canvas simultaneously
+- [x] Add toggle button/checkbox to switch between video player view and frame canvas view
+- [x] Verify in browser: pausing video and switching to frame canvas shows same frame
 
 ---
 
