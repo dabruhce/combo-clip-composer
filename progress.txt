@@ -711,3 +711,24 @@
   - Menu accelerators: CmdOrCtrl+Shift+E for "Export Config" (Shift modifier distinguishes from Export Video)
   - Config export doesn't need validation - can export even without video loaded (just current settings)
 ---
+
+## Phase 11 PRD Added - Hybrid Video Preview with Immediate Playback
+- What was added:
+  - US-032: Add HTML5 Video Element to Preview Container
+  - US-033: Display Video Immediately on Open
+  - US-034: Add Video Playback Controls Overlay
+  - US-035: Implement Frame-by-Frame Stepping via Video Element
+  - US-036: Background Frame Extraction with Progress
+  - US-037: Sync Video Player with Frame Canvas
+  - US-038: Enable Timeline Controls for Video Player
+- Goals:
+  - Provide immediate video feedback when a file is opened (no waiting for frame extraction)
+  - Enable smooth video playback with controls (play/pause, volume, progress bar)
+  - Support frame-by-frame stepping for precise notation placement
+  - Extract frames in background while video is playable
+- Technical considerations:
+  - HTML5 `<video>` element with file:// protocol for local files in Electron
+  - Frame-accurate seeking via currentTime = frameNumber / fps
+  - Existing frame canvas remains for overlay preview; video player for quick playback
+  - IPC flow update needed: return video path immediately, extract frames via background IPC
+---

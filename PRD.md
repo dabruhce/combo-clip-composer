@@ -402,3 +402,136 @@ The current Combo Clip Composer has hardcoded styling for text overlays (THEBOLD
 - **Keyframe storage:** Store keyframes separately from base config to keep config files clean
 - **Font loading:** Custom fonts need to be loaded before any canvas operations
 - **Existing code reuse:** Leverage `videoUtils.js`, `canvas.js`, and `imageGen.js` for rendering logic
+
+---
+
+## Phase 11: Hybrid Video Preview with Immediate Playback
+
+### Introduction
+
+Currently, when opening a video, users must wait for all frames to be extracted before seeing any preview. This phase adds a hybrid preview system where the video displays immediately in an HTML5 `<video>` element for playback while frames extract in the background. This enables immediate review of footage while maintaining frame-accurate editing for notation placement.
+
+### Goals
+
+- Provide immediate video feedback when a file is opened (no waiting for full frame extraction)
+- Enable smooth video playback with standard controls (play/pause, volume, progress)
+- Support frame-by-frame navigation for precise combo notation placement
+- Extract frames in background so overlay editing functionality remains available
+- Maintain existing frame canvas for overlay preview once frames are extracted
+
+---
+
+#### US-032: Add HTML5 Video Element to Preview Container
+
+**Description:** As an editor user, I want to see the video immediately after opening it, so that I don't have to wait for frame extraction to preview my footage.
+
+**Acceptance Criteria:**
+- [ ] Add a `<video>` element inside `#previewContainer` (hidden by default)
+- [ ] Video element should have `id="videoPlayer"` for JavaScript access
+- [ ] Add CSS styling for the video element to fit within the preview container (respect zoom settings)
+- [ ] Video element should be hidden when no video is loaded
+- [ ] Typecheck passes (if applicable) and no console errors
+
+---
+
+#### US-033: Display Video Immediately on Open
+
+**Description:** As an editor user, I want the video to appear in the preview area as soon as I select it, so that I can start reviewing the content immediately.
+
+**Acceptance Criteria:**
+- [ ] When "Open Video" is clicked and file selected, video loads into `<video>` element immediately
+- [ ] Video element becomes visible, placeholder is hidden
+- [ ] Video source is set to the selected file path (using file:// protocol)
+- [ ] Loading overlay shows "Loading video..." during initial load
+- [ ] Video `loadedmetadata` event triggers UI update (shows video dimensions in frame info)
+- [ ] Verify in browser: selecting a video file displays it immediately
+
+---
+
+#### US-034: Add Video Playback Controls Overlay
+
+**Description:** As an editor user, I want play/pause, volume, and progress controls on the video, so that I can easily preview my footage.
+
+**Acceptance Criteria:**
+- [ ] Add a controls overlay div positioned over the video area
+- [ ] Include play/pause button that toggles video playback
+- [ ] Include volume slider (0-100%) with mute toggle
+- [ ] Include progress bar showing current position / duration
+- [ ] Controls overlay appears on hover, fades when mouse leaves (CSS transitions)
+- [ ] Clicking progress bar seeks to that position
+- [ ] Verify in browser: controls work and video plays/pauses correctly
+
+---
+
+#### US-035: Implement Frame-by-Frame Stepping via Video Element
+
+**Description:** As an editor user, I want to step through the video frame-by-frame using the existing timeline controls, so that I can precisely position combo notations.
+
+**Acceptance Criteria:**
+- [ ] Step forward button (`#btnStepForward`) advances video by 1 frame (1/fps seconds)
+- [ ] Step backward button (`#btnStepBack`) rewinds video by 1 frame
+- [ ] Current frame number updates in timeline display when stepping
+- [ ] Timecode display updates to match video currentTime
+- [ ] Video pauses automatically when stepping (if playing)
+- [ ] Verify in browser: stepping moves exactly one frame at a time
+
+---
+
+#### US-036: Background Frame Extraction with Progress
+
+**Description:** As an editor user, I want frames to extract in the background while I preview the video, so that I can start reviewing immediately without blocking on extraction.
+
+**Acceptance Criteria:**
+- [ ] Frame extraction starts automatically after video metadata is loaded
+- [ ] Extraction runs asynchronously (does not block UI or video playback)
+- [ ] Status bar or loading subtext shows extraction progress (e.g., "Extracting frames... 45%")
+- [ ] When extraction completes, `editorState` is updated with frame paths
+- [ ] Overlay controls (combo text input, apply button) become enabled only after extraction completes
+- [ ] Verify in browser: video is playable while "Extracting frames..." message shows
+
+---
+
+#### US-037: Sync Video Player with Frame Canvas
+
+**Description:** As an editor user, I want the frame canvas to show the same frame as the video player position, so that I can see overlays on the current frame.
+
+**Acceptance Criteria:**
+- [ ] When extraction completes, current video time maps to nearest extracted frame
+- [ ] Seeking/scrubbing in video player updates the frame canvas to matching frame
+- [ ] Frame stepping updates both video position and frame canvas simultaneously
+- [ ] Add toggle button/checkbox to switch between video player view and frame canvas view
+- [ ] Verify in browser: pausing video and switching to frame canvas shows same frame
+
+---
+
+#### US-038: Enable Timeline Controls for Video Player
+
+**Description:** As an editor user, I want the timeline controls (play/pause, step, jump) to work with the video player before extraction completes.
+
+**Acceptance Criteria:**
+- [ ] Timeline play/pause button (`#btnPlayPause`) controls video playback
+- [ ] Jump to start (`#btnJumpStart`) seeks video to 0:00
+- [ ] Jump to end (`#btnJumpEnd`) seeks video to duration
+- [ ] Timeline playhead position syncs with video currentTime during playback
+- [ ] Clicking on timeline ruler seeks video to that position
+- [ ] Enable timeline controls immediately when video loads (don't wait for extraction)
+- [ ] Verify in browser: all timeline controls work with video before frames are extracted
+
+---
+
+### Non-Goals (Phase 11)
+
+- Audio waveform visualization in timeline
+- Video format conversion or transcoding
+- Streaming/URL video sources (local files only for now)
+- Picture-in-picture mode
+
+### Technical Considerations (Phase 11)
+
+- HTML5 `<video>` element can use `file://` protocol for local files in Electron with appropriate settings
+- Frame-accurate seeking requires calculating `currentTime = frameNumber / fps`
+- Consider using `video.requestVideoFrameCallback()` for precise frame callbacks (Chrome/Electron supported)
+- The existing `frameCanvas` should remain for overlay preview; video player is for quick preview/playback
+- May need to update IPC flow: return video path immediately to renderer, run extraction in background via separate IPC channel
+- Use `video.currentTime` setter for seeking; it may not be frame-accurate on all codecs
+- Consider showing a visual indicator when video player time and frame canvas are out of sync
