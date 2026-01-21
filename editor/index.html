@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' file:; img-src 'self' file:">
   <title>Combo Clip Composer Editor</title>
   <style>
     * {
@@ -2008,23 +2008,117 @@
     }
 
     /**
-     * Updates editor state with loaded video data
+     * Shows the video player with given source
+     */
+    function showVideoPlayer(videoPath) {
+      previewPlaceholder.style.display = 'none';
+      frameCanvasContainer.classList.remove('visible');
+      videoPlayerContainer.classList.add('visible');
+      zoomControls.classList.remove('hidden');
+
+      // Set video source using file:// protocol
+      videoPlayer.src = `file://${videoPath}`;
+      videoPlayer.load();
+    }
+
+    /**
+     * Hides the video player
+     */
+    function hideVideoPlayer() {
+      videoPlayerContainer.classList.remove('visible');
+      videoPlayer.src = '';
+    }
+
+    /**
+     * Updates the loading subtext
+     */
+    function updateLoadingSubtext(text) {
+      loadingSubtext.textContent = text;
+    }
+
+    /**
+     * Handles immediate video display when file is selected (before frame extraction)
+     */
+    function onVideoSelected(data) {
+      // Store video path and metadata immediately
+      editorState.videoPath = data.videoPath;
+      editorState.metadata = data.metadata;
+      editorState.currentFrame = 0;
+      editorState.zoom = 'fit';
+
+      // Calculate frame count from duration and fps
+      const estimatedFrameCount = Math.ceil(data.metadata.duration * data.metadata.fps);
+      editorState.frameCount = estimatedFrameCount;
+
+      // Show loading overlay with "Loading video..." message
+      showLoading('Loading video...');
+
+      // Show video player immediately with the source
+      showVideoPlayer(data.videoPath);
+
+      // Update frame info display with video dimensions
+      updateFrameInfo();
+
+      console.log('Video selected, displaying immediately:', data.videoPath);
+    }
+
+    // Set up video player event listeners
+    videoPlayer.addEventListener('loadedmetadata', () => {
+      // Video metadata loaded, update UI
+      hideLoading();
+
+      // Update frame info with actual video dimensions
+      if (!editorState.metadata) {
+        editorState.metadata = {
+          width: videoPlayer.videoWidth,
+          height: videoPlayer.videoHeight,
+          duration: videoPlayer.duration,
+          fps: 30 // Default fps, will be updated from main process
+        };
+      }
+
+      // Update frame info display
+      updateFrameInfo();
+      updateStatusBar();
+
+      console.log('Video metadata loaded:', {
+        width: videoPlayer.videoWidth,
+        height: videoPlayer.videoHeight,
+        duration: videoPlayer.duration
+      });
+    });
+
+    videoPlayer.addEventListener('error', (e) => {
+      console.error('Video player error:', e);
+      hideLoading();
+      hideVideoPlayer();
+      previewPlaceholder.style.display = '';
+      alert('Failed to load video: ' + (videoPlayer.error ? videoPlayer.error.message : 'Unknown error'));
+    });
+
+    /**
+     * Updates editor state with loaded video data (after frame extraction completes)
      */
     function onVideoLoaded(data) {
+      // Update state with frame extraction results
       editorState.videoPath = data.videoPath;
       editorState.framesDir = data.framesDir;
       editorState.framePaths = data.framePaths;
       editorState.frameCount = data.frameCount;
       editorState.metadata = data.metadata;
-      editorState.currentFrame = 0;
+
+      // Preserve current frame position (may have been set by video player)
+      const currentFrame = editorState.currentFrame || 0;
+      editorState.currentFrame = Math.min(currentFrame, data.frameCount - 1);
       editorState.zoom = 'fit';
 
       hideLoading();
 
-      // Show frame canvas and load first frame
+      // Hide video player and show frame canvas for overlay editing
+      hideVideoPlayer();
       showFrameCanvas();
       setZoom('fit');
-      loadFrame(0);
+      loadFrame(editorState.currentFrame);
 
       // Show timeline and update display
       showTimeline();
@@ -2032,7 +2126,7 @@
       // Show overlay controls
       showOverlayControls();
 
-      console.log('Video loaded:', editorState);
+      console.log('Video frames extracted, ready for editing:', editorState);
     }
 
     /**
@@ -4297,8 +4391,15 @@
     });
 
     // IPC event listeners
+
+    // Handle immediate video display when file is selected
+    ipcRenderer.on('video-selected', (event, data) => {
+      onVideoSelected(data);
+    });
+
     ipcRenderer.on('video-loading-started', (event, data) => {
-      showLoading(`Loading: ${path.basename(data.videoPath)}`);
+      showLoading(`Extracting frames...`);
+      updateLoadingSubtext(`Preparing ${path.basename(data.videoPath)} for editing`);
     });
 
     ipcRenderer.on('video-loaded', (event, data) => {

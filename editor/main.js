@@ -557,18 +557,34 @@ async function handleLoadVideo(event) {
       return { success: false, canceled: true };
     }
 
-    // Notify renderer that extraction is starting
+    // Get video metadata first (fast operation)
+    const metadata = await getVideoMetadata(videoPath);
+
+    // Store video path immediately
+    currentVideoPath = videoPath;
+
+    // Send video path immediately so renderer can display video right away
+    event.sender.send('video-selected', {
+      videoPath,
+      metadata: {
+        fps: metadata.fps,
+        duration: metadata.duration,
+        width: metadata.width,
+        height: metadata.height
+      }
+    });
+
+    // Notify renderer that frame extraction is starting
     event.sender.send('video-loading-started', { videoPath });
 
-    // Extract frames
+    // Extract frames (this takes time but video is already visible)
     const result = await extractVideoFrames(videoPath);
 
     // Store state
-    currentVideoPath = videoPath;
     extractedFramesDir = result.framesDir;
     framePaths = result.framePaths;
 
-    // Send success to renderer
+    // Send success to renderer with frame data
     return {
       success: true,
       videoPath,
@@ -576,10 +592,10 @@ async function handleLoadVideo(event) {
       framePaths: result.framePaths,
       frameCount: result.framePaths.length,
       metadata: {
-        fps: result.metadata.fps,
-        duration: result.metadata.duration,
-        width: result.metadata.width,
-        height: result.metadata.height
+        fps: metadata.fps,
+        duration: metadata.duration,
+        width: metadata.width,
+        height: metadata.height
       }
     };
   } catch (error) {

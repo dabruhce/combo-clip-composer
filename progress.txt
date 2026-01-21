@@ -732,3 +732,45 @@
   - Existing frame canvas remains for overlay preview; video player for quick playback
   - IPC flow update needed: return video path immediately, extract frames via background IPC
 ---
+
+## Iteration 32 - US-032: Add HTML5 Video Element to Preview Container
+- What was implemented:
+  - Added `<video>` element with id="videoPlayer" inside #previewContainer
+  - Created video-player-container wrapper div for consistent layout
+  - Added CSS styling: max-width/max-height 100% to respect container bounds
+  - Video container is hidden by default (display: none), requires .visible class to show
+  - Added JavaScript element references for videoPlayer and videoPlayerContainer
+  - Structure matches existing frame-canvas-container pattern (wrapper with flex centering)
+- Files changed:
+  - editor/index.html (added video player HTML structure, CSS styles, and JS element references)
+  - PRD.md (marked US-032 as complete)
+- Learnings for future iterations:
+  - Follow existing pattern of container wrapper with visible class toggle for show/hide
+  - Video element uses preload="metadata" for efficient initial load
+  - max-width/max-height: 100% makes video fit within container regardless of original size
+  - CSS uses same box-shadow styling as frameCanvas for visual consistency
+  - Element references should be added near related elements (videoPlayer near frameCanvas)
+---
+
+## Iteration 33 - US-033: Display Video Immediately on Open
+- What was implemented:
+  - Modified `handleLoadVideo` in main.js to send `video-selected` event immediately after file selection
+  - Added `onVideoSelected()` function to handle immediate video display
+  - Added `showVideoPlayer()` and `hideVideoPlayer()` helper functions
+  - Added `updateLoadingSubtext()` helper function
+  - Set up `videoPlayer.loadedmetadata` event listener to hide loading and update UI
+  - Set up `videoPlayer.error` event listener for error handling
+  - Updated CSP to allow `file:` protocol for media-src and img-src
+  - Modified `onVideoLoaded()` to hide video player and show frame canvas after extraction
+  - Shows "Loading video..." message immediately, then "Extracting frames..." during extraction
+- Files changed:
+  - editor/main.js (modified handleLoadVideo to send video-selected event first)
+  - editor/index.html (added video player functions, event listeners, CSP update)
+  - PRD.md (marked US-033 as complete)
+- Learnings for future iterations:
+  - CSP needs media-src and img-src directives with file: to allow local video/image loading
+  - Separate IPC events for video-selected (immediate) and video-loading-started (extraction) gives better UX
+  - getVideoMetadata is fast, so calling it before sending video path is acceptable
+  - The video player loadedmetadata event is the right time to hide loading overlay
+  - Frame extraction continues in background while video is visible for immediate feedback
+---

@@ -439,12 +439,12 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 **Description:** As an editor user, I want the video to appear in the preview area as soon as I select it, so that I can start reviewing the content immediately.
 
 **Acceptance Criteria:**
-- [ ] When "Open Video" is clicked and file selected, video loads into `<video>` element immediately
-- [ ] Video element becomes visible, placeholder is hidden
-- [ ] Video source is set to the selected file path (using file:// protocol)
-- [ ] Loading overlay shows "Loading video..." during initial load
-- [ ] Video `loadedmetadata` event triggers UI update (shows video dimensions in frame info)
-- [ ] Verify in browser: selecting a video file displays it immediately
+- [x] When "Open Video" is clicked and file selected, video loads into `<video>` element immediately
+- [x] Video element becomes visible, placeholder is hidden
+- [x] Video source is set to the selected file path (using file:// protocol)
+- [x] Loading overlay shows "Loading video..." during initial load
+- [x] Video `loadedmetadata` event triggers UI update (shows video dimensions in frame info)
+- [x] Verify in browser: selecting a video file displays it immediately
 
 ---
 
