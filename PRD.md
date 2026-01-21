@@ -453,13 +453,13 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 **Description:** As an editor user, I want play/pause, volume, and progress controls on the video, so that I can easily preview my footage.
 
 **Acceptance Criteria:**
-- [ ] Add a controls overlay div positioned over the video area
-- [ ] Include play/pause button that toggles video playback
-- [ ] Include volume slider (0-100%) with mute toggle
-- [ ] Include progress bar showing current position / duration
-- [ ] Controls overlay appears on hover, fades when mouse leaves (CSS transitions)
-- [ ] Clicking progress bar seeks to that position
-- [ ] Verify in browser: controls work and video plays/pauses correctly
+- [x] Add a controls overlay div positioned over the video area
+- [x] Include play/pause button that toggles video playback
+- [x] Include volume slider (0-100%) with mute toggle
+- [x] Include progress bar showing current position / duration
+- [x] Controls overlay appears on hover, fades when mouse leaves (CSS transitions)
+- [x] Clicking progress bar seeks to that position
+- [x] Verify in browser: controls work and video plays/pauses correctly
 
 ---
 

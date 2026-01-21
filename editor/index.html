@@ -130,6 +130,133 @@
       background-color: #000;
     }
 
+    /* Video controls overlay */
+    .video-controls-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+      padding: 20px 16px 16px 16px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .video-player-container:hover .video-controls-overlay,
+    .video-controls-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .video-progress-container {
+      width: 100%;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .video-progress-container:hover {
+      height: 8px;
+    }
+
+    .video-progress-bar {
+      height: 100%;
+      background-color: #0078d4;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    .video-progress-container:hover .video-progress-bar {
+      background-color: #1a8fff;
+    }
+
+    .video-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .video-control-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 50%;
+      color: #ffffff;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s ease;
+    }
+
+    .video-control-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .video-control-btn.play-btn {
+      width: 44px;
+      height: 44px;
+      font-size: 20px;
+    }
+
+    .video-volume-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .video-volume-slider {
+      width: 80px;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s ease, width 0.2s ease;
+      width: 0;
+    }
+
+    .video-volume-container:hover .video-volume-slider {
+      opacity: 1;
+      width: 80px;
+    }
+
+    .video-volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .video-volume-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .video-time-display {
+      color: #ffffff;
+      font-size: 13px;
+      font-family: monospace;
+      margin-left: auto;
+    }
+
     /* Frame canvas container */
     .frame-canvas-container {
       position: absolute;
@@ -1487,6 +1614,20 @@
         <!-- HTML5 Video Player for immediate playback -->
         <div class="video-player-container" id="videoPlayerContainer">
           <video id="videoPlayer" preload="metadata"></video>
+          <!-- Video playback controls overlay -->
+          <div class="video-controls-overlay" id="videoControlsOverlay">
+            <div class="video-progress-container" id="videoProgressContainer">
+              <div class="video-progress-bar" id="videoProgressBar"></div>
+            </div>
+            <div class="video-controls-row">
+              <button class="video-control-btn play-btn" id="videoPlayPauseBtn" title="Play/Pause">▶</button>
+              <div class="video-volume-container">
+                <button class="video-control-btn" id="videoMuteBtn" title="Mute/Unmute">🔊</button>
+                <input type="range" class="video-volume-slider" id="videoVolumeSlider" min="0" max="100" value="100" title="Volume">
+              </div>
+              <span class="video-time-display" id="videoTimeDisplay">0:00 / 0:00</span>
+            </div>
+          </div>
         </div>
         <!-- Frame canvas display -->
         <div class="frame-canvas-container" id="frameCanvasContainer">
@@ -1731,6 +1872,13 @@
     const previewContainer = document.getElementById('previewContainer');
     const videoPlayerContainer = document.getElementById('videoPlayerContainer');
     const videoPlayer = document.getElementById('videoPlayer');
+    const videoControlsOverlay = document.getElementById('videoControlsOverlay');
+    const videoProgressContainer = document.getElementById('videoProgressContainer');
+    const videoProgressBar = document.getElementById('videoProgressBar');
+    const videoPlayPauseBtn = document.getElementById('videoPlayPauseBtn');
+    const videoMuteBtn = document.getElementById('videoMuteBtn');
+    const videoVolumeSlider = document.getElementById('videoVolumeSlider');
+    const videoTimeDisplay = document.getElementById('videoTimeDisplay');
     const frameCanvasContainer = document.getElementById('frameCanvasContainer');
     const frameCanvas = document.getElementById('frameCanvas');
     const frameCanvasWrapper = document.getElementById('frameCanvasWrapper');
@@ -2094,6 +2242,166 @@
       hideVideoPlayer();
       previewPlaceholder.style.display = '';
       alert('Failed to load video: ' + (videoPlayer.error ? videoPlayer.error.message : 'Unknown error'));
+    });
+
+    // Video playback controls - play/pause, volume, progress
+
+    /**
+     * Formats time in seconds to M:SS or H:MM:SS format
+     */
+    function formatVideoTime(seconds) {
+      if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+
+      if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    /**
+     * Updates the video time display
+     */
+    function updateVideoTimeDisplay() {
+      const current = formatVideoTime(videoPlayer.currentTime);
+      const total = formatVideoTime(videoPlayer.duration);
+      videoTimeDisplay.textContent = `${current} / ${total}`;
+    }
+
+    /**
+     * Updates the video progress bar
+     */
+    function updateVideoProgressBar() {
+      if (videoPlayer.duration > 0) {
+        const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+        videoProgressBar.style.width = `${progress}%`;
+      } else {
+        videoProgressBar.style.width = '0%';
+      }
+    }
+
+    /**
+     * Toggles video playback (play/pause)
+     */
+    function toggleVideoPlayback() {
+      if (videoPlayer.paused) {
+        videoPlayer.play();
+      } else {
+        videoPlayer.pause();
+      }
+    }
+
+    /**
+     * Updates play/pause button icon based on video state
+     */
+    function updateVideoPlayPauseIcon() {
+      videoPlayPauseBtn.textContent = videoPlayer.paused ? '▶' : '⏸';
+    }
+
+    /**
+     * Updates mute button icon based on video state
+     */
+    function updateVideoMuteIcon() {
+      if (videoPlayer.muted || videoPlayer.volume === 0) {
+        videoMuteBtn.textContent = '🔇';
+      } else if (videoPlayer.volume < 0.5) {
+        videoMuteBtn.textContent = '🔉';
+      } else {
+        videoMuteBtn.textContent = '🔊';
+      }
+    }
+
+    /**
+     * Toggles video mute state
+     */
+    function toggleVideoMute() {
+      videoPlayer.muted = !videoPlayer.muted;
+      updateVideoMuteIcon();
+    }
+
+    /**
+     * Sets video volume from slider value (0-100)
+     */
+    function setVideoVolume(value) {
+      videoPlayer.volume = value / 100;
+      videoPlayer.muted = value === 0;
+      updateVideoMuteIcon();
+    }
+
+    /**
+     * Seeks video to position based on click on progress bar
+     */
+    function seekVideoToPosition(e) {
+      const rect = videoProgressContainer.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+      videoPlayer.currentTime = percentage * videoPlayer.duration;
+      updateVideoProgressBar();
+      updateVideoTimeDisplay();
+    }
+
+    // Video player event listeners for controls
+    videoPlayer.addEventListener('play', updateVideoPlayPauseIcon);
+    videoPlayer.addEventListener('pause', updateVideoPlayPauseIcon);
+    videoPlayer.addEventListener('timeupdate', () => {
+      updateVideoProgressBar();
+      updateVideoTimeDisplay();
+    });
+    videoPlayer.addEventListener('durationchange', updateVideoTimeDisplay);
+    videoPlayer.addEventListener('volumechange', updateVideoMuteIcon);
+
+    // Video controls button event listeners
+    videoPlayPauseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleVideoPlayback();
+    });
+
+    videoMuteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleVideoMute();
+    });
+
+    videoVolumeSlider.addEventListener('input', (e) => {
+      setVideoVolume(parseInt(e.target.value, 10));
+    });
+
+    // Progress bar seek on click
+    videoProgressContainer.addEventListener('click', seekVideoToPosition);
+
+    // Keep controls visible while interacting
+    let controlsHideTimeout = null;
+
+    videoControlsOverlay.addEventListener('mouseenter', () => {
+      if (controlsHideTimeout) {
+        clearTimeout(controlsHideTimeout);
+        controlsHideTimeout = null;
+      }
+      videoControlsOverlay.classList.add('visible');
+    });
+
+    videoControlsOverlay.addEventListener('mouseleave', () => {
+      // Delay hiding controls to allow for mouse re-entry
+      controlsHideTimeout = setTimeout(() => {
+        if (!videoPlayer.paused) {
+          videoControlsOverlay.classList.remove('visible');
+        }
+      }, 1000);
+    });
+
+    // Keep controls visible when video is paused
+    videoPlayer.addEventListener('pause', () => {
+      videoControlsOverlay.classList.add('visible');
+    });
+
+    videoPlayer.addEventListener('play', () => {
+      // Hide controls after a delay when playing starts
+      controlsHideTimeout = setTimeout(() => {
+        if (!videoPlayer.paused) {
+          videoControlsOverlay.classList.remove('visible');
+        }
+      }, 2000);
     });
 
     /**
