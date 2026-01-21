@@ -426,11 +426,11 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 **Description:** As an editor user, I want to see the video immediately after opening it, so that I don't have to wait for frame extraction to preview my footage.
 
 **Acceptance Criteria:**
-- [ ] Add a `<video>` element inside `#previewContainer` (hidden by default)
-- [ ] Video element should have `id="videoPlayer"` for JavaScript access
-- [ ] Add CSS styling for the video element to fit within the preview container (respect zoom settings)
-- [ ] Video element should be hidden when no video is loaded
-- [ ] Typecheck passes (if applicable) and no console errors
+- [x] Add a `<video>` element inside `#previewContainer` (hidden by default)
+- [x] Video element should have `id="videoPlayer"` for JavaScript access
+- [x] Add CSS styling for the video element to fit within the preview container (respect zoom settings)
+- [x] Video element should be hidden when no video is loaded
+- [x] Typecheck passes (if applicable) and no console errors
 
 ---
 

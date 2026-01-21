@@ -106,6 +106,30 @@
       color: #555555;
     }
 
+    /* Video player container for immediate playback */
+    .video-player-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: auto;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-player-container.visible {
+      display: flex;
+    }
+
+    #videoPlayer {
+      max-width: 100%;
+      max-height: 100%;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      background-color: #000;
+    }
+
     /* Frame canvas container */
     .frame-canvas-container {
       position: absolute;
@@ -1460,6 +1484,10 @@
           <h2>No Video Loaded</h2>
           <p>Open a video file to begin editing</p>
         </div>
+        <!-- HTML5 Video Player for immediate playback -->
+        <div class="video-player-container" id="videoPlayerContainer">
+          <video id="videoPlayer" preload="metadata"></video>
+        </div>
         <!-- Frame canvas display -->
         <div class="frame-canvas-container" id="frameCanvasContainer">
           <div class="frame-canvas-wrapper" id="frameCanvasWrapper">
@@ -1701,6 +1729,8 @@
     const loadingSubtext = document.getElementById('loadingSubtext');
     const statusBar = document.querySelector('.status-bar');
     const previewContainer = document.getElementById('previewContainer');
+    const videoPlayerContainer = document.getElementById('videoPlayerContainer');
+    const videoPlayer = document.getElementById('videoPlayer');
     const frameCanvasContainer = document.getElementById('frameCanvasContainer');
     const frameCanvas = document.getElementById('frameCanvas');
     const frameCanvasWrapper = document.getElementById('frameCanvasWrapper');
