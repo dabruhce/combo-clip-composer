@@ -482,12 +482,12 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 **Description:** As an editor user, I want frames to extract in the background while I preview the video, so that I can start reviewing immediately without blocking on extraction.
 
 **Acceptance Criteria:**
-- [ ] Frame extraction starts automatically after video metadata is loaded
-- [ ] Extraction runs asynchronously (does not block UI or video playback)
-- [ ] Status bar or loading subtext shows extraction progress (e.g., "Extracting frames... 45%")
-- [ ] When extraction completes, `editorState` is updated with frame paths
-- [ ] Overlay controls (combo text input, apply button) become enabled only after extraction completes
-- [ ] Verify in browser: video is playable while "Extracting frames..." message shows
+- [x] Frame extraction starts automatically after video metadata is loaded
+- [x] Extraction runs asynchronously (does not block UI or video playback)
+- [x] Status bar or loading subtext shows extraction progress (e.g., "Extracting frames... 45%")
+- [x] When extraction completes, `editorState` is updated with frame paths
+- [x] Overlay controls (combo text input, apply button) become enabled only after extraction completes
+- [x] Verify in browser: video is playable while "Extracting frames..." message shows
 
 ---
 

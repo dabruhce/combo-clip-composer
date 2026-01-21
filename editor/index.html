@@ -1824,6 +1824,8 @@
       currentFrame: 0,
       metadata: null,
       isLoading: false,
+      isExtractionComplete: false, // Whether frame extraction has completed
+      extractionProgress: 0, // Extraction progress percentage (0-100)
       zoom: 'fit', // 'fit', 0.5, 1, 2
       frameImage: null, // Cached current frame image
       timelineZoom: 1, // Timeline zoom level (1 = 100%, 2 = 200%, etc.)
@@ -1977,13 +1979,21 @@
      */
     function updateStatusBar() {
       const items = statusBar.querySelectorAll('.status-item');
-      if (editorState.isLoading) {
+      if (editorState.isLoading && !editorState.isExtractionComplete) {
         items[0].textContent = 'Loading...';
-        items[1].textContent = 'Extracting frames';
+        if (editorState.extractionProgress > 0) {
+          items[1].textContent = `Extracting frames... ${editorState.extractionProgress}%`;
+        } else {
+          items[1].textContent = 'Extracting frames...';
+        }
       } else if (editorState.videoPath) {
         items[0].textContent = 'Ready';
         const filename = path.basename(editorState.videoPath);
-        items[1].textContent = `${filename} - ${editorState.frameCount} frames`;
+        if (editorState.isExtractionComplete) {
+          items[1].textContent = `${filename} - ${editorState.frameCount} frames`;
+        } else {
+          items[1].textContent = `${filename} - Extracting... ${editorState.extractionProgress}%`;
+        }
       } else {
         items[0].textContent = 'Ready';
         items[1].textContent = 'No video loaded';
@@ -2194,6 +2204,10 @@
       editorState.currentFrame = 0;
       editorState.zoom = 'fit';
 
+      // Reset extraction state
+      editorState.isExtractionComplete = false;
+      editorState.extractionProgress = 0;
+
       // Calculate frame count from duration and fps
       const estimatedFrameCount = Math.ceil(data.metadata.duration * data.metadata.fps);
       editorState.frameCount = estimatedFrameCount;
@@ -2212,7 +2226,8 @@
 
     // Set up video player event listeners
     videoPlayer.addEventListener('loadedmetadata', () => {
-      // Video metadata loaded, update UI
+      // Video metadata loaded - hide loading overlay so video is playable
+      // Extraction continues in background, progress shown in status bar
       hideLoading();
 
       // Update frame info with actual video dimensions
@@ -2241,6 +2256,7 @@
         height: videoPlayer.videoHeight,
         duration: videoPlayer.duration
       });
+      console.log('Video playable while frames extract in background');
     });
 
     videoPlayer.addEventListener('error', (e) => {
@@ -2434,6 +2450,8 @@
       editorState.framePaths = data.framePaths;
       editorState.frameCount = data.frameCount;
       editorState.metadata = data.metadata;
+      editorState.isExtractionComplete = true;
+      editorState.extractionProgress = 100;
 
       // Preserve current frame position (may have been set by video player)
       const currentFrame = editorState.currentFrame || 0;
@@ -2451,7 +2469,7 @@
       // Show timeline and update display
       showTimeline();
 
-      // Show overlay controls
+      // Show overlay controls (only enabled after extraction completes)
       showOverlayControls();
 
       console.log('Video frames extracted, ready for editing:', editorState);
@@ -4785,6 +4803,31 @@
       onVideoSelected(data);
     });
 
+    // Handle extraction started (background extraction begins)
+    ipcRenderer.on('video-extraction-started', (event, data) => {
+      editorState.isExtractionComplete = false;
+      editorState.extractionProgress = 0;
+      // Don't show loading overlay - video should be playable
+      // Only update status bar to show extraction progress
+      updateStatusBar();
+      console.log('Background frame extraction started for:', data.videoPath);
+    });
+
+    // Handle extraction progress updates
+    ipcRenderer.on('extraction-progress', (event, data) => {
+      editorState.extractionProgress = data.percent;
+      // Update status bar only (video remains playable)
+      updateStatusBar();
+      console.log('Extraction progress:', data.percent + '%');
+    });
+
+    // Handle extraction complete (frames are ready)
+    ipcRenderer.on('extraction-complete', (event, data) => {
+      console.log('Frame extraction complete:', data.frameCount, 'frames');
+      onVideoLoaded(data);
+    });
+
+    // Legacy event handler for backward compatibility
     ipcRenderer.on('video-loading-started', (event, data) => {
       showLoading(`Extracting frames...`);
       updateLoadingSubtext(`Preparing ${path.basename(data.videoPath)} for editing`);
@@ -4983,6 +5026,8 @@
         editorState.frameCount = extractResult.framePaths.length;
         editorState.metadata = extractResult.metadata;
         editorState.currentFrame = 0;
+        editorState.isExtractionComplete = true;
+        editorState.extractionProgress = 100;
 
         // Show UI
         hideLoading();
@@ -5032,6 +5077,8 @@
       editorState.frameImage = null;
       editorState.zoom = 'fit';
       editorState.timelineZoom = 1;
+      editorState.isExtractionComplete = false;
+      editorState.extractionProgress = 0;
 
       // Reset overlay state
       editorState.overlay.enabled = false;

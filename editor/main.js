@@ -27,6 +27,10 @@ let hasUnsavedChanges = false;
 let isExporting = false;
 let exportCancelled = false;
 
+// Store extraction state
+let isExtracting = false;
+let extractionCancelled = false;
+
 /**
  * Gets video metadata using ffprobe
  */
@@ -95,7 +99,7 @@ async function openVideoDialog() {
 }
 
 /**
- * Extracts frames from a video file
+ * Extracts frames from a video file (synchronous version)
  */
 async function extractVideoFrames(videoPath, progressCallback) {
   // Create a temp directory for frames
@@ -123,6 +127,88 @@ async function extractVideoFrames(videoPath, progressCallback) {
     framePaths: files,
     metadata
   };
+}
+
+/**
+ * Extracts frames from a video file with progress reporting
+ * Uses fluent-ffmpeg directly for progress tracking
+ */
+async function extractVideoFramesWithProgress(videoPath, metadata, progressCallback) {
+  // Create a temp directory for frames
+  const tempDir = path.join(os.tmpdir(), 'combo-clip-editor-' + Date.now());
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  const outputPattern = path.join(tempDir, 'frame-%04d.png');
+  const totalFrames = Math.ceil(metadata.duration * metadata.fps);
+
+  return new Promise((resolve, reject) => {
+    let lastProgress = 0;
+
+    ffmpeg(videoPath)
+      .outputOptions([
+        '-vsync', 'vfr'  // Variable frame rate to extract all frames
+      ])
+      .output(outputPattern)
+      .on('start', (commandLine) => {
+        console.log('Frame extraction started:', commandLine);
+        if (progressCallback) {
+          progressCallback(0, 'Starting extraction...');
+        }
+      })
+      .on('progress', (progress) => {
+        // progress.percent may be available, otherwise calculate from timemark
+        let percent = 0;
+        if (progress.percent !== undefined && progress.percent !== null) {
+          percent = Math.min(99, Math.round(progress.percent));
+        } else if (progress.timemark) {
+          // Parse timemark (HH:MM:SS.mm)
+          const parts = progress.timemark.split(':');
+          if (parts.length >= 3) {
+            const hours = parseFloat(parts[0]) || 0;
+            const minutes = parseFloat(parts[1]) || 0;
+            const seconds = parseFloat(parts[2]) || 0;
+            const currentTime = hours * 3600 + minutes * 60 + seconds;
+            percent = Math.min(99, Math.round((currentTime / metadata.duration) * 100));
+          }
+        }
+
+        // Only report progress if it changed
+        if (percent > lastProgress) {
+          lastProgress = percent;
+          if (progressCallback) {
+            progressCallback(percent, `Extracting frames... ${percent}%`);
+          }
+        }
+      })
+      .on('end', () => {
+        // Get list of extracted frame files
+        const files = fs.readdirSync(tempDir)
+          .filter(f => f.startsWith('frame-') && f.endsWith('.png'))
+          .sort()
+          .map(f => path.join(tempDir, f));
+
+        if (progressCallback) {
+          progressCallback(100, 'Extraction complete');
+        }
+
+        resolve({
+          framesDir: tempDir,
+          framePaths: files,
+          metadata
+        });
+      })
+      .on('error', (err) => {
+        console.error('Frame extraction error:', err);
+        // Clean up temp directory on error
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        } catch (cleanupErr) {
+          console.error('Failed to cleanup temp directory:', cleanupErr);
+        }
+        reject(err);
+      })
+      .run();
+  });
 }
 
 /**
@@ -503,6 +589,7 @@ async function showUnsavedChangesDialog() {
 
 /**
  * Handle loading video by path (for project loading)
+ * Also uses background extraction with progress
  */
 async function handleLoadVideoByPath(event, videoPath) {
   try {
@@ -513,16 +600,53 @@ async function handleLoadVideoByPath(event, videoPath) {
       };
     }
 
-    // Notify renderer that extraction is starting
-    event.sender.send('video-loading-started', { videoPath });
+    // Get video metadata first
+    const metadata = await getVideoMetadata(videoPath);
 
-    // Extract frames
-    const result = await extractVideoFrames(videoPath);
+    // Reset extraction state
+    isExtracting = true;
+    extractionCancelled = false;
+
+    // Notify renderer that extraction is starting
+    event.sender.send('video-extraction-started', { videoPath });
+
+    // Progress callback to send updates to renderer
+    const progressCallback = (percent, status) => {
+      if (!extractionCancelled && mainWindow) {
+        event.sender.send('extraction-progress', { percent, status });
+      }
+    };
+
+    // Extract frames with progress
+    const result = await extractVideoFramesWithProgress(videoPath, metadata, progressCallback);
+
+    // Check if cancelled
+    if (extractionCancelled) {
+      if (result.framesDir && fs.existsSync(result.framesDir)) {
+        fs.rmSync(result.framesDir, { recursive: true, force: true });
+      }
+      return { success: false, canceled: true };
+    }
 
     // Store state
     currentVideoPath = videoPath;
     extractedFramesDir = result.framesDir;
     framePaths = result.framePaths;
+    isExtracting = false;
+
+    // Notify renderer that extraction is complete
+    event.sender.send('extraction-complete', {
+      videoPath,
+      framesDir: result.framesDir,
+      framePaths: result.framePaths,
+      frameCount: result.framePaths.length,
+      metadata: {
+        fps: metadata.fps,
+        duration: metadata.duration,
+        width: metadata.width,
+        height: metadata.height
+      }
+    });
 
     // Send success to renderer
     return {
@@ -532,13 +656,14 @@ async function handleLoadVideoByPath(event, videoPath) {
       framePaths: result.framePaths,
       frameCount: result.framePaths.length,
       metadata: {
-        fps: result.metadata.fps,
-        duration: result.metadata.duration,
-        width: result.metadata.width,
-        height: result.metadata.height
+        fps: metadata.fps,
+        duration: metadata.duration,
+        width: metadata.width,
+        height: metadata.height
       }
     };
   } catch (error) {
+    isExtracting = false;
     return {
       success: false,
       error: error.message
@@ -548,6 +673,7 @@ async function handleLoadVideoByPath(event, videoPath) {
 
 /**
  * Handle video loading request from renderer
+ * Now starts background extraction with progress reporting
  */
 async function handleLoadVideo(event) {
   try {
@@ -563,6 +689,10 @@ async function handleLoadVideo(event) {
     // Store video path immediately
     currentVideoPath = videoPath;
 
+    // Reset extraction state
+    isExtracting = true;
+    extractionCancelled = false;
+
     // Send video path immediately so renderer can display video right away
     event.sender.send('video-selected', {
       videoPath,
@@ -575,14 +705,45 @@ async function handleLoadVideo(event) {
     });
 
     // Notify renderer that frame extraction is starting
-    event.sender.send('video-loading-started', { videoPath });
+    event.sender.send('video-extraction-started', { videoPath });
 
-    // Extract frames (this takes time but video is already visible)
-    const result = await extractVideoFrames(videoPath);
+    // Progress callback to send updates to renderer
+    const progressCallback = (percent, status) => {
+      if (!extractionCancelled && mainWindow) {
+        event.sender.send('extraction-progress', { percent, status });
+      }
+    };
+
+    // Extract frames with progress (runs asynchronously)
+    const result = await extractVideoFramesWithProgress(videoPath, metadata, progressCallback);
+
+    // Check if cancelled
+    if (extractionCancelled) {
+      // Clean up temp directory
+      if (result.framesDir && fs.existsSync(result.framesDir)) {
+        fs.rmSync(result.framesDir, { recursive: true, force: true });
+      }
+      return { success: false, canceled: true };
+    }
 
     // Store state
     extractedFramesDir = result.framesDir;
     framePaths = result.framePaths;
+    isExtracting = false;
+
+    // Notify renderer that extraction is complete
+    event.sender.send('extraction-complete', {
+      videoPath,
+      framesDir: result.framesDir,
+      framePaths: result.framePaths,
+      frameCount: result.framePaths.length,
+      metadata: {
+        fps: metadata.fps,
+        duration: metadata.duration,
+        width: metadata.width,
+        height: metadata.height
+      }
+    });
 
     // Send success to renderer with frame data
     return {
@@ -599,6 +760,7 @@ async function handleLoadVideo(event) {
       }
     };
   } catch (error) {
+    isExtracting = false;
     return {
       success: false,
       error: error.message
