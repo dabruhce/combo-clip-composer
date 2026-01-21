@@ -509,13 +509,13 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 **Description:** As an editor user, I want the timeline controls (play/pause, step, jump) to work with the video player before extraction completes.
 
 **Acceptance Criteria:**
-- [ ] Timeline play/pause button (`#btnPlayPause`) controls video playback
-- [ ] Jump to start (`#btnJumpStart`) seeks video to 0:00
-- [ ] Jump to end (`#btnJumpEnd`) seeks video to duration
-- [ ] Timeline playhead position syncs with video currentTime during playback
-- [ ] Clicking on timeline ruler seeks video to that position
-- [ ] Enable timeline controls immediately when video loads (don't wait for extraction)
-- [ ] Verify in browser: all timeline controls work with video before frames are extracted
+- [x] Timeline play/pause button (`#btnPlayPause`) controls video playback
+- [x] Jump to start (`#btnJumpStart`) seeks video to 0:00
+- [x] Jump to end (`#btnJumpEnd`) seeks video to duration
+- [x] Timeline playhead position syncs with video currentTime during playback
+- [x] Clicking on timeline ruler seeks video to that position
+- [x] Enable timeline controls immediately when video loads (don't wait for extraction)
+- [x] Verify in browser: all timeline controls work with video before frames are extracted
 
 ---
 

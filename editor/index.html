@@ -2422,13 +2422,23 @@
         };
       }
 
+      // Calculate frame count from video duration and fps
+      const fps = editorState.metadata.fps || 30;
+      editorState.frameCount = Math.ceil(videoPlayer.duration * fps);
+
       // Update frame info display
       updateFrameInfo();
       updateStatusBar();
 
-      // Enable step buttons for frame-by-frame stepping via video element
+      // Enable ALL timeline control buttons immediately for video playback
       btnStepBack.disabled = false;
       btnStepForward.disabled = false;
+      btnPlayPause.disabled = false;
+      btnJumpStart.disabled = false;
+      btnJumpEnd.disabled = false;
+
+      // Show timeline ruler and controls (without waiting for frame extraction)
+      showTimelineForVideo();
 
       // Show timeline display with initial values
       updateTimelineDisplay();
@@ -2550,6 +2560,20 @@
     // Video player event listeners for controls
     videoPlayer.addEventListener('play', updateVideoPlayPauseIcon);
     videoPlayer.addEventListener('pause', updateVideoPlayPauseIcon);
+
+    // Sync timeline play/pause button with video player state
+    videoPlayer.addEventListener('play', () => {
+      isPlaying = true;
+      updatePlayPauseButton();
+    });
+    videoPlayer.addEventListener('pause', () => {
+      isPlaying = false;
+      updatePlayPauseButton();
+    });
+    videoPlayer.addEventListener('ended', () => {
+      isPlaying = false;
+      updatePlayPauseButton();
+    });
     videoPlayer.addEventListener('timeupdate', () => {
       updateVideoProgressBar();
       updateVideoTimeDisplay();
@@ -3065,16 +3089,41 @@
     }
 
     /**
-     * Jumps to first frame
+     * Jumps to first frame or video start
      */
     function jumpToStart() {
+      // If video player is visible (before frame extraction), control video directly
+      if (videoPlayerContainer.classList.contains('visible') && editorState.metadata) {
+        // Stop any frame-based playback
+        if (isPlaying) {
+          stopPlayback();
+        }
+        videoPlayer.currentTime = 0;
+        editorState.currentFrame = 0;
+        updatePlayheadPosition();
+        updateTimelineDisplay();
+        return;
+      }
       goToFrame(0);
     }
 
     /**
-     * Jumps to last frame
+     * Jumps to last frame or video end
      */
     function jumpToEnd() {
+      // If video player is visible (before frame extraction), control video directly
+      if (videoPlayerContainer.classList.contains('visible') && editorState.metadata) {
+        // Stop any frame-based playback
+        if (isPlaying) {
+          stopPlayback();
+        }
+        videoPlayer.currentTime = videoPlayer.duration || editorState.metadata.duration || 0;
+        const fps = editorState.metadata.fps || 30;
+        editorState.currentFrame = Math.max(0, editorState.frameCount - 1);
+        updatePlayheadPosition();
+        updateTimelineDisplay();
+        return;
+      }
       goToFrame(editorState.frameCount - 1);
     }
 
@@ -3167,6 +3216,19 @@
       if (editorState.frameCount === 0 || !editorState.metadata) return;
       if (isPlaying) return;
 
+      // If video player is visible, use HTML5 video playback
+      if (videoPlayerContainer.classList.contains('visible')) {
+        // If at end, wrap to beginning
+        if (videoPlayer.currentTime >= (videoPlayer.duration - 0.1)) {
+          videoPlayer.currentTime = 0;
+        }
+        videoPlayer.play();
+        isPlaying = true;
+        updatePlayPauseButton();
+        return;
+      }
+
+      // Otherwise use frame-based playback (when frames are extracted)
       // If at end, wrap to beginning
       if (editorState.currentFrame >= editorState.frameCount - 1) {
         goToFrame(0);
@@ -3195,6 +3257,11 @@
     function stopPlayback() {
       if (!isPlaying) return;
 
+      // If video player is visible, pause the video
+      if (videoPlayerContainer.classList.contains('visible')) {
+        videoPlayer.pause();
+      }
+
       isPlaying = false;
       updatePlayPauseButton();
 
@@ -3208,11 +3275,61 @@
      * Toggles play/pause state
      */
     function togglePlayPause() {
+      // If video player is visible, synchronize state with video
+      if (videoPlayerContainer.classList.contains('visible')) {
+        if (videoPlayer.paused) {
+          startPlayback();
+        } else {
+          stopPlayback();
+        }
+        return;
+      }
+
+      // Normal toggle for frame-based playback
       if (isPlaying) {
         stopPlayback();
       } else {
         startPlayback();
       }
+    }
+
+    /**
+     * Shows the timeline for video player (before frame extraction completes)
+     * This enables basic timeline controls without frame-dependent features
+     */
+    function showTimelineForVideo() {
+      // Only show if not already shown
+      if (timelineRulerContainer.style.display === 'flex') return;
+
+      timelinePlaceholder.style.display = 'none';
+      timelineRulerContainer.style.display = 'flex';
+
+      // Enable control buttons (already enabled in loadedmetadata, but ensure consistency)
+      btnJumpStart.disabled = false;
+      btnStepBack.disabled = false;
+      btnPlayPause.disabled = false;
+      btnStepForward.disabled = false;
+      btnJumpEnd.disabled = false;
+      // Note: keyframe button stays disabled until frames are extracted
+      btnAddKeyframe.disabled = true;
+
+      // Enable zoom controls
+      timelineZoomSlider.disabled = false;
+      btnTimelineZoomIn.disabled = false;
+      btnTimelineZoomOut.disabled = true; // Disabled at 100% zoom
+      btnTimelineZoomFit.disabled = false;
+
+      // Reset timeline zoom to 100%
+      editorState.timelineZoom = 1;
+      updateTimelineContentWidth();
+      updateTimelineZoomControls();
+
+      // Draw ruler and position playhead
+      drawTimelineRuler();
+      updatePlayheadPosition();
+      updateTimelineDisplay();
+
+      // Don't initialize keyframe UI yet - wait for frame extraction
     }
 
     /**
@@ -3438,6 +3555,18 @@
       if (editorState.frameCount === 0) return;
 
       const frame = getFrameFromPosition(event.clientX);
+
+      // If video player is visible (before frame extraction), seek video directly
+      if (videoPlayerContainer.classList.contains('visible') && editorState.metadata) {
+        const fps = editorState.metadata.fps || 30;
+        const targetTime = frame / fps;
+        videoPlayer.currentTime = targetTime;
+        editorState.currentFrame = frame;
+        updatePlayheadPosition();
+        updateTimelineDisplay();
+        return;
+      }
+
       goToFrame(frame);
     }
 
@@ -3457,6 +3586,18 @@
       if (!isDraggingPlayhead) return;
 
       const frame = getFrameFromPosition(event.clientX);
+
+      // If video player is visible (before frame extraction), seek video directly
+      if (videoPlayerContainer.classList.contains('visible') && editorState.metadata) {
+        const fps = editorState.metadata.fps || 30;
+        const targetTime = frame / fps;
+        videoPlayer.currentTime = targetTime;
+        editorState.currentFrame = frame;
+        updatePlayheadPosition();
+        updateTimelineDisplay();
+        return;
+      }
+
       goToFrame(frame);
     }
 
