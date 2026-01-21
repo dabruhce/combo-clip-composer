@@ -774,3 +774,48 @@
   - The video player loadedmetadata event is the right time to hide loading overlay
   - Frame extraction continues in background while video is visible for immediate feedback
 ---
+
+## Iteration 34 - US-034: Add Video Playback Controls Overlay
+- What was implemented:
+  - Added CSS styles for video controls overlay with gradient background
+  - Created progress bar that shows video position and allows seeking on click
+  - Added play/pause button with icon toggle (▶/⏸)
+  - Added volume control with mute button (🔊/🔉/🔇) and slider (0-100%)
+  - Added time display showing "current / duration" in M:SS or H:MM:SS format
+  - Controls overlay appears on hover with 0.3s fade transition
+  - Controls auto-hide 2 seconds after playback starts, stay visible when paused
+  - Controls stay visible while mouse hovers over them
+  - Progress bar grows slightly on hover for easier clicking
+  - Volume slider expands on hover over the volume container
+- Files changed:
+  - editor/index.html (added CSS styles, HTML structure, JS functions and event listeners)
+  - PRD.md (marked US-034 as complete)
+- Learnings for future iterations:
+  - Use CSS `pointer-events: none` with `auto` on visible to prevent overlay interfering with video click
+  - Use linear-gradient for gradient background (transparent to semi-opaque black)
+  - formatVideoTime function handles hours gracefully (shows H:MM:SS only when hours > 0)
+  - Use timeout-based auto-hide pattern for controls during playback
+  - Keep controls visible when video is paused for better UX
+  - Progress bar seeks via click position relative to container width
+  - Volume slider appears on hover using CSS width transition for smooth reveal
+---
+
+## Iteration 35 - US-035: Implement Frame-by-Frame Stepping via Video Element
+- What was implemented:
+  - Created `stepVideoByFrame(direction)` function to step video player by 1/fps seconds
+  - Modified `stepForward()` and `stepBack()` to use video player when visible (before frames extracted)
+  - Step buttons pause video automatically if playing, then seek by one frame duration
+  - Timeline frame number and timecode display update when stepping via video element
+  - Step buttons enabled as soon as video metadata loads (before frame extraction completes)
+  - Extended `timeupdate` listener to sync editorState.currentFrame with video.currentTime
+  - Playhead position and timeline display update during video playback
+- Files changed:
+  - editor/index.html (added stepVideoByFrame function, modified step functions, extended timeupdate listener, enabled buttons on loadedmetadata)
+  - PRD.md (marked US-035 as complete)
+- Learnings for future iterations:
+  - Frame-to-time conversion: time = frame / fps; Time-to-frame conversion: frame = Math.round(time * fps)
+  - Video.currentTime setter allows frame-accurate seeking (1/fps increments)
+  - Enable step buttons early (on loadedmetadata) for immediate interactivity before full extraction
+  - Sync timeline display from timeupdate for consistent UI when video plays via native controls
+  - Pause video before stepping ensures clean frame-by-frame navigation
+---

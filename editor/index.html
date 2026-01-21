@@ -2229,6 +2229,13 @@
       updateFrameInfo();
       updateStatusBar();
 
+      // Enable step buttons for frame-by-frame stepping via video element
+      btnStepBack.disabled = false;
+      btnStepForward.disabled = false;
+
+      // Show timeline display with initial values
+      updateTimelineDisplay();
+
       console.log('Video metadata loaded:', {
         width: videoPlayer.videoWidth,
         height: videoPlayer.videoHeight,
@@ -2348,6 +2355,19 @@
     videoPlayer.addEventListener('timeupdate', () => {
       updateVideoProgressBar();
       updateVideoTimeDisplay();
+
+      // Also sync the timeline display with video currentTime if we have metadata
+      if (editorState.metadata && videoPlayerContainer.classList.contains('visible')) {
+        const fps = editorState.metadata.fps || 30;
+        const newFrame = Math.round(videoPlayer.currentTime * fps);
+        const clampedFrame = Math.max(0, Math.min(newFrame, editorState.frameCount - 1));
+
+        if (clampedFrame !== editorState.currentFrame) {
+          editorState.currentFrame = clampedFrame;
+          updatePlayheadPosition();
+          updateTimelineDisplay();
+        }
+      }
     });
     videoPlayer.addEventListener('durationchange', updateVideoTimeDisplay);
     videoPlayer.addEventListener('volumechange', updateVideoMuteIcon);
@@ -2844,17 +2864,77 @@
     }
 
     /**
+     * Steps the video player by one frame
+     * @param {number} direction - 1 for forward, -1 for backward
+     */
+    function stepVideoByFrame(direction) {
+      if (!editorState.metadata) return;
+
+      const fps = editorState.metadata.fps || 30;
+      const frameDuration = 1 / fps;
+
+      // Pause video if playing (the pause event listener will handle showing controls)
+      if (!videoPlayer.paused) {
+        videoPlayer.pause();
+        updateVideoPlayPauseIcon();
+      }
+
+      // Calculate new time
+      const currentDuration = videoPlayer.duration || editorState.metadata.duration || 0;
+      const newTime = Math.max(0, Math.min(
+        videoPlayer.currentTime + (direction * frameDuration),
+        currentDuration
+      ));
+
+      // Set video currentTime
+      videoPlayer.currentTime = newTime;
+
+      // Calculate frame number from time
+      const newFrame = Math.round(newTime * fps);
+      const clampedFrame = Math.max(0, Math.min(newFrame, editorState.frameCount - 1));
+
+      // Update editor state
+      editorState.currentFrame = clampedFrame;
+
+      // Update timeline display
+      updatePlayheadPosition();
+      updateTimelineDisplay();
+
+      // Auto-scroll to keep playhead visible when timeline is zoomed
+      if (editorState.timelineZoom > 1) {
+        scrollToPlayhead();
+      }
+
+      // If frames are extracted, load the frame canvas too
+      if (editorState.framePaths && editorState.framePaths.length > 0) {
+        loadFrame(clampedFrame);
+      }
+    }
+
+    /**
      * Steps back one frame
      */
     function stepBack() {
-      goToFrame(editorState.currentFrame - 1);
+      // If video is visible and we have metadata, step the video player
+      if (videoPlayerContainer.classList.contains('visible') && editorState.metadata) {
+        stepVideoByFrame(-1);
+      } else if (editorState.framePaths && editorState.framePaths.length > 0) {
+        // Otherwise use the frame-based approach
+        goToFrame(editorState.currentFrame - 1);
+      }
     }
 
     /**
      * Steps forward one frame
      */
     function stepForward() {
-      goToFrame(editorState.currentFrame + 1);
+      // If video is visible and we have metadata, step the video player
+      if (videoPlayerContainer.classList.contains('visible') && editorState.metadata) {
+        stepVideoByFrame(1);
+      } else if (editorState.framePaths && editorState.framePaths.length > 0) {
+        // Otherwise use the frame-based approach
+        goToFrame(editorState.currentFrame + 1);
+      }
     }
 
     /**

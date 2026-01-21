@@ -468,12 +468,12 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 **Description:** As an editor user, I want to step through the video frame-by-frame using the existing timeline controls, so that I can precisely position combo notations.
 
 **Acceptance Criteria:**
-- [ ] Step forward button (`#btnStepForward`) advances video by 1 frame (1/fps seconds)
-- [ ] Step backward button (`#btnStepBack`) rewinds video by 1 frame
-- [ ] Current frame number updates in timeline display when stepping
-- [ ] Timecode display updates to match video currentTime
-- [ ] Video pauses automatically when stepping (if playing)
-- [ ] Verify in browser: stepping moves exactly one frame at a time
+- [x] Step forward button (`#btnStepForward`) advances video by 1 frame (1/fps seconds)
+- [x] Step backward button (`#btnStepBack`) rewinds video by 1 frame
+- [x] Current frame number updates in timeline display when stepping
+- [x] Timecode display updates to match video currentTime
+- [x] Video pauses automatically when stepping (if playing)
+- [x] Verify in browser: stepping moves exactly one frame at a time
 
 ---
 
