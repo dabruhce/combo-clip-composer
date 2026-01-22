@@ -889,3 +889,27 @@
   - showTimelineForVideo() is a lighter version of showTimeline() that doesn't initialize keyframe UI
   - The btnAddKeyframe should remain disabled until frame extraction completes (keyframes need frames)
 ---
+
+## Phase 12 PRD Added - Asset Browser Panel
+- What was added:
+  - US-039: Add Asset Panel UI Shell
+  - US-040: Implement Folder Loading via Button
+  - US-041: Implement Folder Loading via Drag-and-Drop
+  - US-042: Parse mapping.txt File Format
+  - US-043: Display Asset Grid with Images and Notation
+  - US-044: Organize Assets by Game Category
+  - US-045: Insert Notation on Asset Click
+  - US-046: Persist Last Loaded Asset Directory
+- Goals:
+  - Allow users to browse available input notation images and their codes
+  - Support loading custom asset packs via folder selection or drag-and-drop
+  - Organize assets by game category (subfolder-based grouping)
+  - Enable quick insertion of notation into the combo input field
+  - Persist the last loaded asset directory between sessions
+- Technical considerations:
+  - New panel in right side of editor alongside timeline
+  - mapping.txt format: `notation,filename` per line (e.g., `df,df.svg`)
+  - Comments supported with # prefix, empty lines skipped
+  - localStorage key: `comboClipComposer_lastAssetFolder`
+  - Assets grouped by subfolder name within loaded directory
+---

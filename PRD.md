@@ -535,3 +535,167 @@ Currently, when opening a video, users must wait for all frames to be extracted 
 - May need to update IPC flow: return video path immediately to renderer, run extraction in background via separate IPC channel
 - Use `video.currentTime` setter for seeking; it may not be frame-accurate on all codecs
 - Consider showing a visual indicator when video player time and frame canvas are out of sync
+
+---
+
+## Phase 12: Asset Browser Panel
+
+### Introduction
+
+Add an asset browser panel to the editor that allows users to load, view, and use image assets with their associated notation codes. Users load a directory containing images and a `mapping.txt` file that defines notation-to-filename mappings. The panel displays all assets organized by game/folder, and clicking a notation inserts it into the combo input field.
+
+### Goals
+
+- Allow users to browse available input notation images and their codes
+- Support loading custom asset packs via folder selection or drag-and-drop
+- Organize assets by game category (subfolder-based grouping)
+- Enable quick insertion of notation into the combo input field
+- Persist the last loaded asset directory between sessions
+
+---
+
+#### US-039: Add Asset Panel UI Shell
+
+**Description:** As a user, I want to see a new "Assets" panel in the right side of the editor so that I have a dedicated space for browsing input notation images.
+
+**Acceptance Criteria:**
+- [ ] Add a new collapsible panel section in the right panel area (below or as a tab alongside timeline)
+- [ ] Panel has a header labeled "ASSETS"
+- [ ] Panel has an empty state message: "No assets loaded. Drop a folder or click to browse."
+- [ ] Panel styling matches existing editor theme (dark background, consistent fonts)
+- [ ] Typecheck passes (if applicable)
+- [ ] Verify panel displays correctly in browser
+
+---
+
+#### US-040: Implement Folder Loading via Button
+
+**Description:** As a user, I want to click a button to select an asset folder so that I can load my notation images.
+
+**Acceptance Criteria:**
+- [ ] Add a "Load Folder" button in the asset panel
+- [ ] Clicking button opens a folder picker dialog
+- [ ] Selected folder path is stored for processing
+- [ ] Button is disabled while loading and shows loading state
+- [ ] Error message displays if folder selection fails or is cancelled
+- [ ] Typecheck passes
+- [ ] Verify folder selection works in browser
+
+---
+
+#### US-041: Implement Folder Loading via Drag-and-Drop
+
+**Description:** As a user, I want to drag and drop a folder onto the asset panel so that I can quickly load assets.
+
+**Acceptance Criteria:**
+- [ ] Asset panel accepts folder drag-and-drop
+- [ ] Visual feedback shows when dragging over the panel (highlight border)
+- [ ] Dropping a folder triggers the same loading flow as button selection
+- [ ] Dropping non-folder items shows an error message
+- [ ] Typecheck passes
+- [ ] Verify drag-and-drop works in browser
+
+---
+
+#### US-042: Parse mapping.txt File Format
+
+**Description:** As a user, I want my `mapping.txt` file to be automatically detected and parsed so that the editor knows which notation corresponds to which image.
+
+**Acceptance Criteria:**
+- [ ] System looks for `mapping.txt` in the loaded folder root
+- [ ] File format: one mapping per line as `notation,filename` (e.g., `df,df.png`)
+- [ ] Parser handles various image extensions (.svg, .png, .jpg, .gif)
+- [ ] Parser trims whitespace from notation and filename
+- [ ] Parser skips empty lines and lines starting with `#` (comments)
+- [ ] Error displayed if `mapping.txt` is missing or malformed
+- [ ] Returns array of `{ notation, filename, filepath }` objects
+- [ ] Typecheck passes
+
+---
+
+#### US-043: Display Asset Grid with Images and Notation
+
+**Description:** As a user, I want to see all loaded assets displayed as a grid showing the image and its notation so that I can easily find the input I need.
+
+**Acceptance Criteria:**
+- [ ] Assets display in a scrollable grid layout within the panel
+- [ ] Each asset shows: thumbnail image (scaled to ~48x48px) and notation text below
+- [ ] Images that fail to load show a placeholder/error state
+- [ ] Asset count displayed in panel header (e.g., "ASSETS (24)")
+- [ ] Grid is responsive to panel width
+- [ ] Typecheck passes
+- [ ] Verify assets display correctly in browser
+
+---
+
+#### US-044: Organize Assets by Game Category
+
+**Description:** As a user, I want assets grouped by game (e.g., "Tekken7", "Common") so that I can find related inputs together.
+
+**Acceptance Criteria:**
+- [ ] Assets are grouped by subfolder name within the loaded directory
+- [ ] Each group has a collapsible header with the folder/game name
+- [ ] Groups default to expanded state
+- [ ] Assets in root folder (no subfolder) grouped under "General"
+- [ ] Empty groups are hidden
+- [ ] Typecheck passes
+- [ ] Verify grouping displays correctly in browser
+
+---
+
+#### US-045: Insert Notation on Asset Click
+
+**Description:** As a user, I want to click an asset to insert its notation into the combo input field so that I can quickly build combos.
+
+**Acceptance Criteria:**
+- [ ] Clicking an asset inserts its notation at the cursor position in the combo input field
+- [ ] If no cursor position, notation appends to the end with a space separator
+- [ ] Visual feedback on click (brief highlight/press effect)
+- [ ] Focus returns to combo input field after insertion
+- [ ] Typecheck passes
+- [ ] Verify insertion works correctly in browser
+
+---
+
+#### US-046: Persist Last Loaded Asset Directory
+
+**Description:** As a user, I want the editor to remember my last loaded asset folder so that I don't have to re-select it every time.
+
+**Acceptance Criteria:**
+- [ ] Last loaded folder path saved to localStorage
+- [ ] On editor load, if saved path exists, automatically attempt to reload assets
+- [ ] If auto-reload fails (folder moved/deleted), show message and clear saved path
+- [ ] "Clear" or "Unload" button available to remove current assets and clear saved path
+- [ ] Typecheck passes
+- [ ] Verify persistence works across browser sessions
+
+---
+
+### Non-Goals (Phase 12)
+
+- Editing or creating new asset images within the editor
+- Editing the `mapping.txt` file from within the editor
+- Supporting nested subfolder hierarchies (only one level of game folders)
+- Cloud sync or sharing of asset packs
+- Searching/filtering assets by notation (may be added later)
+
+### Technical Considerations (Phase 12)
+
+- The editor is a single HTML file with embedded JS/CSS
+- Use the existing panel styling patterns (`.panel-header`, `.panel-content`)
+- For Electron/file access, leverage existing file handling patterns in the codebase
+- localStorage key suggestion: `comboClipComposer_lastAssetFolder`
+- Image loading should handle both absolute paths and relative paths within the folder
+- The `mapping.txt` format is simple CSV-like: `notation,filename` per line
+- Example `mapping.txt`:
+  ```
+  # Directional inputs
+  df,df.svg
+  f,f.svg
+  d,d.svg
+
+  # Button inputs
+  1,1.svg
+  2,2.svg
+  1+2,1+2.svg
+  ```
