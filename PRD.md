@@ -662,12 +662,12 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want the editor to remember my last loaded asset folder so that I don't have to re-select it every time.
 
 **Acceptance Criteria:**
-- [ ] Last loaded folder path saved to localStorage
-- [ ] On editor load, if saved path exists, automatically attempt to reload assets
-- [ ] If auto-reload fails (folder moved/deleted), show message and clear saved path
-- [ ] "Clear" or "Unload" button available to remove current assets and clear saved path
-- [ ] Typecheck passes
-- [ ] Verify persistence works across browser sessions
+- [x] Last loaded folder path saved to localStorage
+- [x] On editor load, if saved path exists, automatically attempt to reload assets
+- [x] If auto-reload fails (folder moved/deleted), show message and clear saved path
+- [x] "Clear" or "Unload" button available to remove current assets and clear saved path
+- [x] Typecheck passes
+- [x] Verify persistence works across browser sessions
 
 ---
 

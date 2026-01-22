@@ -522,6 +522,24 @@
       cursor: not-allowed;
     }
 
+    .asset-unload-btn {
+      background: transparent;
+      border: 1px solid #666666;
+      color: #cccccc;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .asset-unload-btn:hover {
+      background: #ff4444;
+      border-color: #ff4444;
+      color: white;
+    }
+
     .asset-grid-container {
       flex: 1;
       overflow-y: auto;
@@ -1954,6 +1972,7 @@
           <span class="toggle-icon">▼</span>
           <span>ASSETS</span>
           <span class="asset-count" id="assetCount" style="margin-left: auto; font-weight: normal;"></span>
+          <button class="asset-unload-btn" id="btnUnloadAssets" style="display: none;" onclick="event.stopPropagation(); unloadAssets();">Clear</button>
         </div>
         <div class="panel-content">
           <!-- Empty state - shown when no assets loaded -->
@@ -2278,6 +2297,10 @@
     const assetEmptyState = document.getElementById('assetEmptyState');
     const assetGridContainer = document.getElementById('assetGridContainer');
     const btnLoadAssetFolder = document.getElementById('btnLoadAssetFolder');
+    const btnUnloadAssets = document.getElementById('btnUnloadAssets');
+
+    // LocalStorage key for asset persistence
+    const ASSET_FOLDER_STORAGE_KEY = 'comboClipComposer_lastAssetFolder';
 
     // Import keyframe classes from keyframe.js
     const { Keyframe, KeyframeTrack, KeyframeManager, INTERPOLATION_TYPES } = require('./models/keyframe.js');
@@ -3085,6 +3108,70 @@
     }
 
     /**
+     * Unloads current assets and clears saved path from localStorage
+     */
+    function unloadAssets() {
+      // Clear editor state
+      editorState.assets.folderPath = null;
+      editorState.assets.items = [];
+      editorState.assets.error = null;
+      editorState.assets.isLoading = false;
+
+      // Clear localStorage
+      try {
+        localStorage.removeItem(ASSET_FOLDER_STORAGE_KEY);
+      } catch (e) {
+        console.warn('Failed to remove asset folder path from localStorage:', e);
+      }
+
+      // Reset UI
+      assetGridContainer.innerHTML = '';
+      btnUnloadAssets.style.display = 'none';
+      resetAssetError();
+      showAssetEmptyState();
+
+      console.log('Assets unloaded and saved path cleared');
+    }
+
+    /**
+     * Attempts to reload assets from saved localStorage path
+     * Called on editor initialization
+     */
+    async function tryAutoReloadAssets() {
+      try {
+        const savedPath = localStorage.getItem(ASSET_FOLDER_STORAGE_KEY);
+        if (!savedPath) {
+          return; // No saved path, nothing to reload
+        }
+
+        console.log('Attempting to auto-reload assets from:', savedPath);
+
+        // Check if the folder still exists
+        const isDirectory = await ipcRenderer.invoke('check-is-directory', savedPath);
+        if (!isDirectory) {
+          // Folder no longer exists, clear saved path and show message
+          console.warn('Saved asset folder no longer exists:', savedPath);
+          localStorage.removeItem(ASSET_FOLDER_STORAGE_KEY);
+          showAssetError('Previously loaded folder no longer exists. Please select a new folder.');
+          return;
+        }
+
+        // Attempt to reload the folder
+        await loadAssetFolderByPath(savedPath);
+
+      } catch (error) {
+        console.error('Error auto-reloading assets:', error);
+        // Clear saved path on error
+        try {
+          localStorage.removeItem(ASSET_FOLDER_STORAGE_KEY);
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+        showAssetError('Failed to reload saved asset folder. Please select a new folder.');
+      }
+    }
+
+    /**
      * Groups assets by their category property
      * @param {Array} assets - Array of asset objects with category property
      * @returns {Object} Object mapping category names to arrays of assets
@@ -3174,6 +3261,7 @@
 
       if (!assets || assets.length === 0) {
         showAssetEmptyState();
+        btnUnloadAssets.style.display = 'none';
         return;
       }
 
@@ -3201,6 +3289,18 @@
 
       // Show the grid
       showAssetGrid();
+
+      // Show the unload button
+      btnUnloadAssets.style.display = 'inline-block';
+
+      // Save folder path to localStorage for persistence
+      if (editorState.assets.folderPath) {
+        try {
+          localStorage.setItem(ASSET_FOLDER_STORAGE_KEY, editorState.assets.folderPath);
+        } catch (e) {
+          console.warn('Failed to save asset folder path to localStorage:', e);
+        }
+      }
     }
 
     /**
@@ -6539,6 +6639,9 @@
     // Initialize
     console.log('Combo Clip Composer Editor initialized');
     updateStatusBar();
+
+    // Attempt to auto-reload assets from localStorage
+    tryAutoReloadAssets();
   </script>
 </body>
 </html>

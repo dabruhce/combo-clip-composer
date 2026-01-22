@@ -1059,3 +1059,48 @@
   - Collapsible groups use CSS class toggle pattern (.collapsed hides content)
   - Toggle arrow rotates via CSS transform: rotate(-90deg) when collapsed
 ---
+
+## Iteration 45 - US-045: Insert Notation on Asset Click
+- What was implemented:
+  - Added click handler to asset items via createAssetItem function
+  - Created insertNotationToComboInput() function that:
+    - Inserts notation at cursor position in combo input field
+    - Appends with space separator if cursor at end or no cursor position
+    - Handles mid-text insertion with smart spacing (before and after)
+    - Focuses input field after insertion
+    - Dispatches 'input' event to trigger preview update
+  - Added CSS animation for visual click feedback (assetClickFlash - blue flash)
+  - Added brief highlight via 'clicked' class that removes after 200ms
+  - Added input event listener on comboTextInput to update overlay preview in real-time
+- Files changed:
+  - editor/index.html (CSS for click animation, JS for insertNotationToComboInput, click handler, input listener)
+  - PRD.md (marked US-045 as complete)
+- Learnings for future iterations:
+  - Use input.selectionStart/selectionEnd for cursor position handling
+  - Dispatch synthetic Event('input', { bubbles: true }) to trigger existing event listeners
+  - CSS @keyframes with animation property gives smooth visual feedback
+  - Asset items already had cursor: pointer and :active state for basic click feel
+  - Smart spacing logic: check endsWith(' ') and startsWith(' ') before adding spaces
+---
+
+## Iteration 46 - US-046: Persist Last Loaded Asset Directory
+- What was implemented:
+  - Added localStorage persistence using key `comboClipComposer_lastAssetFolder`
+  - Save folder path to localStorage after successful asset load (in renderAssetGrid)
+  - Added tryAutoReloadAssets() function called on editor initialization
+  - Auto-reload checks if folder still exists via IPC, clears saved path if not
+  - Shows error message when saved folder is missing/inaccessible
+  - Added "Clear" button (btnUnloadAssets) in asset panel header
+  - Button appears when assets are loaded, hidden otherwise
+  - unloadAssets() function clears state, localStorage, and resets UI
+  - 512 tests pass (1 pre-existing canvas binding failure unchanged)
+- Files changed:
+  - editor/index.html (CSS for unload button, HTML button, localStorage constant, unloadAssets function, tryAutoReloadAssets function, initialization call)
+  - PRD.md (marked US-046 as complete)
+- Learnings for future iterations:
+  - localStorage API: setItem, getItem, removeItem for persistence
+  - Wrap localStorage calls in try/catch for error resilience
+  - Use onclick with event.stopPropagation() for buttons inside clickable panel headers
+  - Auto-reload should validate folder exists before attempting to load (check-is-directory IPC)
+  - Clear saved path immediately when reload fails to avoid repeated failures
+---
