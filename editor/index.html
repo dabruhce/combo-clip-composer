@@ -490,6 +490,18 @@
       color: #555555;
     }
 
+    /* Drag-and-drop visual feedback */
+    .asset-empty-state.drag-over {
+      border: 2px dashed #0e639c;
+      background-color: rgba(14, 99, 156, 0.1);
+      border-radius: 4px;
+    }
+
+    .asset-empty-state.drag-over .asset-drop-hint {
+      color: #0e639c;
+      font-weight: bold;
+    }
+
     .asset-load-btn {
       background-color: #0e639c;
       color: #ffffff;
@@ -3021,6 +3033,133 @@
         setAssetLoadingState(false);
         showAssetError('Failed to load folder: ' + (error.message || 'Unknown error'));
         console.error('Error loading asset folder:', error);
+      }
+    }
+
+    /**
+     * Handles a folder path being loaded (shared between button and drag-drop)
+     * @param {string} folderPath - Path to the folder to load
+     */
+    async function loadAssetFolderByPath(folderPath) {
+      // Reset any previous error state
+      resetAssetError();
+
+      // Set loading state
+      setAssetLoadingState(true);
+
+      try {
+        // Store the selected folder path
+        editorState.assets.folderPath = folderPath;
+        setAssetLoadingState(false);
+
+        // For now, just show success message in console
+        // (Actual asset loading will be implemented in US-042)
+        console.log('Asset folder loaded:', folderPath);
+
+        // TODO: Next story (US-042) will parse mapping.txt and load assets
+
+      } catch (error) {
+        setAssetLoadingState(false);
+        showAssetError('Failed to load folder: ' + (error.message || 'Unknown error'));
+        console.error('Error loading asset folder:', error);
+      }
+    }
+
+    /**
+     * Handles dragenter event on asset empty state
+     * @param {DragEvent} e
+     */
+    function onAssetDragEnter(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      assetEmptyState.classList.add('drag-over');
+    }
+
+    /**
+     * Handles dragover event on asset empty state
+     * @param {DragEvent} e
+     */
+    function onAssetDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Ensure the visual feedback stays active
+      if (!assetEmptyState.classList.contains('drag-over')) {
+        assetEmptyState.classList.add('drag-over');
+      }
+    }
+
+    /**
+     * Handles dragleave event on asset empty state
+     * @param {DragEvent} e
+     */
+    function onAssetDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Only remove drag-over if leaving the element itself (not a child)
+      if (e.target === assetEmptyState || !assetEmptyState.contains(e.relatedTarget)) {
+        assetEmptyState.classList.remove('drag-over');
+      }
+    }
+
+    /**
+     * Handles drop event on asset empty state
+     * @param {DragEvent} e
+     */
+    async function onAssetDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Remove drag-over visual feedback
+      assetEmptyState.classList.remove('drag-over');
+
+      // Check if already loading
+      if (editorState.assets.isLoading) {
+        return;
+      }
+
+      // Get the dropped items
+      const items = e.dataTransfer.items;
+      const files = e.dataTransfer.files;
+
+      if (!items || items.length === 0) {
+        showAssetError('No items dropped');
+        return;
+      }
+
+      // In Electron, we can access the file path directly from the dropped file
+      if (files && files.length > 0) {
+        const file = files[0];
+
+        // Get the file path - Electron exposes this on the File object
+        const filePath = file.path;
+
+        if (!filePath) {
+          showAssetError('Could not get file path. Please use the Load Folder button.');
+          return;
+        }
+
+        // Check if it's a directory using IPC call to main process
+        try {
+          const result = await ipcRenderer.invoke('check-is-directory', filePath);
+
+          if (!result.success) {
+            showAssetError(result.error || 'Failed to check dropped item');
+            return;
+          }
+
+          if (!result.isDirectory) {
+            showAssetError('Please drop a folder, not a file.');
+            return;
+          }
+
+          // It's a directory - load it
+          await loadAssetFolderByPath(filePath);
+        } catch (error) {
+          showAssetError('Error processing dropped item: ' + (error.message || 'Unknown error'));
+          console.error('Error processing dropped item:', error);
+        }
+      } else {
+        showAssetError('Please drop a folder.');
       }
     }
 
@@ -6011,6 +6150,12 @@
 
     // Asset panel event listeners
     btnLoadAssetFolder.addEventListener('click', handleLoadAssetFolder);
+
+    // Asset panel drag-and-drop event listeners
+    assetEmptyState.addEventListener('dragenter', onAssetDragEnter);
+    assetEmptyState.addEventListener('dragover', onAssetDragOver);
+    assetEmptyState.addEventListener('dragleave', onAssetDragLeave);
+    assetEmptyState.addEventListener('drop', onAssetDrop);
 
     // Initialize
     console.log('Combo Clip Composer Editor initialized');

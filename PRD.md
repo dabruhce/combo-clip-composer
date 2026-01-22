@@ -588,12 +588,12 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want to drag and drop a folder onto the asset panel so that I can quickly load assets.
 
 **Acceptance Criteria:**
-- [ ] Asset panel accepts folder drag-and-drop
-- [ ] Visual feedback shows when dragging over the panel (highlight border)
-- [ ] Dropping a folder triggers the same loading flow as button selection
-- [ ] Dropping non-folder items shows an error message
-- [ ] Typecheck passes
-- [ ] Verify drag-and-drop works in browser
+- [x] Asset panel accepts folder drag-and-drop
+- [x] Visual feedback shows when dragging over the panel (highlight border)
+- [x] Dropping a folder triggers the same loading flow as button selection
+- [x] Dropping non-folder items shows an error message
+- [x] Typecheck passes
+- [x] Verify drag-and-drop works in browser
 
 ---
 

@@ -349,6 +349,38 @@ async function handleSelectAssetFolder(event) {
 }
 
 /**
+ * Handle checking if a path is a directory (for drag-and-drop validation)
+ */
+function handleCheckIsDirectory(event, filePath) {
+  try {
+    if (!filePath) {
+      return {
+        success: false,
+        error: 'No file path provided'
+      };
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return {
+        success: false,
+        error: 'Path does not exist'
+      };
+    }
+
+    const stats = fs.statSync(filePath);
+    return {
+      success: true,
+      isDirectory: stats.isDirectory()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Handle config export request from renderer
  */
 async function handleExportConfig(event, { config, keyframes, includeKeyframes }) {
@@ -1020,6 +1052,7 @@ app.whenReady().then(() => {
 
   // Asset folder IPC handlers
   ipcMain.handle('select-asset-folder', handleSelectAssetFolder);
+  ipcMain.handle('check-is-directory', handleCheckIsDirectory);
 
   // On macOS, re-create window when dock icon is clicked and no windows exist
   app.on('activate', () => {
@@ -1064,5 +1097,6 @@ module.exports = {
   handleExportVideo,
   handleCancelExport,
   handleExportConfig,
-  handleSelectAssetFolder
+  handleSelectAssetFolder,
+  handleCheckIsDirectory
 };
