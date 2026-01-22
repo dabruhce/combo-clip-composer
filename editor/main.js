@@ -2,10 +2,19 @@ const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const extractFrames = require('ffmpeg-extract-frames');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 const ffmpeg = require('fluent-ffmpeg');
 const os = require('os');
+
+// Fix paths for packaged app (asar unpacking)
+function fixAsarPath(filePath) {
+  if (filePath && filePath.includes('app.asar')) {
+    return filePath.replace('app.asar', 'app.asar.unpacked');
+  }
+  return filePath;
+}
+
+const ffmpegPath = fixAsarPath(require('@ffmpeg-installer/ffmpeg').path);
+const ffprobePath = fixAsarPath(require('@ffprobe-installer/ffprobe').path);
 
 // Set ffmpeg paths
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -113,7 +122,8 @@ async function extractVideoFrames(videoPath, progressCallback) {
   const outputPattern = path.join(tempDir, 'frame-%04d.png');
   await extractFrames({
     input: videoPath,
-    output: outputPattern
+    output: outputPattern,
+    ffmpegPath: ffmpegPath
   });
 
   // Get list of extracted frame files
@@ -197,8 +207,10 @@ async function extractVideoFramesWithProgress(videoPath, metadata, progressCallb
           metadata
         });
       })
-      .on('error', (err) => {
+      .on('error', (err, stdout, stderr) => {
         console.error('Frame extraction error:', err);
+        console.error('ffmpeg stdout:', stdout);
+        console.error('ffmpeg stderr:', stderr);
         // Clean up temp directory on error
         try {
           fs.rmSync(tempDir, { recursive: true, force: true });

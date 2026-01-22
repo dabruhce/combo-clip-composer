@@ -5,7 +5,13 @@
       "Bash(npm test:*)",
       "Bash(git -C \"D:/repos/combo-clip-composer\" status)",
       "Bash(git -C \"D:/repos/combo-clip-composer\" diff)",
-      "Bash(git -C \"D:/repos/combo-clip-composer\" log --oneline -5)"
+      "Bash(git -C \"D:/repos/combo-clip-composer\" log --oneline -5)",
+      "Bash(npm run editor:build:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout:*)",
+      "Bash(cat:*)",
+      "Bash(\"D:\\\\repos\\\\combo-clip-composer\\\\dist\\\\win-unpacked\\\\resources\\\\app.asar.unpacked\\\\node_modules\\\\@ffmpeg-installer\\\\win32-x64\\\\ffmpeg.exe\" -version)",
+      "Bash(tasklist)"
     ]
   }
 }

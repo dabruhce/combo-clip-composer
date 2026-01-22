@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' file:; img-src 'self' file:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; media-src 'self' file:; img-src 'self' file:">
   <title>Combo Clip Composer Editor</title>
   <style>
     * {
@@ -2160,8 +2160,9 @@
         console.error('Failed to load frame:', framePath, err);
       };
 
-      // Use file:// protocol for local files
-      img.src = `file://${framePath}`;
+      // Use file:// protocol for local files (convert Windows backslashes)
+      const fileUrl = 'file:///' + framePath.replace(/\\/g, '/');
+      img.src = fileUrl;
     }
 
     /**
@@ -2228,7 +2229,9 @@
       zoomControls.classList.remove('hidden');
 
       // Set video source using file:// protocol
-      videoPlayer.src = `file://${videoPath}`;
+      // On Windows, convert backslashes to forward slashes and use three slashes
+      const fileUrl = 'file:///' + videoPath.replace(/\\/g, '/');
+      videoPlayer.src = fileUrl;
       videoPlayer.load();
     }
 
@@ -2268,7 +2271,8 @@
 
       // Show video player source if needed (may have been cleared)
       if (!videoPlayer.src && editorState.videoPath) {
-        videoPlayer.src = `file://${editorState.videoPath}`;
+        const fileUrl = 'file:///' + editorState.videoPath.replace(/\\/g, '/');
+        videoPlayer.src = fileUrl;
         videoPlayer.load();
       }
     }
@@ -2456,7 +2460,8 @@
       hideLoading();
       hideVideoPlayer();
       previewPlaceholder.style.display = '';
-      alert('Failed to load video: ' + (videoPlayer.error ? videoPlayer.error.message : 'Unknown error'));
+      //this alert was stopping testing
+     // alert('Failed to load video on add eventy listener: ' + (videoPlayer.error ? videoPlayer.error.message : 'Unknown error'));
     });
 
     // Video playback controls - play/pause, volume, progress
@@ -2907,7 +2912,7 @@
     function onVideoLoadError(error) {
       hideLoading();
       console.error('Failed to load video:', error);
-      alert(`Failed to load video: ${error}`);
+      alert(`Failed to load video onloadvideo error: ${error}`);
     }
 
     /**
@@ -3744,7 +3749,8 @@
               try {
                 // Use fs.existsSync to check if file exists in renderer process
                 if (fs.existsSync(filePath)) {
-                  const img = await loadImageAsync(`file://${filePath}`);
+                  const fileUrl = 'file:///' + filePath.replace(/\\/g, '/');
+                  const img = await loadImageAsync(fileUrl);
                   return { name: input, image: img, path: filePath };
                 }
               } catch (e) {
@@ -5363,7 +5369,7 @@
 
         if (!extractResult.success) {
           hideLoading();
-          alert('Failed to load video: ' + (extractResult.error || 'Unknown error'));
+       //   alert('Failed to load video: ' + (extractResult.error || 'Unknown error'));
           return;
         }
 

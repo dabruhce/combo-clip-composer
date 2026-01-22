@@ -53,6 +53,10 @@
       "main": "editor/main.js"
     },
     "npmRebuild": false,
+    "asarUnpack": [
+      "node_modules/@ffmpeg-installer/**/*",
+      "node_modules/@ffprobe-installer/**/*"
+    ],
     "win": {
       "target": "dir",
       "signAndEditExecutable": false

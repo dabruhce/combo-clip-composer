@@ -865,3 +865,27 @@
   - Sync is bidirectional: goToFrame syncs video, switchToFrameView syncs frame canvas
   - Keep video player source loaded even when hidden (may need to restore when switching back)
 ---
+
+## Iteration 38 - US-038: Enable Timeline Controls for Video Player
+- What was implemented:
+  - Enabled all timeline control buttons (play/pause, jump start/end, step) in loadedmetadata handler
+  - Modified togglePlayPause() to use video.play()/video.pause() when video player is visible
+  - Modified startPlayback() to use HTML5 video playback when video player is visible
+  - Modified stopPlayback() to pause video when video player is visible
+  - Modified jumpToStart() to seek video to 0:00 when video player is visible
+  - Modified jumpToEnd() to seek video to duration when video player is visible
+  - Modified onTimelineClick() to seek video directly when video player is visible
+  - Modified onPlayheadDrag() to seek video directly when video player is visible
+  - Created showTimelineForVideo() function to initialize timeline UI before frame extraction
+  - Added video player event listeners (play, pause, ended) to sync isPlaying state with timeline button
+  - Calculate frameCount from video duration in loadedmetadata (frameCount = Math.ceil(duration * fps))
+- Files changed:
+  - editor/index.html (modified loadedmetadata handler, playback functions, timeline click/drag handlers)
+  - PRD.md (marked US-038 as complete)
+- Learnings for future iterations:
+  - Use videoPlayerContainer.classList.contains('visible') to detect if video player mode is active
+  - The isPlaying state needs to sync bidirectionally: timeline button -> video and video events -> button
+  - Timeline controls can work before frames are extracted by using video player's currentTime
+  - showTimelineForVideo() is a lighter version of showTimeline() that doesn't initialize keyframe UI
+  - The btnAddKeyframe should remain disabled until frame extraction completes (keyframes need frames)
+---
