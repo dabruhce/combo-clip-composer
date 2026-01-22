@@ -960,3 +960,55 @@
   - The selected folder path is stored in editorState.assets.folderPath for later use
   - Next story (US-042) will parse mapping.txt to populate items array
 ---
+
+## Iteration 41 - US-041: Implement Folder Loading via Drag-and-Drop
+- What was implemented:
+  - Added CSS styles for drag-over visual feedback (.drag-over class with dashed border highlight)
+  - Added drag event listeners (dragenter, dragover, dragleave, drop) to asset empty state
+  - Created loadAssetFolderByPath() function to share loading logic between button and drag-drop
+  - Created onAssetDragEnter(), onAssetDragOver(), onAssetDragLeave(), onAssetDrop() handlers
+  - Added handleCheckIsDirectory IPC handler in main.js to validate dropped items
+  - Checks if dropped item is directory via IPC, shows error for non-folder items
+  - Uses Electron's file.path property on dropped files to get filesystem path
+- Files changed:
+  - editor/index.html (CSS for drag-over state, JS drag event handlers, loadAssetFolderByPath function)
+  - editor/main.js (added handleCheckIsDirectory function, IPC handler, exports)
+  - PRD.md (marked US-041 as complete)
+- Learnings for future iterations:
+  - In Electron, dropped files have a .path property exposing the full filesystem path
+  - Use e.relatedTarget check in dragleave to avoid removing highlight when entering child elements
+  - IPC is needed to check fs.statSync().isDirectory() since renderer may not have direct fs access
+  - Drag-and-drop shares loading logic with button click via shared loadAssetFolderByPath function
+  - CSS drag-over state: dashed border + subtle background color for clear visual feedback
+  - Prevent default on all drag events to enable custom drop behavior
+---
+
+## Iteration 42 - US-042: Parse mapping.txt File Format
+- What was implemented:
+  - Created parseMappingFile() function in editor/main.js for parsing notation-to-filename mappings
+  - File format: one mapping per line as `notation,filename` (e.g., `df,df.png`)
+  - Supports various image extensions (.svg, .png, .jpg, .gif)
+  - Trims whitespace from notation and filename
+  - Skips empty lines and comment lines (starting with #)
+  - Created handleParseAssetMapping IPC handler with validation:
+    - Checks if folder path is provided and exists
+    - Checks if mapping.txt exists in folder root
+    - Returns error if mapping is empty or malformed
+    - Verifies which image files actually exist
+    - Returns missingFiles array for debugging
+  - Updated loadAssetFolderByPath in renderer to call parser via IPC
+  - Updates editorState.assets.items with parsed assets
+  - Shows asset count in panel header after successful load
+  - Added 25 unit tests covering all parser functionality
+- Files changed:
+  - editor/main.js (added parseMappingFile, handleParseAssetMapping, IPC handler, exports)
+  - editor/index.html (updated loadAssetFolderByPath to use IPC and store parsed assets)
+  - tests/assetMapping.test.js (new - 25 tests)
+  - PRD.md (marked US-042 as complete)
+- Learnings for future iterations:
+  - Use indexOf/substring for comma parsing to allow commas in filenames (subfolder paths)
+  - Split on /\r?\n/ to handle both Windows (CRLF) and Unix (LF) line endings
+  - IPC handler should validate file existence before returning success
+  - Return both valid assets and missingFiles for debugging/UX purposes
+  - The parseMappingFile function is pure (no side effects) making it easy to test
+---

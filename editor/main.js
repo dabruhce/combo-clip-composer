@@ -381,6 +381,126 @@ function handleCheckIsDirectory(event, filePath) {
 }
 
 /**
+ * Parses a mapping.txt file and returns an array of asset mappings.
+ * Format: one mapping per line as `notation,filename` (e.g., `df,df.png`)
+ * Lines starting with # are comments, empty lines are skipped.
+ * @param {string} mappingFilePath - Path to the mapping.txt file
+ * @param {string} folderPath - Base folder path for resolving filenames
+ * @returns {{ notation: string, filename: string, filepath: string }[]}
+ */
+function parseMappingFile(mappingFilePath, folderPath) {
+  const content = fs.readFileSync(mappingFilePath, 'utf-8');
+  const lines = content.split(/\r?\n/);
+  const assets = [];
+
+  for (const line of lines) {
+    // Trim whitespace
+    const trimmedLine = line.trim();
+
+    // Skip empty lines
+    if (!trimmedLine) {
+      continue;
+    }
+
+    // Skip comment lines (starting with #)
+    if (trimmedLine.startsWith('#')) {
+      continue;
+    }
+
+    // Parse notation,filename format
+    const commaIndex = trimmedLine.indexOf(',');
+    if (commaIndex === -1) {
+      // Invalid line format - skip it
+      continue;
+    }
+
+    const notation = trimmedLine.substring(0, commaIndex).trim();
+    const filename = trimmedLine.substring(commaIndex + 1).trim();
+
+    // Skip if either part is empty
+    if (!notation || !filename) {
+      continue;
+    }
+
+    // Build full filepath
+    const filepath = path.join(folderPath, filename);
+
+    assets.push({
+      notation,
+      filename,
+      filepath
+    });
+  }
+
+  return assets;
+}
+
+/**
+ * Handle parsing mapping.txt from an asset folder
+ */
+async function handleParseAssetMapping(event, folderPath) {
+  try {
+    if (!folderPath) {
+      return {
+        success: false,
+        error: 'No folder path provided'
+      };
+    }
+
+    if (!fs.existsSync(folderPath)) {
+      return {
+        success: false,
+        error: 'Folder does not exist'
+      };
+    }
+
+    // Look for mapping.txt in the folder root
+    const mappingFilePath = path.join(folderPath, 'mapping.txt');
+
+    if (!fs.existsSync(mappingFilePath)) {
+      return {
+        success: false,
+        error: 'mapping.txt not found in the selected folder'
+      };
+    }
+
+    // Parse the mapping file
+    const assets = parseMappingFile(mappingFilePath, folderPath);
+
+    if (assets.length === 0) {
+      return {
+        success: false,
+        error: 'mapping.txt is empty or contains no valid mappings'
+      };
+    }
+
+    // Verify which image files actually exist
+    const validAssets = [];
+    const missingFiles = [];
+
+    for (const asset of assets) {
+      if (fs.existsSync(asset.filepath)) {
+        validAssets.push(asset);
+      } else {
+        missingFiles.push(asset.filename);
+      }
+    }
+
+    return {
+      success: true,
+      assets: validAssets,
+      totalParsed: assets.length,
+      missingFiles: missingFiles.length > 0 ? missingFiles : undefined
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Handle config export request from renderer
  */
 async function handleExportConfig(event, { config, keyframes, includeKeyframes }) {
@@ -1053,6 +1173,7 @@ app.whenReady().then(() => {
   // Asset folder IPC handlers
   ipcMain.handle('select-asset-folder', handleSelectAssetFolder);
   ipcMain.handle('check-is-directory', handleCheckIsDirectory);
+  ipcMain.handle('parse-asset-mapping', handleParseAssetMapping);
 
   // On macOS, re-create window when dock icon is clicked and no windows exist
   app.on('activate', () => {
@@ -1098,5 +1219,7 @@ module.exports = {
   handleCancelExport,
   handleExportConfig,
   handleSelectAssetFolder,
-  handleCheckIsDirectory
+  handleCheckIsDirectory,
+  handleParseAssetMapping,
+  parseMappingFile
 };

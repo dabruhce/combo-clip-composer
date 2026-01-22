@@ -3050,13 +3050,37 @@
       try {
         // Store the selected folder path
         editorState.assets.folderPath = folderPath;
+
+        // Parse the mapping.txt file
+        const result = await ipcRenderer.invoke('parse-asset-mapping', folderPath);
+
+        if (!result.success) {
+          setAssetLoadingState(false);
+          showAssetError(result.error || 'Failed to parse mapping.txt');
+          return;
+        }
+
+        // Store the parsed assets
+        editorState.assets.items = result.assets;
+        editorState.assets.error = null;
+
+        // Log any missing files for debugging
+        if (result.missingFiles && result.missingFiles.length > 0) {
+          console.warn('Some asset files were not found:', result.missingFiles);
+        }
+
+        console.log('Asset folder loaded:', folderPath);
+        console.log('Parsed assets:', result.assets.length, 'valid,', result.totalParsed, 'total');
+
         setAssetLoadingState(false);
 
-        // For now, just show success message in console
-        // (Actual asset loading will be implemented in US-042)
-        console.log('Asset folder loaded:', folderPath);
-
-        // TODO: Next story (US-042) will parse mapping.txt and load assets
+        // Update UI to show assets (will be implemented in US-043)
+        // For now, show a success message
+        if (result.assets.length > 0) {
+          // Show asset count in header
+          assetCount.textContent = `(${result.assets.length})`;
+          // showAssetGrid() will be implemented in US-043
+        }
 
       } catch (error) {
         setAssetLoadingState(false);

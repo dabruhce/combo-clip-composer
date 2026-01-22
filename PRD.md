@@ -602,14 +602,14 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want my `mapping.txt` file to be automatically detected and parsed so that the editor knows which notation corresponds to which image.
 
 **Acceptance Criteria:**
-- [ ] System looks for `mapping.txt` in the loaded folder root
-- [ ] File format: one mapping per line as `notation,filename` (e.g., `df,df.png`)
-- [ ] Parser handles various image extensions (.svg, .png, .jpg, .gif)
-- [ ] Parser trims whitespace from notation and filename
-- [ ] Parser skips empty lines and lines starting with `#` (comments)
-- [ ] Error displayed if `mapping.txt` is missing or malformed
-- [ ] Returns array of `{ notation, filename, filepath }` objects
-- [ ] Typecheck passes
+- [x] System looks for `mapping.txt` in the loaded folder root
+- [x] File format: one mapping per line as `notation,filename` (e.g., `df,df.png`)
+- [x] Parser handles various image extensions (.svg, .png, .jpg, .gif)
+- [x] Parser trims whitespace from notation and filename
+- [x] Parser skips empty lines and lines starting with `#` (comments)
+- [x] Error displayed if `mapping.txt` is missing or malformed
+- [x] Returns array of `{ notation, filename, filepath }` objects
+- [x] Typecheck passes
 
 ---
 
