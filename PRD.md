@@ -648,12 +648,12 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want to click an asset to insert its notation into the combo input field so that I can quickly build combos.
 
 **Acceptance Criteria:**
-- [ ] Clicking an asset inserts its notation at the cursor position in the combo input field
-- [ ] If no cursor position, notation appends to the end with a space separator
-- [ ] Visual feedback on click (brief highlight/press effect)
-- [ ] Focus returns to combo input field after insertion
-- [ ] Typecheck passes
-- [ ] Verify insertion works correctly in browser
+- [x] Clicking an asset inserts its notation at the cursor position in the combo input field
+- [x] If no cursor position, notation appends to the end with a space separator
+- [x] Visual feedback on click (brief highlight/press effect)
+- [x] Focus returns to combo input field after insertion
+- [x] Typecheck passes
+- [x] Verify insertion works correctly in browser
 
 ---
 

@@ -558,6 +558,15 @@
       background-color: #4d4d4d;
     }
 
+    .asset-item.clicked {
+      animation: assetClickFlash 0.2s ease-out;
+    }
+
+    @keyframes assetClickFlash {
+      0% { background-color: #0078d4; }
+      100% { background-color: transparent; }
+    }
+
     .asset-thumbnail {
       width: 48px;
       height: 48px;
@@ -3233,7 +3242,68 @@
       notation.textContent = asset.notation;
       item.appendChild(notation);
 
+      // Add click handler to insert notation into combo input
+      item.addEventListener('click', function() {
+        insertNotationToComboInput(asset.notation);
+
+        // Visual feedback - brief highlight
+        item.classList.add('clicked');
+        setTimeout(() => {
+          item.classList.remove('clicked');
+        }, 200);
+      });
+
       return item;
+    }
+
+    /**
+     * Inserts a notation at the cursor position in the combo input field
+     * @param {string} notation - The notation to insert
+     */
+    function insertNotationToComboInput(notation) {
+      const input = comboTextInput;
+      const currentValue = input.value;
+
+      // Get cursor position (selection start)
+      const cursorPos = input.selectionStart;
+      const selectionEnd = input.selectionEnd;
+
+      // Determine if we need a space separator
+      let textToInsert = notation;
+
+      if (cursorPos === null || cursorPos === currentValue.length) {
+        // No cursor position or cursor at end - append with space separator if needed
+        if (currentValue.length > 0 && !currentValue.endsWith(' ')) {
+          textToInsert = ' ' + notation;
+        }
+        input.value = currentValue + textToInsert;
+        // Move cursor to end
+        input.selectionStart = input.selectionEnd = input.value.length;
+      } else {
+        // Insert at cursor position
+        const before = currentValue.substring(0, cursorPos);
+        const after = currentValue.substring(selectionEnd);
+
+        // Add space before if not at start and previous char isn't space
+        if (before.length > 0 && !before.endsWith(' ')) {
+          textToInsert = ' ' + textToInsert;
+        }
+        // Add space after if there's content and next char isn't space
+        if (after.length > 0 && !after.startsWith(' ')) {
+          textToInsert = textToInsert + ' ';
+        }
+
+        input.value = before + textToInsert + after;
+        // Move cursor to end of inserted text
+        const newCursorPos = before.length + textToInsert.length;
+        input.selectionStart = input.selectionEnd = newCursorPos;
+      }
+
+      // Focus the input field
+      input.focus();
+
+      // Trigger input event to update preview
+      input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     /**
@@ -5510,6 +5580,13 @@
     applyOverlayBtn.addEventListener('click', async () => {
       overlayEnabledCheckbox.checked = true;
       await applyOverlayFromInputs();
+    });
+
+    // Update overlay on combo text change (triggered by asset panel click or manual input)
+    comboTextInput.addEventListener('input', () => {
+      if (overlayEnabledCheckbox.checked) {
+        applyOverlayFromInputs();
+      }
     });
 
     // Update overlay on position change
