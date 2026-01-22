@@ -618,13 +618,13 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want to see all loaded assets displayed as a grid showing the image and its notation so that I can easily find the input I need.
 
 **Acceptance Criteria:**
-- [ ] Assets display in a scrollable grid layout within the panel
-- [ ] Each asset shows: thumbnail image (scaled to ~48x48px) and notation text below
-- [ ] Images that fail to load show a placeholder/error state
-- [ ] Asset count displayed in panel header (e.g., "ASSETS (24)")
-- [ ] Grid is responsive to panel width
-- [ ] Typecheck passes
-- [ ] Verify assets display correctly in browser
+- [x] Assets display in a scrollable grid layout within the panel
+- [x] Each asset shows: thumbnail image (scaled to ~48x48px) and notation text below
+- [x] Images that fail to load show a placeholder/error state
+- [x] Asset count displayed in panel header (e.g., "ASSETS (24)")
+- [x] Grid is responsive to panel width
+- [x] Typecheck passes
+- [x] Verify assets display correctly in browser
 
 ---
 

@@ -533,6 +533,72 @@
       display: block;
     }
 
+    /* Asset Grid */
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 8px;
+    }
+
+    .asset-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+
+    .asset-item:hover {
+      background-color: #3d3d3d;
+    }
+
+    .asset-item:active {
+      background-color: #4d4d4d;
+    }
+
+    .asset-thumbnail {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .asset-thumbnail img {
+      max-width: 48px;
+      max-height: 48px;
+      object-fit: contain;
+    }
+
+    .asset-thumbnail-error {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #3d3d3d;
+      border: 1px dashed #555555;
+      border-radius: 4px;
+      font-size: 10px;
+      color: #888888;
+      text-align: center;
+      word-break: break-all;
+      padding: 2px;
+    }
+
+    .asset-notation {
+      font-size: 11px;
+      color: #cccccc;
+      text-align: center;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     /* Timeline at bottom */
     .timeline {
       height: 150px;
@@ -2954,6 +3020,82 @@
     }
 
     /**
+     * Renders the asset grid with loaded assets
+     * Creates the grid of asset items with thumbnails and notation labels
+     */
+    function renderAssetGrid() {
+      const assets = editorState.assets.items;
+
+      // Clear existing content
+      assetGridContainer.innerHTML = '';
+
+      if (!assets || assets.length === 0) {
+        showAssetEmptyState();
+        return;
+      }
+
+      // Create the grid container
+      const grid = document.createElement('div');
+      grid.className = 'asset-grid';
+
+      // Create asset items
+      assets.forEach((asset) => {
+        const item = createAssetItem(asset);
+        grid.appendChild(item);
+      });
+
+      assetGridContainer.appendChild(grid);
+
+      // Update asset count in header
+      assetCount.textContent = `(${assets.length})`;
+
+      // Show the grid
+      showAssetGrid();
+    }
+
+    /**
+     * Creates a single asset item element
+     * @param {Object} asset - The asset object { notation, filename, filepath }
+     * @returns {HTMLElement} The asset item element
+     */
+    function createAssetItem(asset) {
+      const item = document.createElement('div');
+      item.className = 'asset-item';
+      item.title = `${asset.notation} - ${asset.filename}`;
+      item.dataset.notation = asset.notation;
+
+      // Create thumbnail container
+      const thumbnail = document.createElement('div');
+      thumbnail.className = 'asset-thumbnail';
+
+      // Create image element
+      const img = document.createElement('img');
+      img.src = `file://${asset.filepath}`;
+      img.alt = asset.notation;
+
+      // Handle load errors
+      img.onerror = function() {
+        // Replace image with error placeholder
+        thumbnail.innerHTML = '';
+        const errorPlaceholder = document.createElement('div');
+        errorPlaceholder.className = 'asset-thumbnail-error';
+        errorPlaceholder.textContent = asset.notation;
+        thumbnail.appendChild(errorPlaceholder);
+      };
+
+      thumbnail.appendChild(img);
+      item.appendChild(thumbnail);
+
+      // Create notation label
+      const notation = document.createElement('div');
+      notation.className = 'asset-notation';
+      notation.textContent = asset.notation;
+      item.appendChild(notation);
+
+      return item;
+    }
+
+    /**
      * Sets the asset panel loading state
      */
     function setAssetLoadingState(isLoading) {
@@ -3074,13 +3216,8 @@
 
         setAssetLoadingState(false);
 
-        // Update UI to show assets (will be implemented in US-043)
-        // For now, show a success message
-        if (result.assets.length > 0) {
-          // Show asset count in header
-          assetCount.textContent = `(${result.assets.length})`;
-          // showAssetGrid() will be implemented in US-043
-        }
+        // Render the asset grid
+        renderAssetGrid();
 
       } catch (error) {
         setAssetLoadingState(false);
