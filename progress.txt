@@ -913,3 +913,50 @@
   - localStorage key: `comboClipComposer_lastAssetFolder`
   - Assets grouped by subfolder name within loaded directory
 ---
+
+## Iteration 39 - US-039: Add Asset Panel UI Shell
+- What was implemented:
+  - Added CSS styles for asset-panel with collapsible functionality
+  - Created asset-panel HTML structure inside right panel area (below Layers)
+  - Panel header labeled "ASSETS" with toggle icon for collapse/expand
+  - Empty state message: "No assets loaded. Drop a folder or click to browse."
+  - Added "Load Folder" button in empty state
+  - Added placeholder for asset grid container (hidden by default)
+  - Added toggleAssetPanel() JavaScript function
+  - Styling matches existing dark theme (#252526 background, #666666 text)
+- Files changed:
+  - editor/index.html (CSS styles, HTML structure, JS toggle function)
+  - PRD.md (marked US-039 as complete)
+- Learnings for future iterations:
+  - Asset panel follows same collapsed class pattern as property-section
+  - Panel uses flex layout with min-height for proper sizing
+  - Empty state and grid container are mutually exclusive (visible class toggle)
+  - Asset count span positioned with margin-left: auto for right alignment
+  - Panel is collapsible like property sections but uses asset-panel.collapsed class
+---
+
+## Iteration 40 - US-040: Implement Folder Loading via Button
+- What was implemented:
+  - Added IPC handler `handleSelectAssetFolder` in main.js for folder picker dialog
+  - Added `openAssetFolderDialog` function using dialog.showOpenDialog with openDirectory property
+  - Added IPC handler registration `ipcMain.handle('select-asset-folder', handleSelectAssetFolder)`
+  - Added asset panel DOM element references (assetPanel, assetCount, assetEmptyState, assetGridContainer, btnLoadAssetFolder)
+  - Added editorState.assets object to track folder path, loading state, items array, and error
+  - Added `handleLoadAssetFolder` async function to handle button click and IPC call
+  - Added `setAssetLoadingState(isLoading)` to toggle button disabled state and text
+  - Added `showAssetError(message)` and `resetAssetError()` for error display
+  - Added `showAssetEmptyState()` and `showAssetGrid()` helper functions
+  - Added event listener for btnLoadAssetFolder click
+  - 480 tests pass (1 pre-existing canvas binding failure unchanged)
+- Files changed:
+  - editor/main.js (added openAssetFolderDialog, handleSelectAssetFolder, IPC handler, exports)
+  - editor/index.html (added DOM refs, asset state, load folder functions, event listener)
+  - PRD.md (marked US-040 as complete)
+- Learnings for future iterations:
+  - IPC handler for folder selection uses dialog.showOpenDialog with properties: ['openDirectory']
+  - Asset state tracks folderPath, isLoading, items array, and error message
+  - Button loading state shows "Loading..." text and disabled state via setAssetLoadingState()
+  - Error messages display in the empty state area by changing first paragraph text and color
+  - The selected folder path is stored in editorState.assets.folderPath for later use
+  - Next story (US-042) will parse mapping.txt to populate items array
+---

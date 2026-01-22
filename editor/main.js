@@ -303,6 +303,52 @@ async function exportConfigDialog(defaultName) {
 }
 
 /**
+ * Opens a dialog to select an asset folder
+ */
+async function openAssetFolderDialog() {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Asset Folder',
+    properties: ['openDirectory']
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+}
+
+/**
+ * Handle asset folder selection request from renderer
+ */
+async function handleSelectAssetFolder(event) {
+  try {
+    const folderPath = await openAssetFolderDialog();
+    if (!folderPath) {
+      return { success: false, canceled: true };
+    }
+
+    // Verify the folder exists
+    if (!fs.existsSync(folderPath)) {
+      return {
+        success: false,
+        error: 'Selected folder does not exist'
+      };
+    }
+
+    return {
+      success: true,
+      folderPath
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Handle config export request from renderer
  */
 async function handleExportConfig(event, { config, keyframes, includeKeyframes }) {
@@ -972,6 +1018,9 @@ app.whenReady().then(() => {
   ipcMain.handle('cancel-export', handleCancelExport);
   ipcMain.handle('export-config', handleExportConfig);
 
+  // Asset folder IPC handlers
+  ipcMain.handle('select-asset-folder', handleSelectAssetFolder);
+
   // On macOS, re-create window when dock icon is clicked and no windows exist
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -1008,10 +1057,12 @@ module.exports = {
   saveProjectDialog,
   exportVideoDialog,
   exportConfigDialog,
+  openAssetFolderDialog,
   handleOpenProject,
   handleSaveProject,
   handleLoadVideoByPath,
   handleExportVideo,
   handleCancelExport,
-  handleExportConfig
+  handleExportConfig,
+  handleSelectAssetFolder
 };

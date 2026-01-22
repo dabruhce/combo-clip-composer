@@ -2021,6 +2021,13 @@
       project: {
         path: null,
         hasUnsavedChanges: false
+      },
+      // Asset panel state
+      assets: {
+        folderPath: null,
+        isLoading: false,
+        items: [], // Array of { notation, filename, filepath }
+        error: null
       }
     };
 
@@ -2121,6 +2128,13 @@
     const contextMenuDelete = document.getElementById('contextMenuDelete');
     const contextMenuChangeInterp = document.getElementById('contextMenuChangeInterp');
     const contextMenuInterpSubmenu = document.getElementById('contextMenuInterpSubmenu');
+
+    // Asset Panel DOM elements
+    const assetPanel = document.getElementById('assetPanel');
+    const assetCount = document.getElementById('assetCount');
+    const assetEmptyState = document.getElementById('assetEmptyState');
+    const assetGridContainer = document.getElementById('assetGridContainer');
+    const btnLoadAssetFolder = document.getElementById('btnLoadAssetFolder');
 
     // Import keyframe classes from keyframe.js
     const { Keyframe, KeyframeTrack, KeyframeManager, INTERPOLATION_TYPES } = require('./models/keyframe.js');
@@ -2907,6 +2921,106 @@
       const panel = document.getElementById('assetPanel');
       if (panel) {
         panel.classList.toggle('collapsed');
+      }
+    }
+
+    /**
+     * Shows the asset panel empty state
+     */
+    function showAssetEmptyState() {
+      assetEmptyState.style.display = 'flex';
+      assetGridContainer.classList.remove('visible');
+      assetCount.textContent = '';
+    }
+
+    /**
+     * Shows the asset panel grid with loaded assets
+     */
+    function showAssetGrid() {
+      assetEmptyState.style.display = 'none';
+      assetGridContainer.classList.add('visible');
+    }
+
+    /**
+     * Sets the asset panel loading state
+     */
+    function setAssetLoadingState(isLoading) {
+      editorState.assets.isLoading = isLoading;
+      btnLoadAssetFolder.disabled = isLoading;
+      if (isLoading) {
+        btnLoadAssetFolder.textContent = 'Loading...';
+      } else {
+        btnLoadAssetFolder.textContent = 'Load Folder';
+      }
+    }
+
+    /**
+     * Shows an error message in the asset panel
+     */
+    function showAssetError(message) {
+      editorState.assets.error = message;
+      // Show error in the empty state area
+      const emptyStateP = assetEmptyState.querySelector('p:first-child');
+      if (emptyStateP) {
+        emptyStateP.textContent = message;
+        emptyStateP.style.color = '#ff6b6b';
+      }
+    }
+
+    /**
+     * Resets asset error state
+     */
+    function resetAssetError() {
+      editorState.assets.error = null;
+      const emptyStateP = assetEmptyState.querySelector('p:first-child');
+      if (emptyStateP) {
+        emptyStateP.textContent = 'No assets loaded.';
+        emptyStateP.style.color = '';
+      }
+    }
+
+    /**
+     * Handles the Load Folder button click
+     * Opens folder picker dialog and stores the selected path
+     */
+    async function handleLoadAssetFolder() {
+      // Reset any previous error state
+      resetAssetError();
+
+      // Set loading state
+      setAssetLoadingState(true);
+
+      try {
+        // Call IPC to open folder picker
+        const result = await ipcRenderer.invoke('select-asset-folder');
+
+        if (result.canceled) {
+          // User cancelled - just reset loading state
+          setAssetLoadingState(false);
+          return;
+        }
+
+        if (!result.success) {
+          // Error occurred
+          setAssetLoadingState(false);
+          showAssetError(result.error || 'Failed to select folder');
+          return;
+        }
+
+        // Store the selected folder path
+        editorState.assets.folderPath = result.folderPath;
+        setAssetLoadingState(false);
+
+        // For now, just show success message in console
+        // (Actual asset loading will be implemented in US-042)
+        console.log('Asset folder selected:', result.folderPath);
+
+        // TODO: Next story (US-042) will parse mapping.txt and load assets
+
+      } catch (error) {
+        setAssetLoadingState(false);
+        showAssetError('Failed to load folder: ' + (error.message || 'Unknown error'));
+        console.error('Error loading asset folder:', error);
       }
     }
 
@@ -5894,6 +6008,9 @@
     ipcRenderer.on('export-config', () => {
       showConfigExportDialog();
     });
+
+    // Asset panel event listeners
+    btnLoadAssetFolder.addEventListener('click', handleLoadAssetFolder);
 
     // Initialize
     console.log('Combo Clip Composer Editor initialized');

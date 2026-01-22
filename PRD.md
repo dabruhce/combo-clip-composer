@@ -573,13 +573,13 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want to click a button to select an asset folder so that I can load my notation images.
 
 **Acceptance Criteria:**
-- [ ] Add a "Load Folder" button in the asset panel
-- [ ] Clicking button opens a folder picker dialog
-- [ ] Selected folder path is stored for processing
-- [ ] Button is disabled while loading and shows loading state
-- [ ] Error message displays if folder selection fails or is cancelled
-- [ ] Typecheck passes
-- [ ] Verify folder selection works in browser
+- [x] Add a "Load Folder" button in the asset panel
+- [x] Clicking button opens a folder picker dialog
+- [x] Selected folder path is stored for processing
+- [x] Button is disabled while loading and shows loading state
+- [x] Error message displays if folder selection fails or is cancelled
+- [x] Typecheck passes
+- [x] Verify folder selection works in browser
 
 ---
 
