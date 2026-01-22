@@ -633,13 +633,13 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want assets grouped by game (e.g., "Tekken7", "Common") so that I can find related inputs together.
 
 **Acceptance Criteria:**
-- [ ] Assets are grouped by subfolder name within the loaded directory
-- [ ] Each group has a collapsible header with the folder/game name
-- [ ] Groups default to expanded state
-- [ ] Assets in root folder (no subfolder) grouped under "General"
-- [ ] Empty groups are hidden
-- [ ] Typecheck passes
-- [ ] Verify grouping displays correctly in browser
+- [x] Assets are grouped by subfolder name within the loaded directory
+- [x] Each group has a collapsible header with the folder/game name
+- [x] Groups default to expanded state
+- [x] Assets in root folder (no subfolder) grouped under "General"
+- [x] Empty groups are hidden
+- [x] Typecheck passes
+- [x] Verify grouping displays correctly in browser
 
 ---
 

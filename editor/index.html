@@ -599,6 +599,62 @@
       white-space: nowrap;
     }
 
+    /* Asset Category Groups */
+    .asset-category {
+      margin-bottom: 8px;
+    }
+
+    .asset-category-header {
+      display: flex;
+      align-items: center;
+      padding: 4px 8px;
+      background-color: #2d2d2d;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 4px;
+    }
+
+    .asset-category-header:hover {
+      background-color: #3d3d3d;
+    }
+
+    .asset-category-toggle {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #888888;
+      transition: transform 0.15s;
+    }
+
+    .asset-category.collapsed .asset-category-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .asset-category-name {
+      font-size: 12px;
+      font-weight: bold;
+      color: #cccccc;
+      margin-left: 4px;
+    }
+
+    .asset-category-count {
+      font-size: 11px;
+      color: #888888;
+      margin-left: auto;
+    }
+
+    .asset-category-content {
+      padding-left: 4px;
+    }
+
+    .asset-category.collapsed .asset-category-content {
+      display: none;
+    }
+
     /* Timeline at bottom */
     .timeline {
       height: 150px;
@@ -3020,8 +3076,86 @@
     }
 
     /**
-     * Renders the asset grid with loaded assets
-     * Creates the grid of asset items with thumbnails and notation labels
+     * Groups assets by their category property
+     * @param {Array} assets - Array of asset objects with category property
+     * @returns {Object} Object mapping category names to arrays of assets
+     */
+    function groupAssetsByCategory(assets) {
+      const groups = {};
+
+      assets.forEach((asset) => {
+        const category = asset.category || 'General';
+        if (!groups[category]) {
+          groups[category] = [];
+        }
+        groups[category].push(asset);
+      });
+
+      return groups;
+    }
+
+    /**
+     * Creates a category group element with header and asset grid
+     * @param {string} categoryName - Name of the category
+     * @param {Array} assets - Array of assets in this category
+     * @returns {HTMLElement} The category group element
+     */
+    function createCategoryGroup(categoryName, assets) {
+      const category = document.createElement('div');
+      category.className = 'asset-category';
+      category.dataset.category = categoryName;
+
+      // Create collapsible header
+      const header = document.createElement('div');
+      header.className = 'asset-category-header';
+      header.onclick = () => toggleCategoryCollapse(category);
+
+      const toggle = document.createElement('span');
+      toggle.className = 'asset-category-toggle';
+      toggle.textContent = '\u25BC'; // Down arrow
+
+      const name = document.createElement('span');
+      name.className = 'asset-category-name';
+      name.textContent = categoryName;
+
+      const count = document.createElement('span');
+      count.className = 'asset-category-count';
+      count.textContent = `(${assets.length})`;
+
+      header.appendChild(toggle);
+      header.appendChild(name);
+      header.appendChild(count);
+      category.appendChild(header);
+
+      // Create content container with asset grid
+      const content = document.createElement('div');
+      content.className = 'asset-category-content';
+
+      const grid = document.createElement('div');
+      grid.className = 'asset-grid';
+
+      assets.forEach((asset) => {
+        const item = createAssetItem(asset);
+        grid.appendChild(item);
+      });
+
+      content.appendChild(grid);
+      category.appendChild(content);
+
+      return category;
+    }
+
+    /**
+     * Toggles the collapsed state of a category group
+     * @param {HTMLElement} categoryElement - The category group element
+     */
+    function toggleCategoryCollapse(categoryElement) {
+      categoryElement.classList.toggle('collapsed');
+    }
+
+    /**
+     * Renders the asset grid with loaded assets grouped by category
+     * Creates collapsible category groups with asset items inside
      */
     function renderAssetGrid() {
       const assets = editorState.assets.items;
@@ -3034,17 +3168,24 @@
         return;
       }
 
-      // Create the grid container
-      const grid = document.createElement('div');
-      grid.className = 'asset-grid';
+      // Group assets by category
+      const groups = groupAssetsByCategory(assets);
 
-      // Create asset items
-      assets.forEach((asset) => {
-        const item = createAssetItem(asset);
-        grid.appendChild(item);
+      // Get category names and sort them (General first, then alphabetical)
+      const categoryNames = Object.keys(groups).sort((a, b) => {
+        if (a === 'General') return -1;
+        if (b === 'General') return 1;
+        return a.localeCompare(b);
       });
 
-      assetGridContainer.appendChild(grid);
+      // Create category groups (skip empty groups)
+      categoryNames.forEach((categoryName) => {
+        const categoryAssets = groups[categoryName];
+        if (categoryAssets && categoryAssets.length > 0) {
+          const categoryGroup = createCategoryGroup(categoryName, categoryAssets);
+          assetGridContainer.appendChild(categoryGroup);
+        }
+      });
 
       // Update asset count in header
       assetCount.textContent = `(${assets.length})`;
@@ -3055,7 +3196,7 @@
 
     /**
      * Creates a single asset item element
-     * @param {Object} asset - The asset object { notation, filename, filepath }
+     * @param {Object} asset - The asset object { notation, filename, filepath, category }
      * @returns {HTMLElement} The asset item element
      */
     function createAssetItem(asset) {

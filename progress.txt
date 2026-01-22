@@ -1033,3 +1033,29 @@
   - img.onerror handler for graceful error state (placeholder with notation text)
   - Asset item dataset.notation stores notation for future click handling (US-045)
 ---
+
+## Iteration 44 - US-044: Organize Assets by Game Category
+- What was implemented:
+  - Updated parseMappingFile() to extract category from subfolder path in filename
+  - Files in root folder get category "General", files like "Tekken7/df.svg" get category "Tekken7"
+  - Added CSS styles for collapsible category groups (header, toggle arrow, content container)
+  - Created groupAssetsByCategory() function to group assets by category property
+  - Created createCategoryGroup() function to build collapsible group with header and grid
+  - Created toggleCategoryCollapse() function for expand/collapse functionality
+  - Updated renderAssetGrid() to group assets by category and render collapsible groups
+  - Category sorting: "General" first, then alphabetical order
+  - Empty groups are automatically hidden (only groups with assets are rendered)
+  - Groups default to expanded state (collapsed class must be added explicitly)
+  - Added 7 new unit tests for category extraction
+- Files changed:
+  - editor/main.js (updated parseMappingFile to add category field)
+  - editor/index.html (CSS for category groups, JS for grouping/collapsing)
+  - tests/assetMapping.test.js (updated mock parser, added category tests)
+  - PRD.md (marked US-044 as complete)
+- Learnings for future iterations:
+  - Path normalization (replace \\ with /) needed for cross-platform category extraction
+  - Use indexOf('/') > 0 to ensure there's actual content before the slash
+  - Category sorting with localeCompare and special case for "General" at top
+  - Collapsible groups use CSS class toggle pattern (.collapsed hides content)
+  - Toggle arrow rotates via CSS transform: rotate(-90deg) when collapsed
+---

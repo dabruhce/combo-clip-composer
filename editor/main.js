@@ -384,9 +384,10 @@ function handleCheckIsDirectory(event, filePath) {
  * Parses a mapping.txt file and returns an array of asset mappings.
  * Format: one mapping per line as `notation,filename` (e.g., `df,df.png`)
  * Lines starting with # are comments, empty lines are skipped.
+ * Filenames can include subfolder paths (e.g., `Tekken7/df.svg`) which determine the category.
  * @param {string} mappingFilePath - Path to the mapping.txt file
  * @param {string} folderPath - Base folder path for resolving filenames
- * @returns {{ notation: string, filename: string, filepath: string }[]}
+ * @returns {{ notation: string, filename: string, filepath: string, category: string }[]}
  */
 function parseMappingFile(mappingFilePath, folderPath) {
   const content = fs.readFileSync(mappingFilePath, 'utf-8');
@@ -425,10 +426,17 @@ function parseMappingFile(mappingFilePath, folderPath) {
     // Build full filepath
     const filepath = path.join(folderPath, filename);
 
+    // Extract category from subfolder path (e.g., "Tekken7/df.svg" -> "Tekken7")
+    // Files in root folder get category "General"
+    const normalizedFilename = filename.replace(/\\/g, '/'); // Normalize path separators
+    const slashIndex = normalizedFilename.indexOf('/');
+    const category = slashIndex > 0 ? normalizedFilename.substring(0, slashIndex) : 'General';
+
     assets.push({
       notation,
       filename,
-      filepath
+      filepath,
+      category
     });
   }
 

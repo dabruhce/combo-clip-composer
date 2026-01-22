@@ -22,7 +22,14 @@ const mockParseMappingFile = (mappingFilePath, folderPath) => {
     const filename = trimmedLine.substring(commaIndex + 1).trim();
     if (!notation || !filename) continue;
     const filepath = path.join(folderPath, filename);
-    assets.push({ notation, filename, filepath });
+
+    // Extract category from subfolder path (e.g., "Tekken7/df.svg" -> "Tekken7")
+    // Files in root folder get category "General"
+    const normalizedFilename = filename.replace(/\\/g, '/'); // Normalize path separators
+    const slashIndex = normalizedFilename.indexOf('/');
+    const category = slashIndex > 0 ? normalizedFilename.substring(0, slashIndex) : 'General';
+
+    assets.push({ notation, filename, filepath, category });
   }
 
   return assets;
@@ -63,17 +70,20 @@ describe('Asset Mapping Parser (US-042)', () => {
       expect(result[0]).toEqual({
         notation: 'df',
         filename: 'df.png',
-        filepath: path.join(tempDir, 'df.png')
+        filepath: path.join(tempDir, 'df.png'),
+        category: 'General'
       });
       expect(result[1]).toEqual({
         notation: 'f',
         filename: 'f.png',
-        filepath: path.join(tempDir, 'f.png')
+        filepath: path.join(tempDir, 'f.png'),
+        category: 'General'
       });
       expect(result[2]).toEqual({
         notation: 'd',
         filename: 'd.svg',
-        filepath: path.join(tempDir, 'd.svg')
+        filepath: path.join(tempDir, 'd.svg'),
+        category: 'General'
       });
     });
 
@@ -250,7 +260,7 @@ describe('Asset Mapping Parser (US-042)', () => {
   });
 
   describe('Return Structure', () => {
-    test('returns array of objects with notation, filename, and filepath', () => {
+    test('returns array of objects with notation, filename, filepath, and category', () => {
       fs.writeFileSync(mappingFilePath, 'df,df.png');
       const result = parseMappingFile(mappingFilePath, tempDir);
 
@@ -258,6 +268,85 @@ describe('Asset Mapping Parser (US-042)', () => {
       expect(result[0]).toHaveProperty('notation');
       expect(result[0]).toHaveProperty('filename');
       expect(result[0]).toHaveProperty('filepath');
+      expect(result[0]).toHaveProperty('category');
+    });
+  });
+
+  describe('Category Extraction (US-044)', () => {
+    test('assigns "General" category to files in root folder', () => {
+      fs.writeFileSync(mappingFilePath, 'df,df.png\nf,f.svg');
+      const result = parseMappingFile(mappingFilePath, tempDir);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].category).toBe('General');
+      expect(result[1].category).toBe('General');
+    });
+
+    test('extracts category from subfolder path', () => {
+      fs.writeFileSync(mappingFilePath, 'df,Tekken7/df.svg\n1,Tekken7/1.svg');
+      const result = parseMappingFile(mappingFilePath, tempDir);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].category).toBe('Tekken7');
+      expect(result[1].category).toBe('Tekken7');
+    });
+
+    test('extracts category from different subfolders', () => {
+      fs.writeFileSync(mappingFilePath,
+        'df,Common/df.svg\n' +
+        'f,Common/f.svg\n' +
+        '1,Tekken7/1.svg\n' +
+        '2,StreetFighter/2.png'
+      );
+      const result = parseMappingFile(mappingFilePath, tempDir);
+
+      expect(result).toHaveLength(4);
+      expect(result[0].category).toBe('Common');
+      expect(result[1].category).toBe('Common');
+      expect(result[2].category).toBe('Tekken7');
+      expect(result[3].category).toBe('StreetFighter');
+    });
+
+    test('handles deeply nested paths (only uses first level as category)', () => {
+      fs.writeFileSync(mappingFilePath, 'df,games/Tekken7/images/df.svg');
+      const result = parseMappingFile(mappingFilePath, tempDir);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe('games');
+    });
+
+    test('handles mixed root and subfolder files', () => {
+      fs.writeFileSync(mappingFilePath,
+        'df,df.svg\n' +
+        '1,Tekken7/1.svg\n' +
+        'f,f.png\n' +
+        '2,Tekken7/2.svg'
+      );
+      const result = parseMappingFile(mappingFilePath, tempDir);
+
+      expect(result).toHaveLength(4);
+      expect(result[0].category).toBe('General');
+      expect(result[1].category).toBe('Tekken7');
+      expect(result[2].category).toBe('General');
+      expect(result[3].category).toBe('Tekken7');
+    });
+
+    test('handles backslash path separators (Windows style)', () => {
+      fs.writeFileSync(mappingFilePath, 'df,Tekken7\\df.svg');
+      const result = parseMappingFile(mappingFilePath, tempDir);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe('Tekken7');
+    });
+
+    test('preserves full filename in filepath while extracting category', () => {
+      fs.writeFileSync(mappingFilePath, 'df,Tekken7/images/df.svg');
+      const result = parseMappingFile(mappingFilePath, tempDir);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].filename).toBe('Tekken7/images/df.svg');
+      expect(result[0].filepath).toBe(path.join(tempDir, 'Tekken7/images/df.svg'));
+      expect(result[0].category).toBe('Tekken7');
     });
   });
 });
