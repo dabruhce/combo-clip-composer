@@ -429,6 +429,98 @@
       flex-direction: column;
     }
 
+    /* Asset Panel */
+    .asset-panel {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid #3d3d3d;
+      flex: 1;
+      min-height: 150px;
+    }
+
+    .asset-panel .panel-header {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .asset-panel .panel-header:hover {
+      background-color: #333333;
+    }
+
+    .asset-panel .panel-header .toggle-icon {
+      margin-right: 6px;
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+
+    .asset-panel.collapsed .panel-content {
+      display: none;
+    }
+
+    .asset-panel.collapsed .toggle-icon {
+      transform: rotate(-90deg);
+    }
+
+    .asset-panel .panel-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .asset-empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      color: #666666;
+      font-size: 13px;
+    }
+
+    .asset-empty-state p {
+      margin: 0 0 12px 0;
+    }
+
+    .asset-empty-state .asset-drop-hint {
+      font-size: 11px;
+      color: #555555;
+    }
+
+    .asset-load-btn {
+      background-color: #0e639c;
+      color: #ffffff;
+      border: none;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 2px;
+      margin-top: 8px;
+    }
+
+    .asset-load-btn:hover {
+      background-color: #1177bb;
+    }
+
+    .asset-load-btn:disabled {
+      background-color: #555555;
+      cursor: not-allowed;
+    }
+
+    .asset-grid-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: none;
+    }
+
+    .asset-grid-container.visible {
+      display: block;
+    }
+
     /* Timeline at bottom */
     .timeline {
       height: 150px;
@@ -1706,11 +1798,32 @@
       </div>
     </div>
 
-    <!-- Right Panel - Layers -->
+    <!-- Right Panel - Layers and Assets -->
     <div class="panel-right">
       <div class="panel-header">Layers</div>
       <div class="panel-content">
         <p style="color: #666666; font-size: 13px;">No layers yet</p>
+      </div>
+
+      <!-- Asset Panel -->
+      <div class="asset-panel" id="assetPanel">
+        <div class="panel-header" onclick="toggleAssetPanel()">
+          <span class="toggle-icon">▼</span>
+          <span>ASSETS</span>
+          <span class="asset-count" id="assetCount" style="margin-left: auto; font-weight: normal;"></span>
+        </div>
+        <div class="panel-content">
+          <!-- Empty state - shown when no assets loaded -->
+          <div class="asset-empty-state" id="assetEmptyState">
+            <p>No assets loaded.</p>
+            <p class="asset-drop-hint">Drop a folder or click to browse.</p>
+            <button class="asset-load-btn" id="btnLoadAssetFolder">Load Folder</button>
+          </div>
+          <!-- Asset grid - shown when assets are loaded -->
+          <div class="asset-grid-container" id="assetGridContainer">
+            <!-- Asset items will be inserted here dynamically -->
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2784,6 +2897,16 @@
       const section = document.getElementById(sectionId);
       if (section) {
         section.classList.toggle('collapsed');
+      }
+    }
+
+    /**
+     * Toggles the Asset panel collapsed state
+     */
+    function toggleAssetPanel() {
+      const panel = document.getElementById('assetPanel');
+      if (panel) {
+        panel.classList.toggle('collapsed');
       }
     }
 

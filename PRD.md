@@ -559,12 +559,12 @@ Add an asset browser panel to the editor that allows users to load, view, and us
 **Description:** As a user, I want to see a new "Assets" panel in the right side of the editor so that I have a dedicated space for browsing input notation images.
 
 **Acceptance Criteria:**
-- [ ] Add a new collapsible panel section in the right panel area (below or as a tab alongside timeline)
-- [ ] Panel has a header labeled "ASSETS"
-- [ ] Panel has an empty state message: "No assets loaded. Drop a folder or click to browse."
-- [ ] Panel styling matches existing editor theme (dark background, consistent fonts)
-- [ ] Typecheck passes (if applicable)
-- [ ] Verify panel displays correctly in browser
+- [x] Add a new collapsible panel section in the right panel area (below or as a tab alongside timeline)
+- [x] Panel has a header labeled "ASSETS"
+- [x] Panel has an empty state message: "No assets loaded. Drop a folder or click to browse."
+- [x] Panel styling matches existing editor theme (dark background, consistent fonts)
+- [x] Typecheck passes (if applicable)
+- [x] Verify panel displays correctly in browser
 
 ---
 
