@@ -798,12 +798,12 @@ Refactor the Asset Browser Panel to select a `mapping.txt` file directly instead
 **Description:** As a user, I want to drag and drop a .txt file onto the asset panel so that I can quickly load a mapping file.
 
 **Acceptance Criteria:**
-- [ ] Update `onAssetDrop` to check for .txt file extension instead of directory
-- [ ] Remove `handleCheckIsDirectory` IPC call (no longer needed for files)
-- [ ] Show error message if dropped item is not a .txt file
-- [ ] Dropped .txt file triggers same loading flow as file picker
-- [ ] Typecheck passes
-- [ ] Verify drag-and-drop works in browser
+- [x] Update `onAssetDrop` to check for .txt file extension instead of directory
+- [x] Remove `handleCheckIsDirectory` IPC call (no longer needed for files)
+- [x] Show error message if dropped item is not a .txt file
+- [x] Dropped .txt file triggers same loading flow as file picker
+- [x] Typecheck passes
+- [x] Verify drag-and-drop works in browser
 
 ---
 

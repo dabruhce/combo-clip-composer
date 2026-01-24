@@ -1185,3 +1185,37 @@
   - Migration code clears old localStorage key to prevent stale data issues
   - Dialog filter `properties: ['openFile']` for file selection vs `['openDirectory']` for folder
 ---
+
+## Iteration 49 - US-049: Update Path Resolution for Mapping File
+- What was implemented:
+  - Fixed broken reference from US-048: changed `loadAssetFolderByPath` to `loadAssetFile` in drag-drop handler
+  - The core path resolution logic was already implemented in US-048 (handleParseAssetMapping uses path.dirname)
+  - Verified all 32 asset mapping tests pass
+  - Verified all 512 project tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (fixed function reference in onAssetDrop at line 3629)
+  - PRD.md (marked US-049 as complete)
+- Learnings for future iterations:
+  - When renaming functions, grep for all references to avoid orphan calls
+  - The drag-drop path validates that dropped item is a directory, but with file-based selection this should change (US-050)
+  - US-048 did most of the work; US-049 was primarily fixing a missed reference
+---
+
+## Iteration 50 - US-050: Update Drag-and-Drop to Accept Files
+- What was implemented:
+  - Updated `onAssetDrop` to check for .txt file extension instead of directory
+  - Replaced `handleCheckIsDirectory` IPC call with simple string extension check
+  - Shows error message "Please drop a .txt mapping file, not a folder or other file type." for non-.txt items
+  - Dropped .txt file triggers `loadAssetFile()` (same loading flow as file picker)
+  - Extension check uses `.toLowerCase().endsWith('.txt')` for case-insensitive matching
+  - Simplified error handling - no IPC call needed, just catches errors from loadAssetFile
+  - 512 tests pass (1 pre-existing canvas binding failure is environment issue)
+- Files changed:
+  - editor/index.html (simplified onAssetDrop function to check .txt extension)
+  - PRD.md (marked US-050 as complete)
+- Learnings for future iterations:
+  - Simple extension check is sufficient for file type validation (no IPC needed)
+  - Use `.toLowerCase().endsWith()` for case-insensitive file extension matching
+  - Error messages should specify what file type is expected (e.g., ".txt mapping file")
+  - The `handleCheckIsDirectory` IPC is still available for other use cases but not needed here
+---

@@ -3607,32 +3607,26 @@
         const filePath = file.path;
 
         if (!filePath) {
-          showAssetError('Could not get file path. Please use the Load Folder button.');
+          showAssetError('Could not get file path. Please use the Load Mapping File button.');
           return;
         }
 
-        // Check if it's a directory using IPC call to main process
+        // Check if it's a .txt file
+        const lowerPath = filePath.toLowerCase();
+        if (!lowerPath.endsWith('.txt')) {
+          showAssetError('Please drop a .txt mapping file, not a folder or other file type.');
+          return;
+        }
+
+        // It's a .txt file - load it
         try {
-          const result = await ipcRenderer.invoke('check-is-directory', filePath);
-
-          if (!result.success) {
-            showAssetError(result.error || 'Failed to check dropped item');
-            return;
-          }
-
-          if (!result.isDirectory) {
-            showAssetError('Please drop a folder, not a file.');
-            return;
-          }
-
-          // It's a directory - load it
           await loadAssetFile(filePath);
         } catch (error) {
-          showAssetError('Error processing dropped item: ' + (error.message || 'Unknown error'));
-          console.error('Error processing dropped item:', error);
+          showAssetError('Error processing dropped file: ' + (error.message || 'Unknown error'));
+          console.error('Error processing dropped file:', error);
         }
       } else {
-        showAssetError('Please drop a folder.');
+        showAssetError('Please drop a .txt mapping file.');
       }
     }
 
