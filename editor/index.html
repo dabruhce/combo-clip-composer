@@ -3626,7 +3626,7 @@
           }
 
           // It's a directory - load it
-          await loadAssetFolderByPath(filePath);
+          await loadAssetFile(filePath);
         } catch (error) {
           showAssetError('Error processing dropped item: ' + (error.message || 'Unknown error'));
           console.error('Error processing dropped item:', error);

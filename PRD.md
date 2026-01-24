@@ -784,12 +784,12 @@ Refactor the Asset Browser Panel to select a `mapping.txt` file directly instead
 **Description:** As a user, I want image paths in my mapping.txt resolved relative to the file's location so that my asset pack is portable.
 
 **Acceptance Criteria:**
-- [ ] Update `handleParseAssetMapping` to accept file path instead of folder path
-- [ ] Extract directory from file path using `path.dirname()`
-- [ ] Resolve image paths relative to the mapping file's directory
-- [ ] Update renderer's `loadAssetFolderByPath` to `loadAssetFile` (pass file path)
-- [ ] Existing mapping.txt format continues to work (e.g., `df,common/images/df.svg`)
-- [ ] Typecheck passes
+- [x] Update `handleParseAssetMapping` to accept file path instead of folder path
+- [x] Extract directory from file path using `path.dirname()`
+- [x] Resolve image paths relative to the mapping file's directory
+- [x] Update renderer's `loadAssetFolderByPath` to `loadAssetFile` (pass file path)
+- [x] Existing mapping.txt format continues to work (e.g., `df,common/images/df.svg`)
+- [x] Typecheck passes
 
 ---
 
