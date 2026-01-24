@@ -1279,3 +1279,63 @@
   - Panel positioned as sibling between main-content div and timeline div
   - CSS transitions on height work well for smooth collapse/expand animation
 ---
+
+## Iteration 53 - US-053: Implement Layers Panel Collapse/Expand
+- What was implemented:
+  - Verified all acceptance criteria were already satisfied from US-052 implementation
+  - Toggle button (▼) in panel header rotates -90deg when collapsed (consistent with other panels)
+  - Collapsed state: height 32px, content hidden via `display: none`
+  - Expanded state: height 120px with layer rows visible
+  - `toggleLayersPanel()` function exists and toggles `.collapsed` class
+  - CSS transition `height 0.2s ease` provides smooth animation
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - PRD.md (marked US-053 as complete)
+- Learnings for future iterations:
+  - Some stories are already fully implemented by prior stories due to dependencies
+  - The codebase uses consistent -90deg rotation for collapsed toggle icons across all panels
+  - Verification of existing implementation is still valuable work (confirms nothing is missing)
+---
+
+## Iteration 54 - US-054: Move Layers Content to Horizontal Panel
+- What was implemented:
+  - Removed Layers section from `.panel-right` (header + content paragraphs)
+  - Updated `.panel-right` CSS comment from "Layers/Elements" to "Assets"
+  - Updated HTML comment from "Right Panel - Layers and Assets" to "Right Panel - Assets"
+  - Verified horizontal layers panel (from US-052) already has:
+    - Empty state "No layers yet" centered via CSS
+    - Layer rows container with 28px height rows
+    - Label area (120px fixed) + track area (flexible) layout
+    - Visibility toggle styling and hover/selected states
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (removed Layers section from right panel, updated CSS comment)
+  - PRD.md (marked US-054 as complete)
+- Learnings for future iterations:
+  - Most of US-054 work was done by US-052 (horizontal panel creation)
+  - Right panel now contains only the Asset Panel
+  - The horizontal layers panel is properly positioned between main-content and timeline
+  - Layer row CSS is already prepared for future layer functionality implementation
+---
+
+## Iteration 55 - US-055: Style Layer Rows for Horizontal Layout
+- What was implemented:
+  - Enhanced CSS for layer visibility toggle: added width/height, border-radius, hover background
+  - Added `.layer-visibility-toggle.hidden` class for toggled-off visibility state
+  - Added `.layer-name` CSS class for text overflow handling (ellipsis)
+  - Added subtle left border on `.layer-row-track` to visually separate from label area
+  - Added sample layer rows HTML ("Combo Overlay", "Text Overlay") for visual testing
+  - Added `toggleLayerVisibility(toggleElement)` function to toggle visibility state
+  - Added `selectLayerRow(rowElement)` function to handle layer selection (deselects others)
+  - Added `initializeLayerRows()` function to set up click event handlers
+  - Eye icon (👁) used for visibility toggle with opacity changes for visible/hidden states
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (CSS enhancements, sample HTML rows, JS functions for layer interaction)
+  - PRD.md (marked US-055 as complete)
+- Learnings for future iterations:
+  - Eye icon emoji (👁) works well for visibility toggle in the editor
+  - Layer rows use existing patterns: click to select, stopPropagation on visibility toggle
+  - Sample rows (display: none by default) allow visual testing when unhidden via dev tools
+  - Future layer functionality will replace placeholder rows with dynamic content
+---

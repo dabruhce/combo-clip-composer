@@ -787,17 +787,52 @@
     .layer-visibility-toggle {
       cursor: pointer;
       opacity: 0.6;
-      font-size: 11px;
+      font-size: 14px;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      transition: opacity 0.15s, background-color 0.15s;
     }
 
     .layer-visibility-toggle:hover {
       opacity: 1;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .layer-visibility-toggle.hidden {
+      opacity: 0.3;
+    }
+
+    .layer-visibility-toggle.hidden:hover {
+      opacity: 0.6;
+    }
+
+    .layer-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .layer-row-track {
       flex: 1;
       height: 100%;
       background-color: #1e1e1e;
+      position: relative;
+    }
+
+    /* Subtle gradient on layer row track to indicate it's a separate area */
+    .layer-row-track::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background-color: #3d3d3d;
     }
 
     /* Timeline at bottom */
@@ -2114,7 +2149,21 @@
         No layers yet
       </div>
       <div class="layers-panel-rows" id="layersPanelRows" style="display: none;">
-        <!-- Layer rows will be added dynamically -->
+        <!-- Sample layer rows for visual testing - will be replaced by dynamic layers -->
+        <div class="layer-row" data-layer-id="combo-overlay">
+          <div class="layer-row-label">
+            <span class="layer-visibility-toggle" title="Toggle visibility">👁</span>
+            <span class="layer-name">Combo Overlay</span>
+          </div>
+          <div class="layer-row-track" id="layerTrack-combo-overlay"></div>
+        </div>
+        <div class="layer-row" data-layer-id="text-overlay">
+          <div class="layer-row-label">
+            <span class="layer-visibility-toggle hidden" title="Toggle visibility">👁</span>
+            <span class="layer-name">Text Overlay</span>
+          </div>
+          <div class="layer-row-track" id="layerTrack-text-overlay"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -3227,6 +3276,48 @@
       if (panel) {
         panel.classList.toggle('collapsed');
       }
+    }
+
+    /**
+     * Toggles visibility of a layer
+     * @param {HTMLElement} toggleElement - The visibility toggle button element
+     */
+    function toggleLayerVisibility(toggleElement) {
+      toggleElement.classList.toggle('hidden');
+      // Future: update layer visibility state and re-render preview
+    }
+
+    /**
+     * Selects a layer row
+     * @param {HTMLElement} rowElement - The layer row element
+     */
+    function selectLayerRow(rowElement) {
+      // Deselect all other rows
+      const allRows = document.querySelectorAll('.layer-row');
+      allRows.forEach(row => row.classList.remove('selected'));
+      // Select this row
+      rowElement.classList.add('selected');
+      // Future: update editor state with selected layer
+    }
+
+    /**
+     * Initializes layer row event handlers
+     */
+    function initializeLayerRows() {
+      // Set up visibility toggle click handlers
+      document.querySelectorAll('.layer-visibility-toggle').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation(); // Don't trigger row selection
+          toggleLayerVisibility(toggle);
+        });
+      });
+
+      // Set up row selection click handlers
+      document.querySelectorAll('.layer-row').forEach(row => {
+        row.addEventListener('click', () => {
+          selectLayerRow(row);
+        });
+      });
     }
 
     /**
@@ -6773,6 +6864,9 @@
     // Initialize
     console.log('Combo Clip Composer Editor initialized');
     updateStatusBar();
+
+    // Initialize layer row event handlers
+    initializeLayerRows();
 
     // Attempt to auto-reload assets from localStorage
     tryAutoReloadAssets();

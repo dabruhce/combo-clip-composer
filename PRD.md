@@ -905,14 +905,14 @@ Move the Layers panel from the right sidebar to a full-width horizontal panel po
 **Description:** As a user, I want layer rows styled appropriately for the horizontal layout so that they align with the timeline tracks below.
 
 **Acceptance Criteria:**
-- [ ] Each layer row has: visibility toggle (eye icon), layer name, and track area
-- [ ] Layer name column has fixed width (~120px) matching keyframe track labels
-- [ ] Track area fills remaining width and aligns with timeline content below
-- [ ] Layer rows have subtle borders/separators between them
-- [ ] Hover state highlights layer row
-- [ ] Selected layer has distinct background color
-- [ ] Typecheck passes
-- [ ] Verify layer row styling in browser
+- [x] Each layer row has: visibility toggle (eye icon), layer name, and track area
+- [x] Layer name column has fixed width (~120px) matching keyframe track labels
+- [x] Track area fills remaining width and aligns with timeline content below
+- [x] Layer rows have subtle borders/separators between them
+- [x] Hover state highlights layer row
+- [x] Selected layer has distinct background color
+- [x] Typecheck passes
+- [x] Verify layer row styling in browser
 
 ---
 
