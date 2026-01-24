@@ -682,6 +682,124 @@
       display: none;
     }
 
+    /* Horizontal Layers Panel - Above Timeline */
+    .layers-panel {
+      background-color: #252526;
+      border-top: 1px solid #3d3d3d;
+      display: flex;
+      flex-direction: column;
+      height: 120px;
+      transition: height 0.2s ease;
+    }
+
+    .layers-panel.collapsed {
+      height: 32px;
+    }
+
+    .layers-panel-header {
+      height: 32px;
+      min-height: 32px;
+      background-color: #2d2d2d;
+      border-bottom: 1px solid #3d3d3d;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .layers-panel-header:hover {
+      background-color: #333333;
+    }
+
+    .layers-panel-header .toggle-icon {
+      margin-right: 8px;
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+
+    .layers-panel.collapsed .toggle-icon {
+      transform: rotate(-90deg);
+    }
+
+    .layers-panel-header .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #cccccc;
+    }
+
+    .layers-panel-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .layers-panel.collapsed .layers-panel-content {
+      display: none;
+    }
+
+    .layers-panel-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666666;
+      font-size: 13px;
+    }
+
+    .layers-panel-rows {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .layer-row {
+      height: 28px;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #3d3d3d;
+    }
+
+    .layer-row:hover {
+      background-color: #2d2d2d;
+    }
+
+    .layer-row.selected {
+      background-color: #094771;
+    }
+
+    .layer-row-label {
+      width: 120px;
+      min-width: 120px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #cccccc;
+      border-right: 1px solid #3d3d3d;
+    }
+
+    .layer-visibility-toggle {
+      cursor: pointer;
+      opacity: 0.6;
+      font-size: 11px;
+    }
+
+    .layer-visibility-toggle:hover {
+      opacity: 1;
+    }
+
+    .layer-row-track {
+      flex: 1;
+      height: 100%;
+      background-color: #1e1e1e;
+    }
+
     /* Timeline at bottom */
     .timeline {
       height: 150px;
@@ -1990,6 +2108,22 @@
     </div>
   </div>
 
+  <!-- Horizontal Layers Panel - Above Timeline -->
+  <div class="layers-panel" id="layersPanel">
+    <div class="layers-panel-header" onclick="toggleLayersPanel()">
+      <span class="toggle-icon">▼</span>
+      <span class="panel-title">LAYERS</span>
+    </div>
+    <div class="layers-panel-content" id="layersPanelContent">
+      <div class="layers-panel-empty" id="layersPanelEmpty">
+        No layers yet
+      </div>
+      <div class="layers-panel-rows" id="layersPanelRows" style="display: none;">
+        <!-- Layer rows will be added dynamically -->
+      </div>
+    </div>
+  </div>
+
   <!-- Timeline -->
   <div class="timeline">
     <div class="timeline-controls">
@@ -3085,6 +3219,16 @@
      */
     function toggleAssetPanel() {
       const panel = document.getElementById('assetPanel');
+      if (panel) {
+        panel.classList.toggle('collapsed');
+      }
+    }
+
+    /**
+     * Toggles the Layers panel collapsed state
+     */
+    function toggleLayersPanel() {
+      const panel = document.getElementById('layersPanel');
       if (panel) {
         panel.classList.toggle('collapsed');
       }

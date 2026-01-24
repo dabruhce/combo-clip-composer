@@ -834,3 +834,101 @@ Refactor the Asset Browser Panel to select a `mapping.txt` file directly instead
 - Image filepath resolution: `path.join(path.dirname(mappingFilePath), imageRelativePath)`
 - The IPC handler rename should be atomic (update both main.js and renderer together)
 - Clear the old localStorage key `comboClipComposer_lastAssetFolder` on first load to migrate users
+
+---
+
+## Phase 15: Horizontal Layers Panel Above Timeline
+
+### Introduction
+
+Move the Layers panel from the right sidebar to a full-width horizontal panel positioned directly above the timeline controls. This layout is more similar to professional video editing software (Premiere, DaVinci Resolve) where layers/tracks are displayed horizontally above the timeline, making it easier to see the relationship between layers and time.
+
+### Goals
+
+- Relocate Layers panel from right sidebar to above timeline
+- Create a full-width horizontal panel with collapsible layer rows
+- Add collapse/expand toggle functionality
+- Update right panel to contain only the Assets panel
+
+---
+
+#### US-052: Create Horizontal Layers Panel Structure
+
+**Description:** As a user, I want a horizontal layers panel above the timeline so that I can see layers in a layout similar to professional video editors.
+
+**Acceptance Criteria:**
+- [x] Create new `.layers-panel` div positioned between main content area and timeline
+- [x] Panel spans full width of the editor (same width as timeline)
+- [x] Panel has header with "LAYERS" title and collapse toggle button (▼/▶)
+- [x] Panel content area displays layer rows horizontally
+- [x] Default height approximately 120px when expanded
+- [x] Styling matches existing dark theme (#252526 background, consistent fonts)
+- [x] Typecheck passes
+- [x] Verify panel displays correctly in browser
+
+---
+
+#### US-053: Implement Layers Panel Collapse/Expand
+
+**Description:** As a user, I want to collapse the layers panel so that I can maximize timeline space when not editing layers.
+
+**Acceptance Criteria:**
+- [ ] Toggle button in panel header switches between expanded (▼) and collapsed (▶) states
+- [ ] Collapsed state hides layer content, showing only the header bar (~32px height)
+- [ ] Expanded state shows full panel with layer rows (~120px height)
+- [ ] Add `toggleLayersPanel()` JavaScript function
+- [ ] Collapse state persists via CSS class `.collapsed` on panel
+- [ ] Smooth CSS transition for expand/collapse animation (0.2s)
+- [ ] Typecheck passes
+- [ ] Verify collapse/expand works in browser
+
+---
+
+#### US-054: Move Layers Content to Horizontal Panel
+
+**Description:** As a user, I want my layer information displayed in the new horizontal panel so that all layer functionality works in the new location.
+
+**Acceptance Criteria:**
+- [ ] Remove Layers section from `.panel-right` (keep only Assets panel)
+- [ ] Move existing layers placeholder text ("No layers yet") to new horizontal panel
+- [ ] Update `.panel-right` header to just show "Assets" or remove redundant header
+- [ ] Layer rows display horizontally with layer name on left, track area on right
+- [ ] Each layer row has consistent height (~28px)
+- [ ] Empty state message centered in panel content area
+- [ ] Typecheck passes
+- [ ] Verify layers content displays in new location
+
+---
+
+#### US-055: Style Layer Rows for Horizontal Layout
+
+**Description:** As a user, I want layer rows styled appropriately for the horizontal layout so that they align with the timeline tracks below.
+
+**Acceptance Criteria:**
+- [ ] Each layer row has: visibility toggle (eye icon), layer name, and track area
+- [ ] Layer name column has fixed width (~120px) matching keyframe track labels
+- [ ] Track area fills remaining width and aligns with timeline content below
+- [ ] Layer rows have subtle borders/separators between them
+- [ ] Hover state highlights layer row
+- [ ] Selected layer has distinct background color
+- [ ] Typecheck passes
+- [ ] Verify layer row styling in browser
+
+---
+
+### Non-Goals (Phase 15)
+
+- Drag-and-drop layer reordering (future enhancement)
+- Layer grouping or nesting
+- Layer locking functionality
+- Multiple layer selection
+- Actual layer track content (this phase is layout only)
+
+### Technical Considerations (Phase 15)
+
+- The new `.layers-panel` should be a sibling to `.timeline`, inserted just before it in the DOM
+- Use CSS flexbox for the horizontal layout with fixed left column and flexible right area
+- The layer track area width should sync with timeline content width for visual alignment
+- Consider using CSS custom properties for shared dimensions (e.g., `--layer-label-width: 120px`)
+- The existing "No layers yet" placeholder is sufficient for now; actual layer functionality is future work
+- Panel collapse state could be persisted to localStorage (optional, not required)
