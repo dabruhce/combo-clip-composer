@@ -889,14 +889,14 @@ Move the Layers panel from the right sidebar to a full-width horizontal panel po
 **Description:** As a user, I want my layer information displayed in the new horizontal panel so that all layer functionality works in the new location.
 
 **Acceptance Criteria:**
-- [ ] Remove Layers section from `.panel-right` (keep only Assets panel)
-- [ ] Move existing layers placeholder text ("No layers yet") to new horizontal panel
-- [ ] Update `.panel-right` header to just show "Assets" or remove redundant header
-- [ ] Layer rows display horizontally with layer name on left, track area on right
-- [ ] Each layer row has consistent height (~28px)
-- [ ] Empty state message centered in panel content area
-- [ ] Typecheck passes
-- [ ] Verify layers content displays in new location
+- [x] Remove Layers section from `.panel-right` (keep only Assets panel)
+- [x] Move existing layers placeholder text ("No layers yet") to new horizontal panel
+- [x] Update `.panel-right` header to just show "Assets" or remove redundant header
+- [x] Layer rows display horizontally with layer name on left, track area on right
+- [x] Each layer row has consistent height (~28px)
+- [x] Empty state message centered in panel content area
+- [x] Typecheck passes
+- [x] Verify layers content displays in new location
 
 ---
 
