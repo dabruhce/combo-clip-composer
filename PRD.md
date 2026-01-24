@@ -812,13 +812,13 @@ Refactor the Asset Browser Panel to select a `mapping.txt` file directly instead
 **Description:** As a user, I want clear labels indicating I'm selecting a mapping file so that the interface is intuitive.
 
 **Acceptance Criteria:**
-- [ ] Update empty state message: "No mapping loaded. Drop a file or click to browse."
-- [ ] Update button text: "Load Mapping File" (was "Load Folder")
-- [ ] Update loading state text: "Loading mapping..." (was "Loading...")
-- [ ] Update error messages to reference "mapping file" instead of "folder"
-- [ ] Update localStorage key to `comboClipComposer_lastAssetFile` (migration: clear old key)
-- [ ] Typecheck passes
-- [ ] Verify updated labels display correctly in browser
+- [x] Update empty state message: "No mapping loaded. Drop a file or click to browse."
+- [x] Update button text: "Load Mapping File" (was "Load Folder")
+- [x] Update loading state text: "Loading mapping..." (was "Loading...")
+- [x] Update error messages to reference "mapping file" instead of "folder"
+- [x] Update localStorage key to `comboClipComposer_lastAssetFile` (migration: clear old key)
+- [x] Typecheck passes
+- [x] Verify updated labels display correctly in browser
 
 ---
 

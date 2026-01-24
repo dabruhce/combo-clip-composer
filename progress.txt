@@ -1219,3 +1219,22 @@
   - Error messages should specify what file type is expected (e.g., ".txt mapping file")
   - The `handleCheckIsDirectory` IPC is still available for other use cases but not needed here
 ---
+
+## Iteration 51 - US-051: Update UI Labels and Text
+- What was implemented:
+  - Updated empty state message from "No assets loaded" to "No mapping loaded"
+  - Updated drop hint from "Drop a folder or click to browse" to "Drop a file or click to browse"
+  - Updated button text from "Load Folder" to "Load Mapping File"
+  - Updated loading state text from "Loading..." to "Loading mapping..."
+  - Updated resetAssetError to use "No mapping loaded" text
+  - Error messages already referenced "mapping file" from US-048/US-050 changes
+  - localStorage key already updated to `comboClipComposer_lastAssetFile` in US-048 with migration
+  - 512 tests pass (1 pre-existing canvas binding failure is environment issue)
+- Files changed:
+  - editor/index.html (updated HTML labels, setAssetLoadingState text, resetAssetError text)
+  - PRD.md (marked US-051 as complete)
+- Learnings for future iterations:
+  - Some acceptance criteria may already be satisfied by earlier iterations (localStorage key from US-048)
+  - UI text updates are straightforward but easy to miss across multiple functions
+  - The resetAssetError function also needed updating (resets error message to default text)
+---

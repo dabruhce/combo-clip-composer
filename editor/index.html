@@ -1977,9 +1977,9 @@
         <div class="panel-content">
           <!-- Empty state - shown when no assets loaded -->
           <div class="asset-empty-state" id="assetEmptyState">
-            <p>No assets loaded.</p>
-            <p class="asset-drop-hint">Drop a folder or click to browse.</p>
-            <button class="asset-load-btn" id="btnLoadAssetFolder">Load Folder</button>
+            <p>No mapping loaded.</p>
+            <p class="asset-drop-hint">Drop a file or click to browse.</p>
+            <button class="asset-load-btn" id="btnLoadAssetFolder">Load Mapping File</button>
           </div>
           <!-- Asset grid - shown when assets are loaded -->
           <div class="asset-grid-container" id="assetGridContainer">
@@ -3421,9 +3421,9 @@
       editorState.assets.isLoading = isLoading;
       btnLoadAssetFolder.disabled = isLoading;
       if (isLoading) {
-        btnLoadAssetFolder.textContent = 'Loading...';
+        btnLoadAssetFolder.textContent = 'Loading mapping...';
       } else {
-        btnLoadAssetFolder.textContent = 'Load Folder';
+        btnLoadAssetFolder.textContent = 'Load Mapping File';
       }
     }
 
@@ -3447,7 +3447,7 @@
       editorState.assets.error = null;
       const emptyStateP = assetEmptyState.querySelector('p:first-child');
       if (emptyStateP) {
-        emptyStateP.textContent = 'No assets loaded.';
+        emptyStateP.textContent = 'No mapping loaded.';
         emptyStateP.style.color = '';
       }
     }
