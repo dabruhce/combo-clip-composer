@@ -873,14 +873,14 @@ Move the Layers panel from the right sidebar to a full-width horizontal panel po
 **Description:** As a user, I want to collapse the layers panel so that I can maximize timeline space when not editing layers.
 
 **Acceptance Criteria:**
-- [ ] Toggle button in panel header switches between expanded (▼) and collapsed (▶) states
-- [ ] Collapsed state hides layer content, showing only the header bar (~32px height)
-- [ ] Expanded state shows full panel with layer rows (~120px height)
-- [ ] Add `toggleLayersPanel()` JavaScript function
-- [ ] Collapse state persists via CSS class `.collapsed` on panel
-- [ ] Smooth CSS transition for expand/collapse animation (0.2s)
-- [ ] Typecheck passes
-- [ ] Verify collapse/expand works in browser
+- [x] Toggle button in panel header switches between expanded (▼) and collapsed (▶) states
+- [x] Collapsed state hides layer content, showing only the header bar (~32px height)
+- [x] Expanded state shows full panel with layer rows (~120px height)
+- [x] Add `toggleLayersPanel()` JavaScript function
+- [x] Collapse state persists via CSS class `.collapsed` on panel
+- [x] Smooth CSS transition for expand/collapse animation (0.2s)
+- [x] Typecheck passes
+- [x] Verify collapse/expand works in browser
 
 ---
 
