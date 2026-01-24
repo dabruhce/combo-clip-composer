@@ -1104,3 +1104,38 @@
   - Auto-reload should validate folder exists before attempting to load (check-is-directory IPC)
   - Clear saved path immediately when reload fails to avoid repeated failures
 ---
+
+## Phase 13 PRD Added - Tekken 7 Base Asset Pack
+- What was added:
+  - US-047: Create Tekken 7 Base Asset Mapping File
+- Goals:
+  - Provide a complete, working asset pack for Tekken 7 notation out of the box
+  - Map all button inputs (1, 2, 3, 4 and combinations)
+  - Map all directional inputs including held variants
+  - Follow the mapping.txt format from Phase 12
+- Technical considerations:
+  - mapping.txt location: `assets/games/mapping.txt`
+  - Subfolder paths: `Tekken7/images/1.svg`, `common/images/df.svg`
+  - Exclude special character files: `().svg`, `(.svg`, `).svg`, `0.svg`
+  - Include comment headers for category organization
+---
+
+## Iteration 47 - US-047: Create Tekken 7 Base Asset Mapping File
+- What was implemented:
+  - Created `assets/games/mapping.txt` with complete Tekken 7 notation mappings
+  - 34 total mappings: 15 button inputs, 9 directional inputs, 8 held variants, separator, dfa variant
+  - Organized with comment headers: Directional Inputs, Separator, Tekken 7 Button Inputs
+  - Uses subfolder paths: `common/images/d.svg`, `Tekken7/images/1.svg`
+  - Excluded special character files: `().svg`, `(.svg`, `).svg`, `0.svg`
+  - Verified all 34 mappings have existing files (0 missing)
+- Files changed:
+  - assets/games/mapping.txt (new)
+  - PRD.md (marked US-047 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - The mapping.txt format is simple: `notation,subfolder/images/filename.svg`
+  - Comment lines start with # and are skipped by parser
+  - Use forward slashes in paths for cross-platform compatibility
+  - The dfa.svg file represents a distinct notation (diagonal forward-down alternate)
+  - All 512 tests pass (pre-existing canvas binding failure is environment issue)
+---

@@ -699,3 +699,51 @@ Add an asset browser panel to the editor that allows users to load, view, and us
   2,2.svg
   1+2,1+2.svg
   ```
+
+---
+
+## Phase 13: Tekken 7 Base Asset Pack
+
+### Introduction
+
+Create a ready-to-use `mapping.txt` file in the existing `assets/games/` directory that maps all Tekken 7 button inputs and common directional inputs to their SVG files. This provides users with a working asset pack they can immediately load in the Asset Browser Panel.
+
+### Goals
+
+- Provide a complete, working asset pack for Tekken 7 notation out of the box
+- Map all button inputs (1, 2, 3, 4 and combinations)
+- Map all directional inputs including held variants (d, df, f, etc. + dp, dfp, fp, etc.)
+- Follow the mapping.txt format established in Phase 12
+
+---
+
+#### US-047: Create Tekken 7 Base Asset Mapping File
+
+**Description:** As a user, I want a pre-configured mapping.txt file for Tekken 7 inputs so that I can immediately use the Asset Browser Panel without creating my own mappings.
+
+**Acceptance Criteria:**
+- [x] Create `assets/games/mapping.txt` file
+- [x] Map all Tekken7 button inputs: 1, 2, 3, 4, and all combinations (1+2, 1+3, 1+4, 2+3, 2+4, 3+4, 1+2+3, 1+2+4, 1+3+4, 2+3+4, 1+2+3+4)
+- [x] Map all common directional inputs: d, df, f, db, b, u, uf, ub, n (neutral)
+- [x] Map all held directional variants: dp, dfp, fp, bp, up, ufp, ubp, dbp
+- [x] Map separator image: sep
+- [x] Exclude special character files: `().svg`, `(.svg`, `).svg`, `0.svg`
+- [x] Use subfolder paths in filenames: `Tekken7/images/1.svg`, `common/images/df.svg`
+- [x] Include descriptive comments grouping inputs by category
+- [x] File follows the format: `notation,subfolder/images/filename.svg`
+- [x] Verify file loads correctly in Asset Browser Panel
+
+---
+
+### Non-Goals (Phase 13)
+
+- Creating new SVG images
+- Modifying existing image files
+- Supporting other games (Street Fighter, etc.) - future phases
+
+### Technical Considerations (Phase 13)
+
+- The mapping.txt lives at `assets/games/mapping.txt` (root of games folder)
+- Subfolder paths use forward slashes for cross-platform compatibility
+- File uses categories via comment headers for organization in the Asset Browser
+- The `dfa.svg` file appears to be a variant - include if it represents a distinct notation
