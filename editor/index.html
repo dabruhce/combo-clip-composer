@@ -2186,7 +2186,7 @@
       },
       // Asset panel state
       assets: {
-        folderPath: null,
+        filePath: null,   // Path to the mapping.txt file (renamed from folderPath)
         isLoading: false,
         items: [], // Array of { notation, filename, filepath }
         error: null
@@ -2300,7 +2300,7 @@
     const btnUnloadAssets = document.getElementById('btnUnloadAssets');
 
     // LocalStorage key for asset persistence
-    const ASSET_FOLDER_STORAGE_KEY = 'comboClipComposer_lastAssetFolder';
+    const ASSET_FILE_STORAGE_KEY = 'comboClipComposer_lastAssetFile';
 
     // Import keyframe classes from keyframe.js
     const { Keyframe, KeyframeTrack, KeyframeManager, INTERPOLATION_TYPES } = require('./models/keyframe.js');
@@ -3112,16 +3112,17 @@
      */
     function unloadAssets() {
       // Clear editor state
-      editorState.assets.folderPath = null;
+      editorState.assets.filePath = null;
       editorState.assets.items = [];
       editorState.assets.error = null;
       editorState.assets.isLoading = false;
 
-      // Clear localStorage
+      // Clear localStorage (clear both old and new keys for migration)
       try {
-        localStorage.removeItem(ASSET_FOLDER_STORAGE_KEY);
+        localStorage.removeItem(ASSET_FILE_STORAGE_KEY);
+        localStorage.removeItem('comboClipComposer_lastAssetFolder'); // Clear old key for migration
       } catch (e) {
-        console.warn('Failed to remove asset folder path from localStorage:', e);
+        console.warn('Failed to remove asset file path from localStorage:', e);
       }
 
       // Reset UI
@@ -3139,35 +3140,42 @@
      */
     async function tryAutoReloadAssets() {
       try {
-        const savedPath = localStorage.getItem(ASSET_FOLDER_STORAGE_KEY);
+        // Clear old localStorage key for migration
+        try {
+          localStorage.removeItem('comboClipComposer_lastAssetFolder');
+        } catch (e) {
+          // Ignore
+        }
+
+        const savedPath = localStorage.getItem(ASSET_FILE_STORAGE_KEY);
         if (!savedPath) {
           return; // No saved path, nothing to reload
         }
 
         console.log('Attempting to auto-reload assets from:', savedPath);
 
-        // Check if the folder still exists
-        const isDirectory = await ipcRenderer.invoke('check-is-directory', savedPath);
-        if (!isDirectory) {
-          // Folder no longer exists, clear saved path and show message
-          console.warn('Saved asset folder no longer exists:', savedPath);
-          localStorage.removeItem(ASSET_FOLDER_STORAGE_KEY);
-          showAssetError('Previously loaded folder no longer exists. Please select a new folder.');
+        // Check if the file still exists using check-is-directory (which also validates existence)
+        const result = await ipcRenderer.invoke('check-is-directory', savedPath);
+        if (!result.success) {
+          // File no longer exists, clear saved path and show message
+          console.warn('Saved mapping file no longer exists:', savedPath);
+          localStorage.removeItem(ASSET_FILE_STORAGE_KEY);
+          showAssetError('Previously loaded mapping file no longer exists. Please select a new file.');
           return;
         }
 
-        // Attempt to reload the folder
-        await loadAssetFolderByPath(savedPath);
+        // Attempt to reload the file
+        await loadAssetFile(savedPath);
 
       } catch (error) {
         console.error('Error auto-reloading assets:', error);
         // Clear saved path on error
         try {
-          localStorage.removeItem(ASSET_FOLDER_STORAGE_KEY);
+          localStorage.removeItem(ASSET_FILE_STORAGE_KEY);
         } catch (e) {
           // Ignore localStorage errors
         }
-        showAssetError('Failed to reload saved asset folder. Please select a new folder.');
+        showAssetError('Failed to reload saved mapping file. Please select a new file.');
       }
     }
 
@@ -3293,12 +3301,12 @@
       // Show the unload button
       btnUnloadAssets.style.display = 'inline-block';
 
-      // Save folder path to localStorage for persistence
-      if (editorState.assets.folderPath) {
+      // Save file path to localStorage for persistence
+      if (editorState.assets.filePath) {
         try {
-          localStorage.setItem(ASSET_FOLDER_STORAGE_KEY, editorState.assets.folderPath);
+          localStorage.setItem(ASSET_FILE_STORAGE_KEY, editorState.assets.filePath);
         } catch (e) {
-          console.warn('Failed to save asset folder path to localStorage:', e);
+          console.warn('Failed to save asset file path to localStorage:', e);
         }
       }
     }
@@ -3445,10 +3453,10 @@
     }
 
     /**
-     * Handles the Load Folder button click
-     * Opens folder picker dialog and stores the selected path
+     * Handles the Load Mapping File button click
+     * Opens file picker dialog and stores the selected path
      */
-    async function handleLoadAssetFolder() {
+    async function handleLoadAssetFile() {
       // Reset any previous error state
       resetAssetError();
 
@@ -3456,8 +3464,8 @@
       setAssetLoadingState(true);
 
       try {
-        // Call IPC to open folder picker
-        const result = await ipcRenderer.invoke('select-asset-folder');
+        // Call IPC to open file picker
+        const result = await ipcRenderer.invoke('select-asset-file');
 
         if (result.canceled) {
           // User cancelled - just reset loading state
@@ -3468,32 +3476,25 @@
         if (!result.success) {
           // Error occurred
           setAssetLoadingState(false);
-          showAssetError(result.error || 'Failed to select folder');
+          showAssetError(result.error || 'Failed to select file');
           return;
         }
 
-        // Store the selected folder path
-        editorState.assets.folderPath = result.folderPath;
-        setAssetLoadingState(false);
-
-        // For now, just show success message in console
-        // (Actual asset loading will be implemented in US-042)
-        console.log('Asset folder selected:', result.folderPath);
-
-        // TODO: Next story (US-042) will parse mapping.txt and load assets
+        // Load the selected file
+        await loadAssetFile(result.filePath);
 
       } catch (error) {
         setAssetLoadingState(false);
-        showAssetError('Failed to load folder: ' + (error.message || 'Unknown error'));
-        console.error('Error loading asset folder:', error);
+        showAssetError('Failed to load file: ' + (error.message || 'Unknown error'));
+        console.error('Error loading asset file:', error);
       }
     }
 
     /**
-     * Handles a folder path being loaded (shared between button and drag-drop)
-     * @param {string} folderPath - Path to the folder to load
+     * Handles a mapping file path being loaded (shared between button and drag-drop)
+     * @param {string} filePath - Path to the mapping.txt file to load
      */
-    async function loadAssetFolderByPath(folderPath) {
+    async function loadAssetFile(filePath) {
       // Reset any previous error state
       resetAssetError();
 
@@ -3501,15 +3502,15 @@
       setAssetLoadingState(true);
 
       try {
-        // Store the selected folder path
-        editorState.assets.folderPath = folderPath;
+        // Store the selected file path
+        editorState.assets.filePath = filePath;
 
-        // Parse the mapping.txt file
-        const result = await ipcRenderer.invoke('parse-asset-mapping', folderPath);
+        // Parse the mapping file (IPC handler now uses path.dirname to get folder)
+        const result = await ipcRenderer.invoke('parse-asset-mapping', filePath);
 
         if (!result.success) {
           setAssetLoadingState(false);
-          showAssetError(result.error || 'Failed to parse mapping.txt');
+          showAssetError(result.error || 'Failed to parse mapping file');
           return;
         }
 
@@ -3522,7 +3523,7 @@
           console.warn('Some asset files were not found:', result.missingFiles);
         }
 
-        console.log('Asset folder loaded:', folderPath);
+        console.log('Mapping file loaded:', filePath);
         console.log('Parsed assets:', result.assets.length, 'valid,', result.totalParsed, 'total');
 
         setAssetLoadingState(false);
@@ -3532,8 +3533,8 @@
 
       } catch (error) {
         setAssetLoadingState(false);
-        showAssetError('Failed to load folder: ' + (error.message || 'Unknown error'));
-        console.error('Error loading asset folder:', error);
+        showAssetError('Failed to load file: ' + (error.message || 'Unknown error'));
+        console.error('Error loading asset file:', error);
       }
     }
 
@@ -6628,7 +6629,7 @@
     });
 
     // Asset panel event listeners
-    btnLoadAssetFolder.addEventListener('click', handleLoadAssetFolder);
+    btnLoadAssetFolder.addEventListener('click', handleLoadAssetFile);
 
     // Asset panel drag-and-drop event listeners
     assetEmptyState.addEventListener('dragenter', onAssetDragEnter);

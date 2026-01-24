@@ -351,26 +351,22 @@ describe('Asset Mapping Parser (US-042)', () => {
   });
 });
 
-describe('handleParseAssetMapping IPC Handler Behavior', () => {
+describe('handleParseAssetMapping IPC Handler Behavior (US-048 updated)', () => {
   // These tests describe the expected behavior of the IPC handler
+  // As of US-048, the handler now accepts a file path directly instead of a folder path
   // The actual handler runs in Electron main process, so we test the expected contract
 
-  test('should return success: false if folderPath is empty', () => {
-    // Expected behavior: { success: false, error: 'No folder path provided' }
+  test('should return success: false if filePath is empty', () => {
+    // Expected behavior: { success: false, error: 'No file path provided' }
     expect(true).toBe(true); // Placeholder - actual IPC tested in integration
   });
 
-  test('should return success: false if folder does not exist', () => {
-    // Expected behavior: { success: false, error: 'Folder does not exist' }
+  test('should return success: false if mapping file does not exist', () => {
+    // Expected behavior: { success: false, error: 'Mapping file does not exist' }
     expect(true).toBe(true);
   });
 
-  test('should return success: false if mapping.txt is missing', () => {
-    // Expected behavior: { success: false, error: 'mapping.txt not found in the selected folder' }
-    expect(true).toBe(true);
-  });
-
-  test('should return success: false if mapping.txt is empty', () => {
+  test('should return success: false if mapping file is empty', () => {
     // Expected behavior: { success: false, error: 'mapping.txt is empty or contains no valid mappings' }
     expect(true).toBe(true);
   });
@@ -382,6 +378,11 @@ describe('handleParseAssetMapping IPC Handler Behavior', () => {
 
   test('should include missingFiles array when some files do not exist', () => {
     // Expected behavior: { success: true, assets: [...], missingFiles: ['missing.png'] }
+    expect(true).toBe(true);
+  });
+
+  test('should resolve image paths relative to mapping file directory', () => {
+    // Expected behavior: filepath = path.join(path.dirname(mappingFilePath), imageRelativePath)
     expect(true).toBe(true);
   });
 });

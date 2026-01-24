@@ -747,3 +747,90 @@ Create a ready-to-use `mapping.txt` file in the existing `assets/games/` directo
 - Subfolder paths use forward slashes for cross-platform compatibility
 - File uses categories via comment headers for organization in the Asset Browser
 - The `dfa.svg` file appears to be a variant - include if it represents a distinct notation
+
+---
+
+## Phase 14: Asset Browser - Select Mapping File Instead of Folder
+
+### Introduction
+
+Refactor the Asset Browser Panel to select a `mapping.txt` file directly instead of selecting a folder. This simplifies the user experience since users explicitly choose which mapping file to load, and image paths in the mapping file are resolved relative to the file's location.
+
+### Goals
+
+- Change file picker from folder selection to .txt file selection
+- Update drag-and-drop to accept .txt files instead of folders
+- Resolve image paths relative to the mapping.txt file location
+- Update all UI labels to reflect file-based selection
+
+---
+
+#### US-048: Change Folder Picker to File Picker
+
+**Description:** As a user, I want to select a mapping.txt file directly so that I have explicit control over which mapping file is loaded.
+
+**Acceptance Criteria:**
+- [x] Change IPC handler `handleSelectAssetFolder` to `handleSelectAssetFile`
+- [x] Update dialog filter to accept .txt files: `{ name: 'Mapping Files', extensions: ['txt'] }`
+- [x] Update `openAssetFolderDialog` to `openAssetFileDialog` with file selection (not directory)
+- [x] Store selected file path in `editorState.assets.filePath` (rename from `folderPath`)
+- [x] Typecheck passes
+- [x] Verify file selection works in browser
+
+---
+
+#### US-049: Update Path Resolution for Mapping File
+
+**Description:** As a user, I want image paths in my mapping.txt resolved relative to the file's location so that my asset pack is portable.
+
+**Acceptance Criteria:**
+- [ ] Update `handleParseAssetMapping` to accept file path instead of folder path
+- [ ] Extract directory from file path using `path.dirname()`
+- [ ] Resolve image paths relative to the mapping file's directory
+- [ ] Update renderer's `loadAssetFolderByPath` to `loadAssetFile` (pass file path)
+- [ ] Existing mapping.txt format continues to work (e.g., `df,common/images/df.svg`)
+- [ ] Typecheck passes
+
+---
+
+#### US-050: Update Drag-and-Drop to Accept Files
+
+**Description:** As a user, I want to drag and drop a .txt file onto the asset panel so that I can quickly load a mapping file.
+
+**Acceptance Criteria:**
+- [ ] Update `onAssetDrop` to check for .txt file extension instead of directory
+- [ ] Remove `handleCheckIsDirectory` IPC call (no longer needed for files)
+- [ ] Show error message if dropped item is not a .txt file
+- [ ] Dropped .txt file triggers same loading flow as file picker
+- [ ] Typecheck passes
+- [ ] Verify drag-and-drop works in browser
+
+---
+
+#### US-051: Update UI Labels and Text
+
+**Description:** As a user, I want clear labels indicating I'm selecting a mapping file so that the interface is intuitive.
+
+**Acceptance Criteria:**
+- [ ] Update empty state message: "No mapping loaded. Drop a file or click to browse."
+- [ ] Update button text: "Load Mapping File" (was "Load Folder")
+- [ ] Update loading state text: "Loading mapping..." (was "Loading...")
+- [ ] Update error messages to reference "mapping file" instead of "folder"
+- [ ] Update localStorage key to `comboClipComposer_lastAssetFile` (migration: clear old key)
+- [ ] Typecheck passes
+- [ ] Verify updated labels display correctly in browser
+
+---
+
+### Non-Goals (Phase 14)
+
+- Supporting multiple mapping files simultaneously
+- Auto-detecting mapping.txt files in folders
+- Changing the mapping.txt file format itself
+
+### Technical Considerations (Phase 14)
+
+- Use `path.dirname(filePath)` to get the directory containing the mapping file
+- Image filepath resolution: `path.join(path.dirname(mappingFilePath), imageRelativePath)`
+- The IPC handler rename should be atomic (update both main.js and renderer together)
+- Clear the old localStorage key `comboClipComposer_lastAssetFolder` on first load to migrate users

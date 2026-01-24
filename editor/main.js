@@ -303,12 +303,16 @@ async function exportConfigDialog(defaultName) {
 }
 
 /**
- * Opens a dialog to select an asset folder
+ * Opens a dialog to select a mapping file (.txt)
  */
-async function openAssetFolderDialog() {
+async function openAssetFileDialog() {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Select Asset Folder',
-    properties: ['openDirectory']
+    title: 'Select Mapping File',
+    filters: [
+      { name: 'Mapping Files', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    properties: ['openFile']
   });
 
   if (result.canceled || result.filePaths.length === 0) {
@@ -319,26 +323,26 @@ async function openAssetFolderDialog() {
 }
 
 /**
- * Handle asset folder selection request from renderer
+ * Handle asset file selection request from renderer
  */
-async function handleSelectAssetFolder(event) {
+async function handleSelectAssetFile(event) {
   try {
-    const folderPath = await openAssetFolderDialog();
-    if (!folderPath) {
+    const filePath = await openAssetFileDialog();
+    if (!filePath) {
       return { success: false, canceled: true };
     }
 
-    // Verify the folder exists
-    if (!fs.existsSync(folderPath)) {
+    // Verify the file exists
+    if (!fs.existsSync(filePath)) {
       return {
         success: false,
-        error: 'Selected folder does not exist'
+        error: 'Selected file does not exist'
       };
     }
 
     return {
       success: true,
-      folderPath
+      filePath
     };
   } catch (error) {
     return {
@@ -444,33 +448,28 @@ function parseMappingFile(mappingFilePath, folderPath) {
 }
 
 /**
- * Handle parsing mapping.txt from an asset folder
+ * Handle parsing a mapping file
+ * @param {IpcMainInvokeEvent} event - IPC event
+ * @param {string} mappingFilePath - Path to the mapping.txt file
  */
-async function handleParseAssetMapping(event, folderPath) {
+async function handleParseAssetMapping(event, mappingFilePath) {
   try {
-    if (!folderPath) {
+    if (!mappingFilePath) {
       return {
         success: false,
-        error: 'No folder path provided'
+        error: 'No file path provided'
       };
     }
-
-    if (!fs.existsSync(folderPath)) {
-      return {
-        success: false,
-        error: 'Folder does not exist'
-      };
-    }
-
-    // Look for mapping.txt in the folder root
-    const mappingFilePath = path.join(folderPath, 'mapping.txt');
 
     if (!fs.existsSync(mappingFilePath)) {
       return {
         success: false,
-        error: 'mapping.txt not found in the selected folder'
+        error: 'Mapping file does not exist'
       };
     }
+
+    // Get the directory containing the mapping file
+    const folderPath = path.dirname(mappingFilePath);
 
     // Parse the mapping file
     const assets = parseMappingFile(mappingFilePath, folderPath);
@@ -1178,8 +1177,8 @@ app.whenReady().then(() => {
   ipcMain.handle('cancel-export', handleCancelExport);
   ipcMain.handle('export-config', handleExportConfig);
 
-  // Asset folder IPC handlers
-  ipcMain.handle('select-asset-folder', handleSelectAssetFolder);
+  // Asset file IPC handlers
+  ipcMain.handle('select-asset-file', handleSelectAssetFile);
   ipcMain.handle('check-is-directory', handleCheckIsDirectory);
   ipcMain.handle('parse-asset-mapping', handleParseAssetMapping);
 
@@ -1219,14 +1218,14 @@ module.exports = {
   saveProjectDialog,
   exportVideoDialog,
   exportConfigDialog,
-  openAssetFolderDialog,
+  openAssetFileDialog,
   handleOpenProject,
   handleSaveProject,
   handleLoadVideoByPath,
   handleExportVideo,
   handleCancelExport,
   handleExportConfig,
-  handleSelectAssetFolder,
+  handleSelectAssetFile,
   handleCheckIsDirectory,
   handleParseAssetMapping,
   parseMappingFile

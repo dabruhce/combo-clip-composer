@@ -1139,3 +1139,49 @@
   - The dfa.svg file represents a distinct notation (diagonal forward-down alternate)
   - All 512 tests pass (pre-existing canvas binding failure is environment issue)
 ---
+
+## Phase 14 PRD Added - Asset Browser: Select Mapping File Instead of Folder
+- What was added:
+  - US-048: Change Folder Picker to File Picker
+  - US-049: Update Path Resolution for Mapping File
+  - US-050: Update Drag-and-Drop to Accept Files
+  - US-051: Update UI Labels and Text
+- Goals:
+  - Change file picker from folder selection to .txt file selection
+  - Update drag-and-drop to accept .txt files instead of folders
+  - Resolve image paths relative to the mapping.txt file location
+  - Update all UI labels to reflect file-based selection
+- Technical considerations:
+  - Use `path.dirname(filePath)` to get directory containing mapping file
+  - Image filepath resolution: `path.join(path.dirname(mappingFilePath), imageRelativePath)`
+  - Rename IPC handlers: handleSelectAssetFolder → handleSelectAssetFile
+  - Migrate localStorage key: comboClipComposer_lastAssetFolder → comboClipComposer_lastAssetFile
+---
+
+## Iteration 48 - US-048: Change Folder Picker to File Picker
+- What was implemented:
+  - Renamed `openAssetFolderDialog` to `openAssetFileDialog` with file selection (not directory)
+  - Updated dialog to filter for .txt files: `{ name: 'Mapping Files', extensions: ['txt'] }`
+  - Renamed `handleSelectAssetFolder` to `handleSelectAssetFile` IPC handler
+  - Changed handler registration from 'select-asset-folder' to 'select-asset-file'
+  - Updated `handleParseAssetMapping` to accept file path directly, using `path.dirname()` to get folder
+  - Renamed `editorState.assets.folderPath` to `editorState.assets.filePath`
+  - Updated localStorage key from `comboClipComposer_lastAssetFolder` to `comboClipComposer_lastAssetFile`
+  - Added migration code to clear old localStorage key on unload and auto-reload
+  - Renamed renderer functions: `handleLoadAssetFolder` → `handleLoadAssetFile`, `loadAssetFolderByPath` → `loadAssetFile`
+  - Updated event listener to call `handleLoadAssetFile` on button click
+  - Updated `tryAutoReloadAssets` to work with file paths
+  - Updated test descriptions in assetMapping.test.js for new IPC behavior
+  - 512 tests pass (1 pre-existing canvas binding failure unchanged)
+- Files changed:
+  - editor/main.js (renamed dialog/handler functions, updated IPC registration, updated exports)
+  - editor/index.html (renamed state property, localStorage key, functions, event listeners)
+  - tests/assetMapping.test.js (updated IPC handler behavior test descriptions)
+  - PRD.md (marked US-048 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - `path.dirname(filePath)` extracts directory from file path for relative asset resolution
+  - IPC handler and renderer function renames should be atomic (update together)
+  - Migration code clears old localStorage key to prevent stale data issues
+  - Dialog filter `properties: ['openFile']` for file selection vs `['openDirectory']` for folder
+---
