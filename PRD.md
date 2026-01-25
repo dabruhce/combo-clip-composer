@@ -1156,13 +1156,13 @@ Transform the editor from supporting a single combo overlay to supporting multip
 **Description:** As a user, I want all my overlays exported in the final video so that the rendered output matches my preview.
 
 **Acceptance Criteria:**
-- [ ] Update `startExport()` to pass full overlays array to export process
-- [ ] Update `handleExportVideo()` to receive overlays array
-- [ ] Update `processComboVideo()` or frame rendering to handle multiple overlays
-- [ ] Each frame checks all overlays and renders those within timing range
-- [ ] Overlays render in correct order during export
-- [ ] Typecheck passes
-- [ ] Verify exported video contains all overlays with correct timing
+- [x] Update `startExport()` to pass full overlays array to export process
+- [x] Update `handleExportVideo()` to receive overlays array
+- [x] Update `processComboVideo()` or frame rendering to handle multiple overlays
+- [x] Each frame checks all overlays and renders those within timing range
+- [x] Overlays render in correct order during export
+- [x] Typecheck passes
+- [x] Verify exported video contains all overlays with correct timing
 
 ---
 

@@ -1614,3 +1614,36 @@
   - Early return with `!overlay.visible` efficiently skips hidden overlays
   - effectiveEndFrame pattern (endFrame=0 means end of video) consistent with duration bar logic
 ---
+
+## Iteration 66 - US-066: Update Export to Handle Multiple Overlays
+- What was implemented:
+  - Updated `startExport()` in editor/index.html to pass full overlays array to export process
+  - Filter overlays to only include visible ones with content before export
+  - Strip inputImages (runtime data) from overlays when serializing for IPC
+  - Updated `handleExportVideo()` in editor/main.js to receive overlays array
+  - Store overlays in config object written to temp config file
+  - Updated `processComboVideo()` in src/video/videoUtils.js:
+    - Copy image files for all overlay combo texts (not just single text)
+    - Check for config.overlays array (new format) vs legacy single overlay
+    - For multiple overlays: filter overlays per frame by timing range, call redrawFrameWithMultipleOverlays
+    - For legacy: use existing redrawFrameWithComboImages
+  - Created `redrawFrameWithMultipleOverlays()` function:
+    - Draws base frame once
+    - Iterates through overlays in array order (first rendered first)
+    - Each overlay uses its own comboText, xOffset, yOffset, config
+    - Validates bounds and logs warning if overlay extends beyond frame
+    - Applies animation alpha per overlay
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (updated startExport to prepare and send overlays array)
+  - editor/main.js (updated handleExportVideo to store overlays in config)
+  - src/video/videoUtils.js (updated processComboVideo, added redrawFrameWithMultipleOverlays)
+  - PRD.md (marked US-066 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Don't declare same variable twice in function scope (overlays was declared twice - caused syntax error)
+  - Strip runtime data (inputImages) from overlays when serializing for IPC
+  - Legacy compatibility: if overlays array not present, fall back to single overlay mode
+  - Overlays are stored in config.overlays for processComboVideo to access
+  - redrawFrameWithMultipleOverlays follows same pattern as redrawFrameWithComboImages but iterates
+---

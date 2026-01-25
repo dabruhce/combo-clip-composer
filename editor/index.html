@@ -7779,10 +7779,10 @@
         return;
       }
 
-      // Validate we have combo text
-      const comboText = editorState.overlay.comboText || comboTextInput.value;
-      if (!comboText || comboText.trim() === '') {
-        alert('Please enter combo notation before exporting.');
+      // Validate we have at least one overlay with combo text
+      const overlaysWithContent = editorState.overlays.filter(o => o.comboText && o.comboText.trim());
+      if (overlaysWithContent.length === 0) {
+        alert('Please enter combo notation in at least one overlay before exporting.');
         return;
       }
 
@@ -7791,13 +7791,29 @@
 
       try {
         const config = getFullConfigFromInputs();
+
+        // Prepare overlays array for export (only include visible overlays with content)
+        // Strip out inputImages (runtime data - not serializable)
+        const overlaysForExport = editorState.overlays
+          .filter(o => o.visible && o.comboText && o.comboText.trim())
+          .map(o => ({
+            comboText: o.comboText,
+            xOffset: o.xOffset,
+            yOffset: o.yOffset,
+            startFrame: o.startFrame || 0,
+            endFrame: o.endFrame || 0,
+            config: o.config || config
+          }));
+
         const result = await ipcRenderer.invoke('export-video', {
-          comboText: comboText,
-          xOffset: editorState.overlay.xOffset || parseInt(overlayXInput.value) || 10,
-          yOffset: editorState.overlay.yOffset || parseInt(overlayYInput.value) || 10,
+          overlays: overlaysForExport,
+          // Legacy fields for backward compatibility
+          comboText: overlaysForExport[0]?.comboText || '',
+          xOffset: overlaysForExport[0]?.xOffset || 10,
+          yOffset: overlaysForExport[0]?.yOffset || 10,
           config: config,
-          startFrame: editorState.overlay.startFrame || 0,
-          endFrame: editorState.overlay.endFrame || 0
+          startFrame: overlaysForExport[0]?.startFrame || 0,
+          endFrame: overlaysForExport[0]?.endFrame || 0
         });
 
         if (result.success) {

@@ -648,7 +648,7 @@ function handleMarkUnsavedChanges(event, { hasChanges }) {
 /**
  * Handle video export request from renderer
  */
-async function handleExportVideo(event, { comboText, xOffset, yOffset, config, startFrame = 0, endFrame = 0 }) {
+async function handleExportVideo(event, { overlays, comboText, xOffset, yOffset, config, startFrame = 0, endFrame = 0 }) {
   try {
     // Validate we have a video loaded
     if (!currentVideoPath || !fs.existsSync(currentVideoPath)) {
@@ -676,16 +676,26 @@ async function handleExportVideo(event, { comboText, xOffset, yOffset, config, s
     event.sender.send('export-started', { outputPath });
 
     // Create a temporary config file for the export
-    // Add timing to config
-    const configWithTiming = {
+    // Include overlays array for multiple overlay support
+    const configWithOverlays = {
       ...config,
+      // Legacy timing for single overlay backward compatibility
       timing: {
         startFrame: startFrame,
         endFrame: endFrame
-      }
+      },
+      // New overlays array for multiple overlays
+      overlays: overlays || [{
+        comboText: comboText,
+        xOffset: xOffset,
+        yOffset: yOffset,
+        startFrame: startFrame,
+        endFrame: endFrame,
+        config: config
+      }]
     };
     const tempConfigPath = path.join(os.tmpdir(), `combo-clip-config-${Date.now()}.json`);
-    fs.writeFileSync(tempConfigPath, JSON.stringify(configWithTiming, null, 2), 'utf-8');
+    fs.writeFileSync(tempConfigPath, JSON.stringify(configWithOverlays, null, 2), 'utf-8');
 
     try {
       // Import processComboVideo dynamically to avoid issues with module loading
@@ -708,11 +718,13 @@ async function handleExportVideo(event, { comboText, xOffset, yOffset, config, s
       }, 500);
 
       // Run the video processing
+      // Use first overlay for legacy parameters, overlays array is in config
+      const firstOverlay = (overlays && overlays[0]) || { comboText, xOffset, yOffset };
       const result = await processComboVideo(
         currentVideoPath,
-        comboText,
-        xOffset,
-        yOffset,
+        firstOverlay.comboText,
+        firstOverlay.xOffset,
+        firstOverlay.yOffset,
         './artifacts/out/', // Default job directory
         ['./assets/games/Tekken7/images', './assets/games/common/images'], // Default asset directories
         config.images ? config.images.width : null,

@@ -70,7 +70,19 @@ ffmpeg.setFfprobePath(ffprobePath);
     await recreateDirectory(audioOutputDirectory);
     await recreateDirectory(imagesDirectory);
 
-    await searchAndCopyFiles(text, directories, imagesDirectory);
+    // Copy image files for all overlay texts
+    const overlays = config.overlays || null;
+    if (overlays && overlays.length > 0) {
+      // Multiple overlays: copy files for all combo texts
+      for (const overlay of overlays) {
+        if (overlay.comboText && overlay.comboText.trim()) {
+          await searchAndCopyFiles(overlay.comboText, directories, imagesDirectory);
+        }
+      }
+    } else {
+      // Legacy single overlay
+      await searchAndCopyFiles(text, directories, imagesDirectory);
+    }
 
     // Extract audio from video
     await extractAudioFromVideo(inputFile, audioOutputFile);
@@ -90,19 +102,41 @@ ffmpeg.setFfprobePath(ffprobePath);
     // Create animation state for consistent animation across all frames
     const animationState = createAnimationState(config.animation, fps, totalFrames);
 
-    // Get timing configuration (startFrame and endFrame)
-    const startFrame = config.timing && config.timing.startFrame !== undefined ? config.timing.startFrame : 0;
-    const endFrame = config.timing && config.timing.endFrame !== undefined ? config.timing.endFrame : 0;
-    // endFrame of 0 means "until end of video"
-    const effectiveEndFrame = endFrame === 0 ? totalFrames - 1 : endFrame;
+    // Check if we have multiple overlays (new format) or single overlay (legacy format)
+    // overlays variable was already defined earlier when copying image files
 
-    for (let frameIndex = 0; frameIndex < filePaths.length; frameIndex++) {
-      const filePath = filePaths[frameIndex];
-      // Check if current frame is within timing range
-      const isWithinTimingRange = frameIndex >= startFrame && frameIndex <= effectiveEndFrame;
-      // Only render overlay if within timing range, otherwise pass empty text to skip overlay
-      const frameText = isWithinTimingRange ? text : '';
-      await redrawFrameWithComboImages(filePath, updatedFramesDirectory, frameText, x, y, imagesDirectory, config, frameIndex, totalFrames, animationState)
+    if (overlays && overlays.length > 0) {
+      // Multiple overlays mode: render each overlay that's within timing range on each frame
+      for (let frameIndex = 0; frameIndex < filePaths.length; frameIndex++) {
+        const filePath = filePaths[frameIndex];
+
+        // Determine which overlays should be rendered on this frame
+        const overlaysForFrame = overlays.filter(overlay => {
+          const startFrame = overlay.startFrame !== undefined ? overlay.startFrame : 0;
+          const endFrame = overlay.endFrame !== undefined ? overlay.endFrame : 0;
+          const effectiveEndFrame = endFrame === 0 ? totalFrames - 1 : endFrame;
+          return frameIndex >= startFrame && frameIndex <= effectiveEndFrame;
+        });
+
+        // Render frame with multiple overlays
+        await redrawFrameWithMultipleOverlays(filePath, updatedFramesDirectory, overlaysForFrame, imagesDirectory, config, frameIndex, totalFrames, animationState);
+      }
+    } else {
+      // Legacy single overlay mode
+      // Get timing configuration (startFrame and endFrame)
+      const startFrame = config.timing && config.timing.startFrame !== undefined ? config.timing.startFrame : 0;
+      const endFrame = config.timing && config.timing.endFrame !== undefined ? config.timing.endFrame : 0;
+      // endFrame of 0 means "until end of video"
+      const effectiveEndFrame = endFrame === 0 ? totalFrames - 1 : endFrame;
+
+      for (let frameIndex = 0; frameIndex < filePaths.length; frameIndex++) {
+        const filePath = filePaths[frameIndex];
+        // Check if current frame is within timing range
+        const isWithinTimingRange = frameIndex >= startFrame && frameIndex <= effectiveEndFrame;
+        // Only render overlay if within timing range, otherwise pass empty text to skip overlay
+        const frameText = isWithinTimingRange ? text : '';
+        await redrawFrameWithComboImages(filePath, updatedFramesDirectory, frameText, x, y, imagesDirectory, config, frameIndex, totalFrames, animationState)
+      }
     }
 
     // Stitch frames into video
@@ -277,6 +311,92 @@ async function redrawFrameWithComboImages(initialFrames, updatedFramesPath, comb
     // Reset context alpha after drawing overlay
     resetContextAlpha(context);
 
+    const outputFilename = path.join(updatedFramesPath, path.basename(filename));
+    const finalOutput = canvas.toBuffer("image/png");
+    await fs.promises.writeFile(outputFilename, finalOutput);
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Redraws a frame with multiple overlays
+ * Each overlay has its own text, position, timing, and config
+ * @param {string} initialFrames - Path to the source frame
+ * @param {string} updatedFramesPath - Directory to save updated frame
+ * @param {Array} overlays - Array of overlay objects with comboText, xOffset, yOffset, config
+ * @param {string} imageJobPath - Directory containing input images
+ * @param {object} baseConfig - Base configuration (fallback if overlay doesn't have its own)
+ * @param {number} frameNumber - Current frame number
+ * @param {number} totalFrames - Total number of frames
+ * @param {object} animationState - Animation state for fade effects
+ */
+async function redrawFrameWithMultipleOverlays(initialFrames, updatedFramesPath, overlays, imageJobPath, baseConfig = null, frameNumber = 0, totalFrames = 1, animationState = null) {
+  try {
+    const filename = path.basename(initialFrames);
+    const frameDimensions = await sizeOf(initialFrames);
+    const canvas = createCanvas(frameDimensions.width, frameDimensions.height);
+    const context = canvas.getContext("2d");
+
+    // Draw the base frame first
+    await drawBaseFrame(context, initialFrames);
+
+    // Render each overlay in array order (first overlay rendered first, may appear behind later ones)
+    for (const overlay of overlays) {
+      const comboText = overlay.comboText;
+      if (!comboText || comboText.trim() === '') continue;
+
+      const xOffset = overlay.xOffset !== undefined ? overlay.xOffset : 10;
+      const yOffset = overlay.yOffset !== undefined ? overlay.yOffset : 50;
+      const overlayConfig = overlay.config || baseConfig;
+
+      // Get padding and margin from config
+      const resolvedPadding = overlayConfig && overlayConfig.images ? overlayConfig.images.padding : 5;
+      const resolvedMargin = overlayConfig && overlayConfig.images ? overlayConfig.images.margin : 5;
+
+      // Parse combo text
+      const inputs = comboText.split(",").map(input => input.trimStart());
+      const wordSeparator = "sep";
+
+      const splitInput = inputs.flatMap((input, index, array) => {
+        const splittedInput = input.split(" ");
+        if (index < array.length - 1) {
+          splittedInput.push(wordSeparator);
+        }
+        return splittedInput;
+      });
+
+      const expandInputs = await expandShortcuts(splitInput);
+      const splitInputs = await checkAndConvertCase(expandInputs);
+
+      const inputImagesDimensions = calculateInputImagesDimensions(splitInputs, overlayConfig);
+
+      // Validate that overlay fits within frame (skip validation errors for individual overlays - just log warning)
+      const fitsWithinFrame =
+        xOffset - resolvedPadding >= resolvedMargin &&
+        yOffset - resolvedPadding >= resolvedMargin &&
+        xOffset + inputImagesDimensions.width + resolvedPadding <= frameDimensions.width - resolvedMargin &&
+        yOffset + inputImagesDimensions.height + resolvedPadding <= frameDimensions.height - resolvedMargin;
+
+      if (!fitsWithinFrame) {
+        console.warn(`Overlay "${comboText.substring(0, 20)}..." extends beyond frame bounds at position (${xOffset}, ${yOffset})`);
+      }
+
+      // Apply animation alpha
+      const alpha = animationState ? getFrameAlpha(animationState, frameNumber) : 1;
+      applyAlphaToContext(context, alpha);
+
+      // Draw blurred background
+      await drawBlurredBackground(context, xOffset, yOffset, inputImagesDimensions.width, inputImagesDimensions.height, "#008B8B99", resolvedPadding);
+
+      // Draw input images
+      await drawInputImages(context, splitInputs, xOffset, yOffset, imageJobPath, overlayConfig);
+
+      // Reset context alpha after drawing this overlay
+      resetContextAlpha(context);
+    }
+
+    // Save the frame
     const outputFilename = path.join(updatedFramesPath, path.basename(filename));
     const finalOutput = canvas.toBuffer("image/png");
     await fs.promises.writeFile(outputFilename, finalOutput);
