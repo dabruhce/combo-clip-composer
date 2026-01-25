@@ -2399,7 +2399,10 @@
       zoom: 'fit', // 'fit', 0.5, 1, 2
       frameImage: null, // Cached current frame image
       timelineZoom: 1, // Timeline zoom level (1 = 100%, 2 = 200%, etc.)
-      // Overlay state
+      // Multiple overlays state
+      overlays: [], // Array of overlay objects
+      selectedOverlayId: null, // ID of currently selected overlay
+      // Legacy single overlay state (kept for backward compatibility during transition)
       overlay: {
         enabled: false,
         comboText: '',
@@ -2444,6 +2447,138 @@
 
     // Project file version
     const PROJECT_VERSION = '1.0';
+
+    // Counter for generating unique overlay IDs
+    let overlayIdCounter = 0;
+
+    /**
+     * Generates a unique overlay ID
+     * @returns {string} Unique overlay ID
+     */
+    function generateOverlayId() {
+      overlayIdCounter++;
+      return `overlay-${Date.now()}-${overlayIdCounter}`;
+    }
+
+    /**
+     * Gets the currently selected overlay
+     * @returns {Object|null} The selected overlay object or null if none selected
+     */
+    function getSelectedOverlay() {
+      if (!editorState.selectedOverlayId) return null;
+      return editorState.overlays.find(o => o.id === editorState.selectedOverlayId) || null;
+    }
+
+    /**
+     * Gets an overlay by its ID
+     * @param {string} id - The overlay ID
+     * @returns {Object|null} The overlay object or null if not found
+     */
+    function getOverlayById(id) {
+      return editorState.overlays.find(o => o.id === id) || null;
+    }
+
+    /**
+     * Creates a new overlay object with default values
+     * @param {string} name - Optional name for the overlay
+     * @returns {Object} New overlay object
+     */
+    function createOverlayObject(name) {
+      const id = generateOverlayId();
+      const overlayNumber = editorState.overlays.length + 1;
+      return {
+        id: id,
+        name: name || `Overlay ${overlayNumber}`,
+        comboText: '',
+        xOffset: 10,
+        yOffset: 50,
+        startFrame: 0,
+        endFrame: 0,
+        visible: true,
+        config: {
+          width: 50,
+          height: 50,
+          spacing: 0,
+          padding: 5,
+          margin: 5
+        },
+        inputImages: [] // Loaded input images [{name, image}]
+      };
+    }
+
+    /**
+     * Migrates the old single overlay state to the new overlays array format
+     * Used for backward compatibility when loading old projects
+     * @param {Object} oldOverlay - The old overlay object from legacy project format
+     * @returns {Object} New overlay object in the array format
+     */
+    function migrateOverlayToArrayFormat(oldOverlay) {
+      const id = generateOverlayId();
+      return {
+        id: id,
+        name: 'Overlay 1',
+        comboText: oldOverlay.comboText || '',
+        xOffset: oldOverlay.xOffset !== undefined ? oldOverlay.xOffset : 10,
+        yOffset: oldOverlay.yOffset !== undefined ? oldOverlay.yOffset : 50,
+        startFrame: oldOverlay.startFrame || 0,
+        endFrame: oldOverlay.endFrame || 0,
+        visible: oldOverlay.enabled !== false,
+        config: oldOverlay.config || {
+          width: 50,
+          height: 50,
+          spacing: 0,
+          padding: 5,
+          margin: 5
+        },
+        inputImages: oldOverlay.inputImages || []
+      };
+    }
+
+    /**
+     * Syncs the selected overlay's data to the legacy editorState.overlay for backward compatibility
+     * This allows existing code that reads from editorState.overlay to continue working
+     */
+    function syncSelectedOverlayToLegacy() {
+      const selected = getSelectedOverlay();
+      if (selected) {
+        editorState.overlay.enabled = selected.visible;
+        editorState.overlay.comboText = selected.comboText;
+        editorState.overlay.xOffset = selected.xOffset;
+        editorState.overlay.yOffset = selected.yOffset;
+        editorState.overlay.inputImages = selected.inputImages;
+        editorState.overlay.config = selected.config;
+        editorState.overlay.startFrame = selected.startFrame;
+        editorState.overlay.endFrame = selected.endFrame;
+      } else {
+        // No overlay selected, reset legacy state
+        editorState.overlay.enabled = false;
+        editorState.overlay.comboText = '';
+        editorState.overlay.xOffset = 10;
+        editorState.overlay.yOffset = 10;
+        editorState.overlay.inputImages = [];
+        editorState.overlay.config = null;
+        editorState.overlay.startFrame = 0;
+        editorState.overlay.endFrame = 0;
+      }
+    }
+
+    /**
+     * Syncs changes from the legacy editorState.overlay back to the selected overlay
+     * This allows existing code that writes to editorState.overlay to continue working
+     */
+    function syncLegacyToSelectedOverlay() {
+      const selected = getSelectedOverlay();
+      if (selected) {
+        selected.visible = editorState.overlay.enabled;
+        selected.comboText = editorState.overlay.comboText;
+        selected.xOffset = editorState.overlay.xOffset;
+        selected.yOffset = editorState.overlay.yOffset;
+        selected.inputImages = editorState.overlay.inputImages;
+        selected.config = editorState.overlay.config;
+        selected.startFrame = editorState.overlay.startFrame;
+        selected.endFrame = editorState.overlay.endFrame;
+      }
+    }
 
     // DOM elements
     const openVideoBtn = document.getElementById('openVideoBtn');
@@ -6550,9 +6685,23 @@
      * @returns {Object} Project data for saving
      */
     function createProjectData() {
+      // Serialize overlays array (without inputImages which are runtime data)
+      const serializedOverlays = editorState.overlays.map(overlay => ({
+        id: overlay.id,
+        name: overlay.name,
+        comboText: overlay.comboText,
+        xOffset: overlay.xOffset,
+        yOffset: overlay.yOffset,
+        startFrame: overlay.startFrame,
+        endFrame: overlay.endFrame,
+        visible: overlay.visible,
+        config: overlay.config
+      }));
+
       return {
         version: PROJECT_VERSION,
         sourceVideoPath: editorState.videoPath,
+        // Legacy fields for backward compatibility
         comboText: editorState.overlay.comboText || '',
         config: getFullConfigFromInputs(),
         keyframes: editorState.keyframes.manager ? editorState.keyframes.manager.toJSON() : { tracks: [] },
@@ -6565,6 +6714,9 @@
           startFrame: editorState.overlay.startFrame,
           endFrame: editorState.overlay.endFrame
         },
+        // New multiple overlays field
+        overlays: serializedOverlays,
+        selectedOverlayId: editorState.selectedOverlayId,
         currentFrame: editorState.currentFrame
       };
     }
@@ -6574,7 +6726,7 @@
      * @param {Object} projectData - The loaded project data
      */
     function applyProjectData(projectData) {
-      // Apply combo text
+      // Apply combo text (legacy field, also used for first overlay)
       comboTextInput.value = projectData.comboText || '';
 
       // Apply config to inputs
@@ -6608,8 +6760,44 @@
         }
       }
 
-      // Apply overlay settings
-      if (projectData.overlay) {
+      // Handle multiple overlays (new format) vs legacy single overlay
+      if (projectData.overlays && projectData.overlays.length > 0) {
+        // New format: load overlays array
+        editorState.overlays = projectData.overlays.map(o => ({
+          ...o,
+          inputImages: [] // Will be loaded when overlay is applied
+        }));
+        editorState.selectedOverlayId = projectData.selectedOverlayId || editorState.overlays[0]?.id;
+
+        // Sync selected overlay to legacy state
+        syncSelectedOverlayToLegacy();
+
+        // Update UI with selected overlay values
+        const selected = getSelectedOverlay();
+        if (selected) {
+          comboTextInput.value = selected.comboText || '';
+          overlayXInput.value = selected.xOffset;
+          overlayYInput.value = selected.yOffset;
+          timingStartFrameInput.value = selected.startFrame;
+          timingEndFrameInput.value = selected.endFrame;
+        }
+      } else if (projectData.overlay) {
+        // Legacy format: migrate single overlay to array
+        const migratedOverlay = migrateOverlayToArrayFormat({
+          ...projectData.overlay,
+          comboText: projectData.comboText,
+          config: projectData.config?.images ? {
+            width: projectData.config.images.width || 50,
+            height: projectData.config.images.height || 50,
+            spacing: projectData.config.images.spacing || 0,
+            padding: projectData.config.images.padding || 5,
+            margin: projectData.config.images.margin || 5
+          } : null
+        });
+        editorState.overlays = [migratedOverlay];
+        editorState.selectedOverlayId = migratedOverlay.id;
+
+        // Apply legacy overlay settings to UI
         overlayXInput.value = projectData.overlay.xOffset || 10;
         overlayYInput.value = projectData.overlay.yOffset || 10;
         editorState.overlay.xOffset = projectData.overlay.xOffset || 10;
@@ -6624,9 +6812,10 @@
         editorState.overlay.endFrame = projectData.overlay.endFrame || 0;
         timingStartFrameInput.value = editorState.overlay.startFrame;
         timingEndFrameInput.value = editorState.overlay.endFrame;
-        validateTimingInputs();
-        updateLayerDurationBar();
       }
+
+      validateTimingInputs();
+      updateLayerDurationBar();
 
       // Apply keyframes
       if (projectData.keyframes && projectData.keyframes.tracks) {
@@ -6638,8 +6827,9 @@
         goToFrame(Math.min(projectData.currentFrame, editorState.frameCount - 1));
       }
 
-      // Apply overlay if enabled
-      if (projectData.overlay && projectData.overlay.enabled && projectData.comboText) {
+      // Apply overlay if enabled (legacy check or if any overlay has content)
+      const hasOverlayContent = editorState.overlays.some(o => o.comboText && o.comboText.trim());
+      if ((projectData.overlay && projectData.overlay.enabled && projectData.comboText) || hasOverlayContent) {
         overlayEnabledCheckbox.checked = true;
         applyOverlayFromInputs();
       }
@@ -6773,7 +6963,11 @@
       editorState.extractionProgress = 0;
       editorState.currentView = 'video';
 
-      // Reset overlay state
+      // Reset multiple overlays state
+      editorState.overlays = [];
+      editorState.selectedOverlayId = null;
+
+      // Reset legacy overlay state (for backward compatibility)
       editorState.overlay.enabled = false;
       editorState.overlay.comboText = '';
       editorState.overlay.xOffset = 10;

@@ -1422,3 +1422,51 @@
   - Early return pattern in drawOverlay works well for conditional rendering
   - The effectiveEndFrame pattern (0 = end of video) matches the duration bar logic
 ---
+
+## Iteration 59 - US-059: Include Timing in Project Save/Export
+- What was implemented:
+  - Added startFrame and endFrame to createProjectData() in editor/index.html
+  - Updated applyProjectData() to load timing values and update UI inputs
+  - Updated startExport() to pass startFrame and endFrame to export-video IPC
+  - Updated handleExportVideo() in main.js to receive timing and add to config
+  - Added timing schema (startFrame, endFrame) to src/config/schema.js
+  - Updated processComboVideo() to check timing range and skip overlay rendering outside range
+  - Used effectiveEndFrame pattern: endFrame=0 means "until end of video"
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (updated createProjectData, applyProjectData, startExport)
+  - editor/main.js (updated handleExportVideo signature and config handling)
+  - src/config/schema.js (added timing section with startFrame, endFrame)
+  - src/video/videoUtils.js (added timing range check in frame processing loop)
+  - PRD.md (marked US-059 as complete)
+- Learnings for future iterations:
+  - Timing is passed via config object to processComboVideo for clean interface
+  - Empty text passed to redrawFrameWithComboImages skips overlay rendering
+  - Schema additions don't require defaults.json update (optional properties)
+  - Project save includes full overlay state including timing for complete persistence
+---
+
+## Phase 17 PRD Added - Multiple Combo Overlays
+- What was added:
+  - US-060: Refactor Data Model for Multiple Overlays
+  - US-061: Add "Add Overlay" Button and Creation Logic
+  - US-062: Implement Layer Selection and Properties Binding
+  - US-063: Implement Delete Overlay Functionality
+  - US-064: Update Layers Panel for Multiple Overlays
+  - US-065: Update Preview to Render Multiple Overlays
+  - US-066: Update Export to Handle Multiple Overlays
+  - US-067: Update Project Save/Load for Multiple Overlays
+- Goals:
+  - Support unlimited independent combo overlays
+  - Each overlay has own text, position, timing, and config
+  - Click layer to select, Properties panel binds to selected overlay
+  - Multiple delete methods: button, right-click, Delete key
+  - Preview and export render all overlays with correct timing
+- Technical considerations:
+  - Change editorState.overlay to editorState.overlays (array)
+  - Add selectedOverlayId to track selection
+  - Overlay object: { id, name, comboText, xOffset, yOffset, startFrame, endFrame, visible, config }
+  - Properties panel rebinds when selection changes
+  - Export composites multiple overlays per frame
+  - Backward compatibility: migrate old single overlay to array on project load
+---

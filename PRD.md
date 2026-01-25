@@ -1030,3 +1030,182 @@ Add the ability to control when the combo notation overlay appears and disappear
 - The existing "Combo Overlay" sample layer row should become the actual combo layer
 - Consider showing frame numbers on hover over the duration bar
 - Default endFrame=0 is a sentinel value meaning "end of video" for simpler UX
+
+---
+
+## Phase 17: Multiple Combo Overlays
+
+### Introduction
+
+Transform the editor from supporting a single combo overlay to supporting multiple independent overlays. Each overlay has its own notation text, position, timing (start/end frames), and styling. This enables complex combo videos where different inputs appear at different times, such as showing "d df f" from frames 1-100 and "2" from frames 30-120.
+
+### Goals
+
+- Support unlimited combo overlays, each with independent settings
+- Add "Add Overlay" button to create new overlays
+- Click layer to select it and edit its properties in the Properties panel
+- Multiple ways to delete overlays (button, right-click, Delete key)
+- Overlays render in layer order with proper timing
+- Preview and export respect all overlay timings
+
+---
+
+#### US-060: Refactor Data Model for Multiple Overlays
+
+**Description:** As a developer, I want the data model to support multiple overlays so that users can create and manage many independent combo overlays.
+
+**Acceptance Criteria:**
+- [x] Change `editorState.overlay` (single object) to `editorState.overlays` (array)
+- [x] Each overlay object has: `id`, `name`, `comboText`, `xOffset`, `yOffset`, `startFrame`, `endFrame`, `visible`, `config` (image settings)
+- [x] Add `editorState.selectedOverlayId` to track which overlay is selected
+- [x] Add `generateOverlayId()` function to create unique IDs
+- [x] Add `getSelectedOverlay()` helper function
+- [x] Add `getOverlayById(id)` helper function
+- [x] Migrate existing single overlay to first item in array on load
+- [x] Typecheck passes
+
+---
+
+#### US-061: Add "Add Overlay" Button and Creation Logic
+
+**Description:** As a user, I want to click an "Add Overlay" button so that I can create new combo overlays.
+
+**Acceptance Criteria:**
+- [ ] Add "Add Overlay" button (+ icon) in layers panel header
+- [ ] Button disabled until video is loaded
+- [ ] Clicking creates new overlay with default values (empty text, position 10,50, timing 0-0)
+- [ ] New overlay gets auto-generated name: "Overlay 1", "Overlay 2", etc.
+- [ ] New overlay is automatically selected after creation
+- [ ] New layer row appears in layers panel
+- [ ] Create `addOverlay()` function
+- [ ] Typecheck passes
+- [ ] Verify button works in browser
+
+---
+
+#### US-062: Implement Layer Selection and Properties Binding
+
+**Description:** As a user, I want to click a layer to select it so that I can edit its properties in the Properties panel.
+
+**Acceptance Criteria:**
+- [ ] Clicking layer row selects that overlay (updates `selectedOverlayId`)
+- [ ] Selected layer has visual highlight (existing `.selected` class)
+- [ ] Properties panel inputs bind to selected overlay's values
+- [ ] Changing properties updates the selected overlay in the array
+- [ ] Create `selectOverlay(id)` function
+- [ ] Create `updatePropertiesPanel()` function to sync inputs with selected overlay
+- [ ] Create `applyPropertiesToSelectedOverlay()` function for input changes
+- [ ] If no overlay selected, Properties panel shows disabled state or message
+- [ ] Typecheck passes
+- [ ] Verify selection and property editing works in browser
+
+---
+
+#### US-063: Implement Delete Overlay Functionality
+
+**Description:** As a user, I want multiple ways to delete overlays so that I can easily remove unwanted layers.
+
+**Acceptance Criteria:**
+- [ ] Add delete button (X or trash icon) on each layer row
+- [ ] Right-click layer row shows context menu with "Delete Overlay" option
+- [ ] Pressing Delete key removes selected overlay
+- [ ] Create `deleteOverlay(id)` function
+- [ ] After deletion, select next overlay (or previous, or none if empty)
+- [ ] Confirm deletion if overlay has content (optional, can skip)
+- [ ] Cannot delete if it's the last overlay (or allow empty state)
+- [ ] Layer row removed from layers panel
+- [ ] Typecheck passes
+- [ ] Verify all delete methods work in browser
+
+---
+
+#### US-064: Update Layers Panel for Multiple Overlays
+
+**Description:** As a user, I want to see all my overlays in the layers panel so that I can manage them visually.
+
+**Acceptance Criteria:**
+- [ ] Create `renderLayerRows()` function to dynamically generate layer rows from `overlays` array
+- [ ] Each layer row shows: visibility toggle, overlay name, duration bar
+- [ ] Duration bars reflect each overlay's individual timing
+- [ ] Layer order matches array order (first overlay at top)
+- [ ] Update `updateLayerDurationBar()` to handle multiple bars (or create `updateAllDurationBars()`)
+- [ ] Call `renderLayerRows()` when overlays change (add/delete/reorder)
+- [ ] Typecheck passes
+- [ ] Verify multiple layers display correctly in browser
+
+---
+
+#### US-065: Update Preview to Render Multiple Overlays
+
+**Description:** As a user, I want to see all visible overlays in the preview so that I can see how my video will look.
+
+**Acceptance Criteria:**
+- [ ] Modify `drawOverlay()` to iterate through all overlays in array
+- [ ] Each overlay renders only if current frame is within its timing range
+- [ ] Each overlay uses its own position, text, and config
+- [ ] Overlays render in array order (first overlay rendered first, may be behind others)
+- [ ] Respect each overlay's `visible` property (eye toggle)
+- [ ] Preview updates when any overlay changes
+- [ ] Typecheck passes
+- [ ] Verify multiple overlays render correctly in browser
+
+---
+
+#### US-066: Update Export to Handle Multiple Overlays
+
+**Description:** As a user, I want all my overlays exported in the final video so that the rendered output matches my preview.
+
+**Acceptance Criteria:**
+- [ ] Update `startExport()` to pass full overlays array to export process
+- [ ] Update `handleExportVideo()` to receive overlays array
+- [ ] Update `processComboVideo()` or frame rendering to handle multiple overlays
+- [ ] Each frame checks all overlays and renders those within timing range
+- [ ] Overlays render in correct order during export
+- [ ] Typecheck passes
+- [ ] Verify exported video contains all overlays with correct timing
+
+---
+
+#### US-067: Update Project Save/Load for Multiple Overlays
+
+**Description:** As a user, I want my multiple overlays saved and restored so that I can continue editing later.
+
+**Acceptance Criteria:**
+- [ ] Update `createProjectData()` to save full `overlays` array
+- [ ] Update `applyProjectData()` to restore overlays array and re-render layer rows
+- [ ] Handle backward compatibility: if old project has single `overlay`, migrate to array
+- [ ] Save and restore `selectedOverlayId`
+- [ ] Typecheck passes
+- [ ] Verify save/load cycle preserves all overlays correctly
+
+---
+
+### Non-Goals (Phase 17)
+
+- Drag-and-drop layer reordering (future enhancement)
+- Copy/paste overlays
+- Layer groups or folders
+- Text-only overlays (all overlays are combo notation overlays)
+- Different overlay types (image-only, shape, etc.)
+
+### Technical Considerations (Phase 17)
+
+- Overlay object structure:
+  ```javascript
+  {
+    id: 'overlay-1234',
+    name: 'Overlay 1',
+    comboText: 'd df f 2',
+    xOffset: 10,
+    yOffset: 50,
+    startFrame: 0,
+    endFrame: 0,
+    visible: true,
+    config: { width: 50, height: 50, spacing: 0, padding: 5 }
+  }
+  ```
+- Use `crypto.randomUUID()` or simple counter for ID generation
+- Properties panel needs to "rebind" when selection changes - update all input values
+- Consider debouncing property changes to avoid excessive re-renders
+- The `inputImages` cache may need to be per-overlay or shared with cache key
+- Export process needs to composite multiple overlays per frame
