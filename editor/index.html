@@ -5190,6 +5190,19 @@
       if (!editorState.overlay.enabled || !editorState.frameImage) return;
       if (!editorState.overlay.inputImages || editorState.overlay.inputImages.length === 0) return;
 
+      // Check if current frame is within timing range
+      const startFrame = editorState.overlay.startFrame || 0;
+      const endFrame = editorState.overlay.endFrame;
+      const currentFrame = editorState.currentFrame;
+
+      // endFrame = 0 means "until end of video"
+      const effectiveEndFrame = endFrame === 0 ? (editorState.frameCount - 1) : endFrame;
+
+      // Only draw overlay when within timing range
+      if (currentFrame < startFrame || currentFrame > effectiveEndFrame) {
+        return;
+      }
+
       const config = editorState.overlay.config || defaultConfig;
       const imgConfig = config.images || defaultConfig.images;
       const padding = imgConfig.padding || 5;

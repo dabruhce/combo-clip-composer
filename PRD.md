@@ -989,14 +989,14 @@ Add the ability to control when the combo notation overlay appears and disappear
 **Description:** As a user, I want the overlay to appear/disappear in the preview as I scrub through the timeline so that I can see exactly how it will look in the final video.
 
 **Acceptance Criteria:**
-- [ ] Modify `drawOverlay()` to check if current frame is within timing range
-- [ ] Overlay draws only when: `startFrame <= currentFrame <= endFrame`
-- [ ] If endFrame is 0, treat as "until end of video" (endFrame = frameCount - 1)
-- [ ] Preview updates correctly when scrubbing timeline
-- [ ] Preview updates correctly when stepping frame-by-frame
-- [ ] Preview updates correctly during playback
-- [ ] Typecheck passes
-- [ ] Verify overlay visibility changes based on timing in browser
+- [x] Modify `drawOverlay()` to check if current frame is within timing range
+- [x] Overlay draws only when: `startFrame <= currentFrame <= endFrame`
+- [x] If endFrame is 0, treat as "until end of video" (endFrame = frameCount - 1)
+- [x] Preview updates correctly when scrubbing timeline
+- [x] Preview updates correctly when stepping frame-by-frame
+- [x] Preview updates correctly during playback
+- [x] Typecheck passes
+- [x] Verify overlay visibility changes based on timing in browser
 
 ---
 

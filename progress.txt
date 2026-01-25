@@ -1339,3 +1339,86 @@
   - Sample rows (display: none by default) allow visual testing when unhidden via dev tools
   - Future layer functionality will replace placeholder rows with dynamic content
 ---
+
+## Phase 16 PRD Added - Combo Overlay Timing (In/Out Points)
+- What was added:
+  - US-056: Add Timing Input Fields to Properties Panel
+  - US-057: Display Duration Bar on Combo Layer Track
+  - US-058: Update Preview Based on Current Frame Timing
+  - US-059: Include Timing in Project Save/Export
+- Goals:
+  - Add start/end frame input fields to Properties panel
+  - Display visual duration bar on combo layer track
+  - Preview shows/hides overlay based on current frame position
+  - Timing settings saved with project and respected during export
+- Technical considerations:
+  - Store timing in editorState.overlay.startFrame and endFrame
+  - Duration bar position: (startFrame / (frameCount-1)) * trackWidth * timelineZoom
+  - endFrame=0 is sentinel value meaning "end of video"
+  - Modify drawOverlay() to check frame is within timing range
+  - Pass timing to export/rendering process
+---
+
+## Iteration 56 - US-056: Add Timing Input Fields to Properties Panel
+- What was implemented:
+  - Added `editorState.overlay.startFrame` and `editorState.overlay.endFrame` properties (default=0)
+  - Created "Timing" section in Properties panel (collapsible, below Images section)
+  - Added "Start Frame" number input with min=0, default=0
+  - Added "End Frame" number input with min=0, default=0 (0 = end of video sentinel value)
+  - Added `validateTimingInputs()` function to check startFrame <= endFrame
+  - Added `updateTimingInputsMax()` function to set max values based on frameCount
+  - Added red error styling and validation message when timing is invalid
+  - Timing inputs disabled until video loads (via showOverlayControls/hideOverlayControls)
+  - Timing values reset in newProject() function
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (CSS for validation message, HTML for Timing section, JS for validation and state)
+  - PRD.md (marked US-056 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - endFrame=0 is a sentinel value meaning "end of video" - this simplifies UX
+  - Validation formula: isValid = endFrame === 0 || startFrame <= endFrame
+  - Use red border color (#f48771) and styled validation message for validation errors
+  - There are two hideOverlayControls functions (comprehensive and simplified) - both need updating
+  - updateTimingInputsMax() called in onVideoLoaded to set proper max values
+---
+
+## Iteration 57 - US-057: Display Duration Bar on Combo Layer Track
+- What was implemented:
+  - Added CSS styles for `.layer-duration-bar` with blue color (#0e639c) and invalid state (red #f48771)
+  - Added duration bar element (`#comboDurationBar`) inside combo overlay layer track
+  - Created `updateLayerDurationBar()` function to position/size bar based on startFrame, endFrame, and timeline zoom
+  - Bar calculates effective end frame (0 means "end of video") and syncs position with timing state
+  - Added `showLayerRows()` and `hideLayerRows()` helper functions for layer panel visibility
+  - Called updateLayerDurationBar in: timing input change listeners, setTimelineZoom, window resize, showTimelineForVideo, showTimeline
+  - Added `overflow: hidden` to `.layer-row-track` to clip duration bar when zoomed
+  - Duration bar shows tooltip with "Overlay visible: frame X to Y" on hover
+  - Invalid timing state (startFrame > endFrame) shows red bar with `.invalid` class
+- Files changed:
+  - editor/index.html (CSS styles, HTML element, JS functions, event listener updates)
+  - PRD.md (marked US-057 as complete)
+- Learnings for future iterations:
+  - Duration bar width formula: `(endFrame - startFrame) / (frameCount - 1) * trackWidth * timelineZoom`
+  - Layer track overflow:hidden clips the bar cleanly when timeline is zoomed in
+  - The layers panel doesn't scroll with timeline, so bar may extend beyond visible area when zoomed
+  - Use showLayerRows()/hideLayerRows() to toggle between empty state and layer rows
+  - The sample layer rows (combo-overlay, text-overlay) need to be shown when video loads
+---
+
+## Iteration 58 - US-058: Update Preview Based on Current Frame Timing
+- What was implemented:
+  - Modified `drawOverlay()` in editor/index.html to check if current frame is within timing range
+  - Added timing check: overlay only draws when `startFrame <= currentFrame <= endFrame`
+  - Added effectiveEndFrame calculation: endFrame=0 is treated as "until end of video" (frameCount - 1)
+  - Timing check uses values from editorState.overlay.startFrame and editorState.overlay.endFrame
+  - Preview auto-updates on scrub/step/playback via existing updatePreview() calls
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (added timing range check at start of drawOverlay function)
+  - PRD.md (marked US-058 as complete)
+- Learnings for future iterations:
+  - The drawOverlay() function is called via updatePreview() which is triggered by loadFrame()
+  - Timeline scrubbing, stepping, and playback all go through loadFrame -> updatePreview -> drawOverlay
+  - Early return pattern in drawOverlay works well for conditional rendering
+  - The effectiveEndFrame pattern (0 = end of video) matches the duration bar logic
+---
