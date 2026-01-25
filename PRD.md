@@ -1106,16 +1106,16 @@ Transform the editor from supporting a single combo overlay to supporting multip
 **Description:** As a user, I want multiple ways to delete overlays so that I can easily remove unwanted layers.
 
 **Acceptance Criteria:**
-- [ ] Add delete button (X or trash icon) on each layer row
-- [ ] Right-click layer row shows context menu with "Delete Overlay" option
-- [ ] Pressing Delete key removes selected overlay
-- [ ] Create `deleteOverlay(id)` function
-- [ ] After deletion, select next overlay (or previous, or none if empty)
-- [ ] Confirm deletion if overlay has content (optional, can skip)
-- [ ] Cannot delete if it's the last overlay (or allow empty state)
-- [ ] Layer row removed from layers panel
-- [ ] Typecheck passes
-- [ ] Verify all delete methods work in browser
+- [x] Add delete button (X or trash icon) on each layer row
+- [x] Right-click layer row shows context menu with "Delete Overlay" option
+- [x] Pressing Delete key removes selected overlay
+- [x] Create `deleteOverlay(id)` function
+- [x] After deletion, select next overlay (or previous, or none if empty)
+- [x] Confirm deletion if overlay has content (optional, can skip)
+- [x] Cannot delete if it's the last overlay (or allow empty state)
+- [x] Layer row removed from layers panel
+- [x] Typecheck passes
+- [x] Verify all delete methods work in browser
 
 ---
 

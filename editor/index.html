@@ -846,6 +846,47 @@
       text-overflow: ellipsis;
     }
 
+    .layer-delete-btn {
+      cursor: pointer;
+      opacity: 0;
+      font-size: 12px;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      transition: opacity 0.15s, background-color 0.15s;
+      color: #cccccc;
+    }
+
+    .layer-row:hover .layer-delete-btn {
+      opacity: 0.6;
+    }
+
+    .layer-delete-btn:hover {
+      opacity: 1 !important;
+      background-color: rgba(244, 135, 113, 0.3);
+      color: #f48771;
+    }
+
+    /* Layer context menu (reuses existing context menu styles) */
+    .layer-context-menu {
+      display: none;
+      position: fixed;
+      background: #2d2d2d;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      min-width: 140px;
+      padding: 4px 0;
+    }
+
+    .layer-context-menu.visible {
+      display: block;
+    }
+
     .layer-row-track {
       flex: 1;
       height: 100%;
@@ -2334,6 +2375,11 @@
     </div>
   </div>
 
+  <!-- Layer Context Menu -->
+  <div class="layer-context-menu" id="layerContextMenu">
+    <div class="context-menu-item" id="layerContextMenuDelete">Delete Overlay</div>
+  </div>
+
   <!-- Export Dialog -->
   <div class="export-dialog-overlay hidden" id="exportDialogOverlay">
     <div class="export-dialog" id="exportDialog">
@@ -2712,6 +2758,10 @@
     const contextMenuDelete = document.getElementById('contextMenuDelete');
     const contextMenuChangeInterp = document.getElementById('contextMenuChangeInterp');
     const contextMenuInterpSubmenu = document.getElementById('contextMenuInterpSubmenu');
+
+    // Layer context menu DOM elements
+    const layerContextMenu = document.getElementById('layerContextMenu');
+    const layerContextMenuDelete = document.getElementById('layerContextMenuDelete');
 
     // Asset Panel DOM elements
     const assetPanel = document.getElementById('assetPanel');
@@ -3721,6 +3771,74 @@
     }
 
     /**
+     * Deletes an overlay by ID
+     * @param {string} overlayId - The overlay ID to delete
+     */
+    function deleteOverlay(overlayId) {
+      const index = editorState.overlays.findIndex(o => o.id === overlayId);
+      if (index === -1) {
+        console.warn('Cannot delete overlay: not found', overlayId);
+        return;
+      }
+
+      const deletedOverlay = editorState.overlays[index];
+
+      // Remove from array
+      editorState.overlays.splice(index, 1);
+
+      // Handle selection after deletion
+      if (editorState.selectedOverlayId === overlayId) {
+        if (editorState.overlays.length === 0) {
+          // No overlays left - deselect
+          editorState.selectedOverlayId = null;
+
+          // Clear legacy state
+          editorState.overlay = {
+            enabled: false,
+            comboText: '',
+            xOffset: 10,
+            yOffset: 50,
+            startFrame: 0,
+            endFrame: 0,
+            inputImages: [],
+            config: { ...defaultConfig }
+          };
+        } else {
+          // Select next overlay (or previous if we deleted the last one)
+          const newIndex = Math.min(index, editorState.overlays.length - 1);
+          selectOverlay(editorState.overlays[newIndex].id);
+        }
+      }
+
+      // Re-render layer rows
+      renderLayerRows();
+
+      // Update preview
+      updatePreview();
+
+      // Update properties panel
+      updatePropertiesPanel();
+
+      // Mark project as having unsaved changes
+      if (typeof markUnsavedChanges === 'function') {
+        markUnsavedChanges();
+      }
+
+      console.log('Deleted overlay:', deletedOverlay.name, overlayId);
+    }
+
+    /**
+     * Deletes the currently selected overlay
+     */
+    function deleteSelectedOverlay() {
+      if (!editorState.selectedOverlayId) {
+        console.warn('Cannot delete: no overlay selected');
+        return;
+      }
+      deleteOverlay(editorState.selectedOverlayId);
+    }
+
+    /**
      * Renders all overlay layer rows dynamically based on editorState.overlays
      */
     function renderLayerRows() {
@@ -3784,8 +3902,19 @@
       name.textContent = overlay.name;
       name.title = overlay.name;
 
+      // Delete button
+      const deleteBtn = document.createElement('span');
+      deleteBtn.className = 'layer-delete-btn';
+      deleteBtn.title = 'Delete overlay';
+      deleteBtn.textContent = '✕';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteOverlay(overlay.id);
+      });
+
       label.appendChild(visibilityToggle);
       label.appendChild(name);
+      label.appendChild(deleteBtn);
 
       // Create track area
       const track = document.createElement('div');
@@ -3804,6 +3933,14 @@
       // Add click handler for selection
       row.addEventListener('click', () => {
         selectOverlay(overlay.id);
+      });
+
+      // Add right-click handler for context menu
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectOverlay(overlay.id);
+        showLayerContextMenu(e.clientX, e.clientY, overlay.id);
       });
 
       return row;
@@ -6653,6 +6790,30 @@
       contextMenuInterpSubmenu.classList.remove('visible');
     }
 
+    // Track which overlay the layer context menu is for
+    let layerContextMenuOverlayId = null;
+
+    /**
+     * Shows the layer context menu at specified position
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {string} overlayId - The overlay ID for this context menu
+     */
+    function showLayerContextMenu(x, y, overlayId) {
+      layerContextMenuOverlayId = overlayId;
+      layerContextMenu.style.left = `${x}px`;
+      layerContextMenu.style.top = `${y}px`;
+      layerContextMenu.classList.add('visible');
+    }
+
+    /**
+     * Hides the layer context menu
+     */
+    function hideLayerContextMenu() {
+      layerContextMenu.classList.remove('visible');
+      layerContextMenuOverlayId = null;
+    }
+
     /**
      * Handles right-click on a keyframe marker
      */
@@ -6936,9 +7097,13 @@
           break;
         case 'Delete':
         case 'Backspace':
-          // Delete selected keyframe
+          // Delete selected keyframe (if any), otherwise delete selected overlay
           event.preventDefault();
-          removeSelectedKeyframe();
+          if (editorState.keyframes.selectedKeyframe) {
+            removeSelectedKeyframe();
+          } else if (editorState.selectedOverlayId) {
+            deleteSelectedOverlay();
+          }
           break;
         case 'KeyV':
           // Toggle view between video player and frame canvas
@@ -7026,13 +7191,25 @@
       if (!keyframeContextMenu.contains(event.target)) {
         hideContextMenu();
       }
+      if (!layerContextMenu.contains(event.target)) {
+        hideLayerContextMenu();
+      }
     });
 
     // Hide context menu on escape key
     document.addEventListener('keydown', (event) => {
       if (event.code === 'Escape') {
         hideContextMenu();
+        hideLayerContextMenu();
       }
+    });
+
+    // Layer context menu event listeners
+    layerContextMenuDelete.addEventListener('click', () => {
+      if (layerContextMenuOverlayId) {
+        deleteOverlay(layerContextMenuOverlayId);
+      }
+      hideLayerContextMenu();
     });
 
     // IPC event listeners
