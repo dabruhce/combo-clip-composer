@@ -1140,14 +1140,14 @@ Transform the editor from supporting a single combo overlay to supporting multip
 **Description:** As a user, I want to see all visible overlays in the preview so that I can see how my video will look.
 
 **Acceptance Criteria:**
-- [ ] Modify `drawOverlay()` to iterate through all overlays in array
-- [ ] Each overlay renders only if current frame is within its timing range
-- [ ] Each overlay uses its own position, text, and config
-- [ ] Overlays render in array order (first overlay rendered first, may be behind others)
-- [ ] Respect each overlay's `visible` property (eye toggle)
-- [ ] Preview updates when any overlay changes
-- [ ] Typecheck passes
-- [ ] Verify multiple overlays render correctly in browser
+- [x] Modify `drawOverlay()` to iterate through all overlays in array
+- [x] Each overlay renders only if current frame is within its timing range
+- [x] Each overlay uses its own position, text, and config
+- [x] Overlays render in array order (first overlay rendered first, may be behind others)
+- [x] Respect each overlay's `visible` property (eye toggle)
+- [x] Preview updates when any overlay changes
+- [x] Typecheck passes
+- [x] Verify multiple overlays render correctly in browser
 
 ---
 

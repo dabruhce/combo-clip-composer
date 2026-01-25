@@ -5865,65 +5865,74 @@
 
     /**
      * Draws the complete overlay (background + images + text) onto the frame canvas
+     * Now iterates through all overlays in the overlays array
      */
     function drawOverlay() {
-      if (!editorState.overlay.enabled || !editorState.frameImage) return;
-      if (!editorState.overlay.inputImages || editorState.overlay.inputImages.length === 0) return;
+      if (!editorState.frameImage) return;
 
-      // Check if current frame is within timing range
-      const startFrame = editorState.overlay.startFrame || 0;
-      const endFrame = editorState.overlay.endFrame;
       const currentFrame = editorState.currentFrame;
-
-      // endFrame = 0 means "until end of video"
-      const effectiveEndFrame = endFrame === 0 ? (editorState.frameCount - 1) : endFrame;
-
-      // Only draw overlay when within timing range
-      if (currentFrame < startFrame || currentFrame > effectiveEndFrame) {
-        return;
-      }
-
-      const config = editorState.overlay.config || defaultConfig;
-      const imgConfig = config.images || defaultConfig.images;
-      const padding = imgConfig.padding || 5;
-
-      const xOffset = editorState.overlay.xOffset;
-      const yOffset = editorState.overlay.yOffset;
-
-      // Calculate dimensions
-      const dimensions = calculateInputImagesDimensions(
-        editorState.overlay.inputImages,
-        config
-      );
-
-      // Get zoom scale
       const scale = getZoomScale();
 
-      // Scale the offsets and dimensions
-      const scaledX = Math.round(xOffset * scale);
-      const scaledY = Math.round(yOffset * scale);
-      const scaledWidth = Math.round(dimensions.width * scale);
-      const scaledHeight = Math.round(dimensions.height * scale);
-      const scaledPadding = Math.round(padding * scale);
-      const scaledImgWidth = Math.round((imgConfig.width || 50) * scale);
-      const scaledImgHeight = Math.round((imgConfig.height || 50) * scale);
-      const scaledSpacing = Math.round((imgConfig.spacing || 0) * scale);
+      // Iterate through all overlays in array order (first rendered first, may be behind others)
+      editorState.overlays.forEach(overlay => {
+        // Skip if overlay is not visible (eye toggle)
+        if (!overlay.visible) return;
 
-      // Draw blurred background
-      drawBlurredBackground(ctx, scaledX, scaledY, scaledWidth, scaledHeight, '#008B8B99', scaledPadding);
+        // Skip if no input images loaded
+        if (!overlay.inputImages || overlay.inputImages.length === 0) return;
 
-      // Draw input images (scaled)
-      const scaledConfig = {
-        ...config,
-        images: {
-          ...imgConfig,
-          width: scaledImgWidth,
-          height: scaledImgHeight,
-          spacing: scaledSpacing
+        // Check if current frame is within this overlay's timing range
+        const startFrame = overlay.startFrame || 0;
+        const endFrame = overlay.endFrame;
+
+        // endFrame = 0 means "until end of video"
+        const effectiveEndFrame = endFrame === 0 ? (editorState.frameCount - 1) : endFrame;
+
+        // Skip if outside timing range
+        if (currentFrame < startFrame || currentFrame > effectiveEndFrame) {
+          return;
         }
-      };
 
-      drawInputImages(ctx, editorState.overlay.inputImages, scaledX, scaledY, scaledConfig);
+        // Use this overlay's own config, position, and images
+        const config = overlay.config || defaultConfig;
+        const imgConfig = config.images || defaultConfig.images;
+        const padding = imgConfig.padding || 5;
+
+        const xOffset = overlay.xOffset;
+        const yOffset = overlay.yOffset;
+
+        // Calculate dimensions
+        const dimensions = calculateInputImagesDimensions(
+          overlay.inputImages,
+          config
+        );
+
+        // Scale the offsets and dimensions
+        const scaledX = Math.round(xOffset * scale);
+        const scaledY = Math.round(yOffset * scale);
+        const scaledWidth = Math.round(dimensions.width * scale);
+        const scaledHeight = Math.round(dimensions.height * scale);
+        const scaledPadding = Math.round(padding * scale);
+        const scaledImgWidth = Math.round((imgConfig.width || 50) * scale);
+        const scaledImgHeight = Math.round((imgConfig.height || 50) * scale);
+        const scaledSpacing = Math.round((imgConfig.spacing || 0) * scale);
+
+        // Draw blurred background
+        drawBlurredBackground(ctx, scaledX, scaledY, scaledWidth, scaledHeight, '#008B8B99', scaledPadding);
+
+        // Draw input images (scaled)
+        const scaledConfig = {
+          ...config,
+          images: {
+            ...imgConfig,
+            width: scaledImgWidth,
+            height: scaledImgHeight,
+            spacing: scaledSpacing
+          }
+        };
+
+        drawInputImages(ctx, overlay.inputImages, scaledX, scaledY, scaledConfig);
+      });
     }
 
     /**

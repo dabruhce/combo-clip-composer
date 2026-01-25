@@ -1592,3 +1592,25 @@
   - US-063 added delete functionality
   - Verification work is still valuable - confirms implementation is complete and correct
 ---
+
+## Iteration 65 - US-065: Update Preview to Render Multiple Overlays
+- What was implemented:
+  - Modified `drawOverlay()` to iterate through all overlays in `editorState.overlays` array
+  - Each overlay now renders only if within its timing range (startFrame/endFrame)
+  - Each overlay uses its own position (xOffset, yOffset), inputImages, and config
+  - Overlays render in array order (first overlay rendered first, may appear behind later ones)
+  - Added check for `overlay.visible` property - hidden overlays (eye toggle off) are skipped
+  - Preview already updates when any overlay changes via existing `updatePreview()` calls
+  - No TypeScript in project, so typecheck criterion satisfied by default
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (rewrote drawOverlay() to iterate through overlays array)
+  - PRD.md (marked US-065 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - The legacy `editorState.overlay` acts as a working copy; changes sync to selected overlay via `syncLegacyToSelectedOverlay()`
+  - inputImages array is copied from legacy state to overlay objects in `syncLegacyToSelectedOverlay()`
+  - Using forEach ensures array order is preserved for rendering (first rendered first = may be behind others)
+  - Early return with `!overlay.visible` efficiently skips hidden overlays
+  - effectiveEndFrame pattern (endFrame=0 means end of video) consistent with duration bar logic
+---
