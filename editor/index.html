@@ -729,6 +729,35 @@
       color: #cccccc;
     }
 
+    .layers-panel-header .add-overlay-btn {
+      margin-left: auto;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #3c3c3c;
+      border: 1px solid #4d4d4d;
+      border-radius: 3px;
+      color: #4fc3f7;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+
+    .layers-panel-header .add-overlay-btn:hover:not(:disabled) {
+      background-color: #505050;
+    }
+
+    .layers-panel-header .add-overlay-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .layers-panel-header .add-overlay-btn:active:not(:disabled) {
+      background-color: #5a5a5a;
+    }
+
     .layers-panel-content {
       flex: 1;
       display: flex;
@@ -2206,9 +2235,10 @@
 
   <!-- Horizontal Layers Panel - Above Timeline -->
   <div class="layers-panel" id="layersPanel">
-    <div class="layers-panel-header" onclick="toggleLayersPanel()">
-      <span class="toggle-icon">▼</span>
-      <span class="panel-title">LAYERS</span>
+    <div class="layers-panel-header">
+      <span class="toggle-icon" onclick="toggleLayersPanel()">▼</span>
+      <span class="panel-title" onclick="toggleLayersPanel()">LAYERS</span>
+      <button class="add-overlay-btn" id="btnAddOverlay" disabled title="Add Overlay" onclick="event.stopPropagation(); addOverlay();">+</button>
     </div>
     <div class="layers-panel-content" id="layersPanelContent">
       <div class="layers-panel-empty" id="layersPanelEmpty">
@@ -2672,6 +2702,9 @@
     const btnTimelineZoomFit = document.getElementById('btnTimelineZoomFit');
     const timelineZoomLabel = document.getElementById('timelineZoomLabel');
     const keyframeTracksContainer = document.getElementById('keyframeTracksContainer');
+
+    // Layers panel DOM elements
+    const btnAddOverlay = document.getElementById('btnAddOverlay');
 
     // Keyframe controls and context menu DOM elements
     const btnAddKeyframe = document.getElementById('btnAddKeyframe');
@@ -3651,6 +3684,241 @@
           selectLayerRow(row);
         });
       });
+    }
+
+    /**
+     * Creates a new overlay and adds it to the layers panel
+     * Creates new overlay with default values and auto-selects it
+     */
+    function addOverlay() {
+      // Don't add overlay if no video is loaded
+      if (editorState.frameCount === 0) {
+        console.warn('Cannot add overlay: no video loaded');
+        return;
+      }
+
+      // Create new overlay with default values
+      const newOverlay = createOverlayObject();
+
+      // Add to overlays array
+      editorState.overlays.push(newOverlay);
+
+      // Select the new overlay
+      editorState.selectedOverlayId = newOverlay.id;
+
+      // Sync to legacy state for backward compatibility
+      syncSelectedOverlayToLegacy();
+
+      // Re-render layer rows to show new overlay
+      renderLayerRows();
+
+      // Update duration bars
+      updateAllDurationBars();
+
+      // Mark project as having unsaved changes
+      if (typeof markUnsavedChanges === 'function') {
+        markUnsavedChanges();
+      }
+
+      console.log('Added new overlay:', newOverlay.name, newOverlay.id);
+    }
+
+    /**
+     * Renders all overlay layer rows dynamically based on editorState.overlays
+     */
+    function renderLayerRows() {
+      const rowsContainer = document.getElementById('layersPanelRows');
+      if (!rowsContainer) return;
+
+      // Clear existing rows
+      rowsContainer.innerHTML = '';
+
+      // If no overlays, show empty state
+      if (editorState.overlays.length === 0) {
+        hideLayerRows();
+        return;
+      }
+
+      // Create row for each overlay
+      editorState.overlays.forEach(overlay => {
+        const row = createLayerRowElement(overlay);
+        rowsContainer.appendChild(row);
+      });
+
+      // Show layer rows (hides empty state)
+      showLayerRows();
+    }
+
+    /**
+     * Creates a layer row HTML element for an overlay
+     * @param {Object} overlay - The overlay object
+     * @returns {HTMLElement} The layer row element
+     */
+    function createLayerRowElement(overlay) {
+      const row = document.createElement('div');
+      row.className = 'layer-row';
+      row.dataset.overlayId = overlay.id;
+
+      // Add selected class if this is the selected overlay
+      if (overlay.id === editorState.selectedOverlayId) {
+        row.classList.add('selected');
+      }
+
+      // Create label area
+      const label = document.createElement('div');
+      label.className = 'layer-row-label';
+
+      // Visibility toggle
+      const visibilityToggle = document.createElement('span');
+      visibilityToggle.className = 'layer-visibility-toggle';
+      if (!overlay.visible) {
+        visibilityToggle.classList.add('hidden');
+      }
+      visibilityToggle.title = 'Toggle visibility';
+      visibilityToggle.textContent = '👁';
+      visibilityToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleOverlayVisibility(overlay.id);
+      });
+
+      // Layer name
+      const name = document.createElement('span');
+      name.className = 'layer-name';
+      name.textContent = overlay.name;
+      name.title = overlay.name;
+
+      label.appendChild(visibilityToggle);
+      label.appendChild(name);
+
+      // Create track area
+      const track = document.createElement('div');
+      track.className = 'layer-row-track';
+      track.id = `layerTrack-${overlay.id}`;
+
+      // Create duration bar
+      const durationBar = document.createElement('div');
+      durationBar.className = 'layer-duration-bar';
+      durationBar.id = `durationBar-${overlay.id}`;
+      track.appendChild(durationBar);
+
+      row.appendChild(label);
+      row.appendChild(track);
+
+      // Add click handler for selection
+      row.addEventListener('click', () => {
+        selectOverlay(overlay.id);
+      });
+
+      return row;
+    }
+
+    /**
+     * Toggles visibility of an overlay by ID
+     * @param {string} overlayId - The overlay ID
+     */
+    function toggleOverlayVisibility(overlayId) {
+      const overlay = getOverlayById(overlayId);
+      if (!overlay) return;
+
+      overlay.visible = !overlay.visible;
+
+      // Update the toggle element visually
+      const row = document.querySelector(`.layer-row[data-overlay-id="${overlayId}"]`);
+      if (row) {
+        const toggle = row.querySelector('.layer-visibility-toggle');
+        if (toggle) {
+          toggle.classList.toggle('hidden', !overlay.visible);
+        }
+      }
+
+      // Sync to legacy state if this is selected overlay
+      if (overlayId === editorState.selectedOverlayId) {
+        syncSelectedOverlayToLegacy();
+      }
+
+      // Update preview
+      updatePreview();
+
+      // Mark unsaved changes
+      if (typeof markUnsavedChanges === 'function') {
+        markUnsavedChanges();
+      }
+    }
+
+    /**
+     * Selects an overlay by ID
+     * @param {string} overlayId - The overlay ID to select
+     */
+    function selectOverlay(overlayId) {
+      const overlay = getOverlayById(overlayId);
+      if (!overlay) return;
+
+      editorState.selectedOverlayId = overlayId;
+
+      // Update visual selection in layer rows
+      document.querySelectorAll('.layer-row').forEach(row => {
+        row.classList.toggle('selected', row.dataset.overlayId === overlayId);
+      });
+
+      // Sync to legacy state for backward compatibility
+      syncSelectedOverlayToLegacy();
+
+      console.log('Selected overlay:', overlay.name);
+    }
+
+    /**
+     * Updates all duration bars for all overlays
+     */
+    function updateAllDurationBars() {
+      editorState.overlays.forEach(overlay => {
+        updateOverlayDurationBar(overlay.id);
+      });
+    }
+
+    /**
+     * Updates the duration bar for a specific overlay
+     * @param {string} overlayId - The overlay ID
+     */
+    function updateOverlayDurationBar(overlayId) {
+      const overlay = getOverlayById(overlayId);
+      if (!overlay) return;
+
+      const bar = document.getElementById(`durationBar-${overlayId}`);
+      const track = document.getElementById(`layerTrack-${overlayId}`);
+      if (!bar || !track) return;
+
+      const frameCount = editorState.frameCount;
+      if (frameCount <= 0) {
+        bar.style.display = 'none';
+        return;
+      }
+
+      bar.style.display = '';
+
+      const startFrame = overlay.startFrame;
+      const effectiveEndFrame = overlay.endFrame === 0 ? frameCount - 1 : overlay.endFrame;
+
+      // Check for invalid timing
+      if (startFrame > effectiveEndFrame) {
+        bar.classList.add('invalid');
+      } else {
+        bar.classList.remove('invalid');
+      }
+
+      // Calculate position and width
+      const trackWidth = track.clientWidth;
+      const zoom = editorState.timelineZoom || 1;
+      const contentWidth = trackWidth * zoom;
+
+      const startPercent = startFrame / (frameCount - 1);
+      const endPercent = effectiveEndFrame / (frameCount - 1);
+
+      const leftPx = startPercent * contentWidth;
+      const widthPx = (endPercent - startPercent) * contentWidth;
+
+      bar.style.left = `${leftPx}px`;
+      bar.style.width = `${Math.max(4, widthPx)}px`;
+      bar.title = `Overlay visible: frame ${startFrame} to ${effectiveEndFrame}`;
     }
 
     /**
@@ -4723,6 +4991,8 @@
       btnJumpEnd.disabled = false;
       // Note: keyframe button stays disabled until frames are extracted
       btnAddKeyframe.disabled = true;
+      // Enable add overlay button - overlays can be added as soon as video loads
+      btnAddOverlay.disabled = false;
 
       // Enable zoom controls
       timelineZoomSlider.disabled = false;
@@ -4741,8 +5011,8 @@
       updateTimelineDisplay();
 
       // Update layer duration bar and show layer rows
-      updateLayerDurationBar();
-      showLayerRows();
+      updateAllDurationBars();
+      renderLayerRows();
 
       // Don't initialize keyframe UI yet - wait for frame extraction
     }
@@ -4761,6 +5031,7 @@
       btnStepForward.disabled = false;
       btnJumpEnd.disabled = false;
       btnAddKeyframe.disabled = false;
+      btnAddOverlay.disabled = false;
 
       // Enable zoom controls
       timelineZoomSlider.disabled = false;
@@ -4778,9 +5049,9 @@
       updatePlayheadPosition();
       updateTimelineDisplay();
 
-      // Update layer duration bar and show layer rows
-      updateLayerDurationBar();
-      showLayerRows();
+      // Update layer duration bars and render layers
+      updateAllDurationBars();
+      renderLayerRows();
 
       // Initialize keyframe UI
       initializeKeyframeUI();
@@ -4802,6 +5073,7 @@
       btnPlayPause.disabled = true;
       btnStepForward.disabled = true;
       btnJumpEnd.disabled = true;
+      btnAddOverlay.disabled = true;
 
       // Disable zoom controls
       timelineZoomSlider.disabled = true;

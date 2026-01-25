@@ -1071,15 +1071,15 @@ Transform the editor from supporting a single combo overlay to supporting multip
 **Description:** As a user, I want to click an "Add Overlay" button so that I can create new combo overlays.
 
 **Acceptance Criteria:**
-- [ ] Add "Add Overlay" button (+ icon) in layers panel header
-- [ ] Button disabled until video is loaded
-- [ ] Clicking creates new overlay with default values (empty text, position 10,50, timing 0-0)
-- [ ] New overlay gets auto-generated name: "Overlay 1", "Overlay 2", etc.
-- [ ] New overlay is automatically selected after creation
-- [ ] New layer row appears in layers panel
-- [ ] Create `addOverlay()` function
-- [ ] Typecheck passes
-- [ ] Verify button works in browser
+- [x] Add "Add Overlay" button (+ icon) in layers panel header
+- [x] Button disabled until video is loaded
+- [x] Clicking creates new overlay with default values (empty text, position 10,50, timing 0-0)
+- [x] New overlay gets auto-generated name: "Overlay 1", "Overlay 2", etc.
+- [x] New overlay is automatically selected after creation
+- [x] New layer row appears in layers panel
+- [x] Create `addOverlay()` function
+- [x] Typecheck passes
+- [x] Verify button works in browser
 
 ---
 
