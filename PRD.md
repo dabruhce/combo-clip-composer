@@ -1124,14 +1124,14 @@ Transform the editor from supporting a single combo overlay to supporting multip
 **Description:** As a user, I want to see all my overlays in the layers panel so that I can manage them visually.
 
 **Acceptance Criteria:**
-- [ ] Create `renderLayerRows()` function to dynamically generate layer rows from `overlays` array
-- [ ] Each layer row shows: visibility toggle, overlay name, duration bar
-- [ ] Duration bars reflect each overlay's individual timing
-- [ ] Layer order matches array order (first overlay at top)
-- [ ] Update `updateLayerDurationBar()` to handle multiple bars (or create `updateAllDurationBars()`)
-- [ ] Call `renderLayerRows()` when overlays change (add/delete/reorder)
-- [ ] Typecheck passes
-- [ ] Verify multiple layers display correctly in browser
+- [x] Create `renderLayerRows()` function to dynamically generate layer rows from `overlays` array
+- [x] Each layer row shows: visibility toggle, overlay name, duration bar
+- [x] Duration bars reflect each overlay's individual timing
+- [x] Layer order matches array order (first overlay at top)
+- [x] Update `updateLayerDurationBar()` to handle multiple bars (or create `updateAllDurationBars()`)
+- [x] Call `renderLayerRows()` when overlays change (add/delete/reorder)
+- [x] Typecheck passes
+- [x] Verify multiple layers display correctly in browser
 
 ---
 

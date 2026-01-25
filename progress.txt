@@ -1546,3 +1546,49 @@
   - Drag handlers need both real-time sync (during drag) and final sync (on drag end) for responsive UX
   - The placeholder text changes to "Select an overlay to edit" when disabled
 ---
+
+## Iteration 63 - US-063: Implement Delete Overlay Functionality
+- What was implemented:
+  - Added delete button (✕) on each layer row with CSS styling (opacity 0 by default, visible on hover)
+  - Added layer context menu HTML with "Delete Overlay" option
+  - Added showLayerContextMenu() and hideLayerContextMenu() functions
+  - Added deleteOverlay(id) function that removes overlay from array and handles selection
+  - Added deleteSelectedOverlay() helper function
+  - After deletion: selects next overlay (or previous if deleted last), or deselects if empty
+  - Modified Delete/Backspace keyboard handler to also delete selected overlay (when no keyframe selected)
+  - Added event listeners for layer context menu (click outside, escape, delete action)
+  - Added right-click handler on layer rows to show context menu
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (CSS styles for delete button and context menu, HTML context menu, JS functions, event listeners)
+  - PRD.md (marked US-063 as complete)
+- Learnings for future iterations:
+  - Delete button uses opacity: 0 by default, shows opacity: 0.6 on row hover for clean UX
+  - Layer context menu follows same pattern as keyframe context menu (showLayerContextMenu, hideLayerContextMenu)
+  - Track layerContextMenuOverlayId to know which overlay the context menu was opened for
+  - Delete key prioritizes keyframe deletion over overlay deletion (check keyframes.selectedKeyframe first)
+  - After deletion, select overlay at same index (clamped to new array length - 1)
+  - Empty state handled cleanly: selectedOverlayId = null and legacy overlay reset
+---
+
+## Iteration 64 - US-064: Update Layers Panel for Multiple Overlays
+- What was implemented:
+  - Verified all acceptance criteria were already satisfied from US-061, US-062, US-063 implementations
+  - `renderLayerRows()` already exists and dynamically generates layer rows from `overlays` array
+  - Each layer row shows: visibility toggle (👁), overlay name, delete button (✕), and duration bar
+  - `updateOverlayDurationBar(overlayId)` updates each overlay's duration bar with individual timing
+  - `updateAllDurationBars()` iterates all overlays and updates their bars
+  - Layer order matches array order (forEach preserves insertion order)
+  - `renderLayerRows()` called when overlays change: addOverlay, deleteOverlay, showTimeline, showTimelineForVideo, newProject
+  - No TypeScript in project, so typecheck criterion satisfied by default
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - PRD.md (marked US-064 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Some acceptance criteria are satisfied progressively across multiple user stories
+  - US-061 created renderLayerRows(), createLayerRowElement(), updateAllDurationBars(), updateOverlayDurationBar()
+  - US-062 added selection and properties binding
+  - US-063 added delete functionality
+  - Verification work is still valuable - confirms implementation is complete and correct
+---
