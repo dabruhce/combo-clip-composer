@@ -972,15 +972,15 @@ Add the ability to control when the combo notation overlay appears and disappear
 **Description:** As a user, I want to see a visual bar on the combo layer track so that I can easily see when the overlay will be visible.
 
 **Acceptance Criteria:**
-- [ ] Add duration bar element to the combo overlay layer track area
-- [ ] Bar starts at position corresponding to startFrame
-- [ ] Bar ends at position corresponding to endFrame (or video end if endFrame=0)
-- [ ] Bar uses distinct color (e.g., blue/teal) to stand out
-- [ ] Bar position and width update when timing inputs change
-- [ ] Bar position and width update when timeline zoom changes
-- [ ] Create `updateLayerDurationBar()` function to sync bar with state
-- [ ] Typecheck passes
-- [ ] Verify bar displays correctly and updates in browser
+- [x] Add duration bar element to the combo overlay layer track area
+- [x] Bar starts at position corresponding to startFrame
+- [x] Bar ends at position corresponding to endFrame (or video end if endFrame=0)
+- [x] Bar uses distinct color (e.g., blue/teal) to stand out
+- [x] Bar position and width update when timing inputs change
+- [x] Bar position and width update when timeline zoom changes
+- [x] Create `updateLayerDurationBar()` function to sync bar with state
+- [x] Typecheck passes
+- [x] Verify bar displays correctly and updates in browser
 
 ---
 

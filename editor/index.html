@@ -822,6 +822,7 @@
       height: 100%;
       background-color: #1e1e1e;
       position: relative;
+      overflow: hidden;
     }
 
     /* Subtle gradient on layer row track to indicate it's a separate area */
@@ -833,6 +834,28 @@
       bottom: 0;
       width: 1px;
       background-color: #3d3d3d;
+    }
+
+    /* Duration bar for overlay timing */
+    .layer-duration-bar {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      background-color: #0e639c;
+      border-radius: 3px;
+      min-width: 4px;
+      cursor: default;
+      opacity: 0.8;
+      transition: opacity 0.15s;
+    }
+
+    .layer-duration-bar:hover {
+      opacity: 1;
+    }
+
+    .layer-duration-bar.invalid {
+      background-color: #f48771;
+      opacity: 0.6;
     }
 
     /* Timeline at bottom */
@@ -2198,7 +2221,9 @@
             <span class="layer-visibility-toggle" title="Toggle visibility">👁</span>
             <span class="layer-name">Combo Overlay</span>
           </div>
-          <div class="layer-row-track" id="layerTrack-combo-overlay"></div>
+          <div class="layer-row-track" id="layerTrack-combo-overlay">
+            <div class="layer-duration-bar" id="comboDurationBar" title="Overlay visible from frame 0"></div>
+          </div>
         </div>
         <div class="layer-row" data-layer-id="text-overlay">
           <div class="layer-row-label">
@@ -3345,6 +3370,63 @@
     }
 
     /**
+     * Updates the duration bar on the combo overlay layer track
+     * Positions and sizes the bar based on startFrame, endFrame, and timeline zoom
+     */
+    function updateLayerDurationBar() {
+      const comboDurationBar = document.getElementById('comboDurationBar');
+      if (!comboDurationBar) return;
+
+      // If no video loaded, hide the duration bar
+      if (editorState.frameCount === 0) {
+        comboDurationBar.style.display = 'none';
+        return;
+      }
+
+      const startFrame = editorState.overlay.startFrame;
+      const endFrame = editorState.overlay.endFrame;
+      const frameCount = editorState.frameCount;
+
+      // Calculate effective end frame (0 means "end of video")
+      const effectiveEndFrame = endFrame === 0 ? frameCount - 1 : endFrame;
+
+      // Check if timing is valid
+      const isValid = endFrame === 0 || startFrame <= endFrame;
+
+      // Get the layer track element to calculate width
+      const layerTrack = document.getElementById('layerTrack-combo-overlay');
+      if (!layerTrack) return;
+
+      // Calculate track width to sync with timeline zoom
+      // This allows the duration bar to visually align with the timeline below
+      // When zoomed, the bar may extend beyond visible area (clipped by overflow:hidden)
+      const baseTrackWidth = layerTrack.clientWidth;
+      const trackWidth = baseTrackWidth * editorState.timelineZoom;
+
+      // Calculate bar position and width as percentage of track
+      const maxFrameIndex = Math.max(1, frameCount - 1); // Avoid divide by zero
+      const left = (startFrame / maxFrameIndex) * trackWidth;
+      const right = (effectiveEndFrame / maxFrameIndex) * trackWidth;
+      const width = Math.max(4, right - left); // Minimum width of 4px
+
+      // Apply styles
+      comboDurationBar.style.display = 'block';
+      comboDurationBar.style.left = `${left}px`;
+      comboDurationBar.style.width = `${width}px`;
+
+      // Update validity styling
+      if (isValid) {
+        comboDurationBar.classList.remove('invalid');
+      } else {
+        comboDurationBar.classList.add('invalid');
+      }
+
+      // Update tooltip
+      const endLabel = endFrame === 0 ? 'end' : effectiveEndFrame;
+      comboDurationBar.title = `Overlay visible: frame ${startFrame} to ${endLabel}`;
+    }
+
+    /**
      * Toggles a property section collapsed state
      */
     function toggleSection(sectionId) {
@@ -3372,6 +3454,26 @@
       if (panel) {
         panel.classList.toggle('collapsed');
       }
+    }
+
+    /**
+     * Shows the layer rows and hides empty state
+     */
+    function showLayerRows() {
+      const empty = document.getElementById('layersPanelEmpty');
+      const rows = document.getElementById('layersPanelRows');
+      if (empty) empty.style.display = 'none';
+      if (rows) rows.style.display = '';
+    }
+
+    /**
+     * Hides the layer rows and shows empty state
+     */
+    function hideLayerRows() {
+      const empty = document.getElementById('layersPanelEmpty');
+      const rows = document.getElementById('layersPanelRows');
+      if (empty) empty.style.display = '';
+      if (rows) rows.style.display = 'none';
     }
 
     /**
@@ -4503,6 +4605,10 @@
       updatePlayheadPosition();
       updateTimelineDisplay();
 
+      // Update layer duration bar and show layer rows
+      updateLayerDurationBar();
+      showLayerRows();
+
       // Don't initialize keyframe UI yet - wait for frame extraction
     }
 
@@ -4537,6 +4643,10 @@
       updatePlayheadPosition();
       updateTimelineDisplay();
 
+      // Update layer duration bar and show layer rows
+      updateLayerDurationBar();
+      showLayerRows();
+
       // Initialize keyframe UI
       initializeKeyframeUI();
     }
@@ -4563,6 +4673,9 @@
       btnTimelineZoomIn.disabled = true;
       btnTimelineZoomOut.disabled = true;
       btnTimelineZoomFit.disabled = true;
+
+      // Hide layer rows and show empty state
+      hideLayerRows();
     }
 
     /**
@@ -4636,6 +4749,9 @@
       // Update keyframe track widths and re-render markers
       updateKeyframeTrackWidths();
       renderKeyframeMarkers();
+
+      // Update layer duration bar width
+      updateLayerDurationBar();
 
       // Scroll to keep playhead visible if requested
       if (keepPlayheadVisible && editorState.frameCount > 0) {
@@ -6060,6 +6176,7 @@
       editorState.overlay.startFrame = Math.max(0, value);
       timingStartFrameInput.value = editorState.overlay.startFrame;
       validateTimingInputs();
+      updateLayerDurationBar();
       updatePreview();
       markUnsavedChanges();
     });
@@ -6069,6 +6186,7 @@
       editorState.overlay.endFrame = Math.max(0, value);
       timingEndFrameInput.value = editorState.overlay.endFrame;
       validateTimingInputs();
+      updateLayerDurationBar();
       updatePreview();
       markUnsavedChanges();
     });
@@ -6299,6 +6417,8 @@
         // Update keyframe track widths and re-render
         updateKeyframeTrackWidths();
         renderKeyframeMarkers();
+        // Update layer duration bar
+        updateLayerDurationBar();
       }
     });
 
