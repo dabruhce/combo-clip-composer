@@ -1171,12 +1171,12 @@ Transform the editor from supporting a single combo overlay to supporting multip
 **Description:** As a user, I want my multiple overlays saved and restored so that I can continue editing later.
 
 **Acceptance Criteria:**
-- [ ] Update `createProjectData()` to save full `overlays` array
-- [ ] Update `applyProjectData()` to restore overlays array and re-render layer rows
-- [ ] Handle backward compatibility: if old project has single `overlay`, migrate to array
-- [ ] Save and restore `selectedOverlayId`
-- [ ] Typecheck passes
-- [ ] Verify save/load cycle preserves all overlays correctly
+- [x] Update `createProjectData()` to save full `overlays` array
+- [x] Update `applyProjectData()` to restore overlays array and re-render layer rows
+- [x] Handle backward compatibility: if old project has single `overlay`, migrate to array
+- [x] Save and restore `selectedOverlayId`
+- [x] Typecheck passes
+- [x] Verify save/load cycle preserves all overlays correctly
 
 ---
 

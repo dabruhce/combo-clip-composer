@@ -1647,3 +1647,26 @@
   - Overlays are stored in config.overlays for processComboVideo to access
   - redrawFrameWithMultipleOverlays follows same pattern as redrawFrameWithComboImages but iterates
 ---
+
+## Iteration 67 - US-067: Update Project Save/Load for Multiple Overlays
+- What was implemented:
+  - Verified `createProjectData()` already saves full `overlays` array (serialized without inputImages)
+  - Verified `applyProjectData()` already restores overlays array from project file
+  - Verified backward compatibility: migrates single `overlay` to array format using `migrateOverlayToArrayFormat()`
+  - Verified `selectedOverlayId` is saved and restored correctly
+  - Added `renderLayerRows()` call after `applyProjectData()` in project load flow to re-render layers with loaded overlays
+  - Added `updateAllDurationBars()` call to update duration bars for loaded overlays
+  - Added `updatePropertiesPanel()` call to show selected overlay's properties
+  - Most functionality was already implemented in US-060 (data model refactor)
+  - All 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (added renderLayerRows, updateAllDurationBars, updatePropertiesPanel calls after applyProjectData)
+  - PRD.md (marked US-067 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Check existing implementation before adding new code - much of US-067 was already in US-060
+  - Project load flow: showTimeline() -> loadFrame() -> applyProjectData() -> renderLayerRows() -> renderKeyframeMarkers()
+  - Must call renderLayerRows AFTER applyProjectData since overlays array is populated during applyProjectData
+  - inputImages are runtime data (not serialized) - regenerated when overlay is applied
+  - Backward compatibility handled by checking for overlays array vs legacy overlay object
+---

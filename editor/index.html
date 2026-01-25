@@ -7531,6 +7531,11 @@
         // Apply project data
         applyProjectData(projectData);
 
+        // Re-render layer rows with loaded overlays
+        renderLayerRows();
+        updateAllDurationBars();
+        updatePropertiesPanel();
+
         // Render keyframes
         renderKeyframeMarkers();
 
