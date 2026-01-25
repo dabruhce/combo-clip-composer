@@ -3703,14 +3703,11 @@
       // Add to overlays array
       editorState.overlays.push(newOverlay);
 
-      // Select the new overlay
-      editorState.selectedOverlayId = newOverlay.id;
-
-      // Sync to legacy state for backward compatibility
-      syncSelectedOverlayToLegacy();
-
       // Re-render layer rows to show new overlay
       renderLayerRows();
+
+      // Select the new overlay (this will sync to legacy and update properties panel)
+      selectOverlay(newOverlay.id);
 
       // Update duration bars
       updateAllDurationBars();
@@ -3863,7 +3860,146 @@
       // Sync to legacy state for backward compatibility
       syncSelectedOverlayToLegacy();
 
+      // Update properties panel to show selected overlay's values
+      updatePropertiesPanel();
+
       console.log('Selected overlay:', overlay.name);
+    }
+
+    /**
+     * Updates the Properties panel inputs to match the selected overlay's values
+     * If no overlay is selected, disables the inputs and shows a message
+     */
+    function updatePropertiesPanel() {
+      const selected = getSelectedOverlay();
+
+      if (!selected) {
+        // No overlay selected - disable inputs and show message
+        disablePropertiesPanel();
+        return;
+      }
+
+      // Enable properties panel
+      enablePropertiesPanel();
+
+      // Update combo text input
+      comboTextInput.value = selected.comboText || '';
+
+      // Update position inputs
+      overlayXInput.value = selected.xOffset;
+      overlayYInput.value = selected.yOffset;
+
+      // Update timing inputs
+      timingStartFrameInput.value = selected.startFrame;
+      timingEndFrameInput.value = selected.endFrame;
+
+      // Update image config inputs
+      const config = selected.config || defaultConfig;
+      const imgConfig = config.images || defaultConfig.images;
+      imgWidthInput.value = imgConfig.width;
+      imgHeightInput.value = imgConfig.height;
+      imgSpacingInput.value = imgConfig.spacing;
+      imgPaddingInput.value = imgConfig.padding;
+      imgMarginInput.value = imgConfig.margin;
+
+      // Update text config inputs
+      const textConfig = config.text || defaultConfig.text;
+      textFontSelect.value = textConfig.font || 'THEBOLDFONT';
+      textFontSizeInput.value = textConfig.fontSize || 50;
+      textColorText.value = textConfig.color || 'yellow';
+      textColorPicker.value = colorNameToHex(textConfig.color || 'yellow');
+
+      // Update dropshadow config inputs
+      const dropshadowConfig = config.text?.dropshadow || defaultConfig.text.dropshadow;
+      dropshadowEnabledCheckbox.checked = dropshadowConfig.enabled || false;
+      dropshadowColorText.value = dropshadowConfig.color || '#000000';
+      dropshadowColorPicker.value = dropshadowConfig.color || '#000000';
+      dropshadowBlurInput.value = dropshadowConfig.blur || 0;
+      dropshadowOffsetXInput.value = dropshadowConfig.offsetX || -2;
+      dropshadowOffsetYInput.value = dropshadowConfig.offsetY || 3;
+
+      // Validate timing inputs
+      validateTimingInputs();
+    }
+
+    /**
+     * Disables the Properties panel when no overlay is selected
+     */
+    function disablePropertiesPanel() {
+      comboTextInput.disabled = true;
+      comboTextInput.value = '';
+      comboTextInput.placeholder = 'Select an overlay to edit';
+
+      overlayXInput.disabled = true;
+      overlayYInput.disabled = true;
+
+      timingStartFrameInput.disabled = true;
+      timingEndFrameInput.disabled = true;
+
+      imgWidthInput.disabled = true;
+      imgHeightInput.disabled = true;
+      imgSpacingInput.disabled = true;
+      imgPaddingInput.disabled = true;
+      imgMarginInput.disabled = true;
+
+      textFontSelect.disabled = true;
+      textFontSizeInput.disabled = true;
+      textColorText.disabled = true;
+      textColorPicker.disabled = true;
+
+      dropshadowEnabledCheckbox.disabled = true;
+      dropshadowColorText.disabled = true;
+      dropshadowColorPicker.disabled = true;
+      dropshadowBlurInput.disabled = true;
+      dropshadowOffsetXInput.disabled = true;
+      dropshadowOffsetYInput.disabled = true;
+    }
+
+    /**
+     * Enables the Properties panel when an overlay is selected
+     */
+    function enablePropertiesPanel() {
+      comboTextInput.disabled = false;
+      comboTextInput.placeholder = 'e.g., d df f 2, w! ss';
+
+      overlayXInput.disabled = false;
+      overlayYInput.disabled = false;
+
+      timingStartFrameInput.disabled = false;
+      timingEndFrameInput.disabled = false;
+
+      imgWidthInput.disabled = false;
+      imgHeightInput.disabled = false;
+      imgSpacingInput.disabled = false;
+      imgPaddingInput.disabled = false;
+      imgMarginInput.disabled = false;
+
+      textFontSelect.disabled = false;
+      textFontSizeInput.disabled = false;
+      textColorText.disabled = false;
+      textColorPicker.disabled = false;
+
+      dropshadowEnabledCheckbox.disabled = false;
+      dropshadowColorText.disabled = false;
+      dropshadowColorPicker.disabled = false;
+      dropshadowBlurInput.disabled = false;
+      dropshadowOffsetXInput.disabled = false;
+      dropshadowOffsetYInput.disabled = false;
+    }
+
+    /**
+     * Applies property changes from inputs to the selected overlay in the overlays array
+     * This syncs from editorState.overlay (legacy) to the selected overlay object
+     */
+    function applyPropertiesToSelectedOverlay() {
+      const selected = getSelectedOverlay();
+      if (!selected) return;
+
+      // Sync changes from legacy overlay state to selected overlay
+      syncLegacyToSelectedOverlay();
+
+      // Update the duration bar for this overlay
+      updateOverlayDurationBar(selected.id);
     }
 
     /**
@@ -5687,6 +5823,9 @@
         editorState.overlay.enabled = false;
       }
 
+      // Sync changes to selected overlay in overlays array
+      applyPropertiesToSelectedOverlay();
+
       updatePreview();
     }
 
@@ -5874,6 +6013,9 @@
         editorState.overlay.xOffset = newX;
         editorState.overlay.yOffset = newY;
 
+        // Sync to selected overlay (without full duration bar update for performance)
+        syncLegacyToSelectedOverlay();
+
         // Update position inputs
         updatePositionInputs();
 
@@ -5910,6 +6052,12 @@
 
         // Hide position indicator
         hideDragPositionIndicator();
+
+        // Sync position changes to selected overlay in overlays array
+        applyPropertiesToSelectedOverlay();
+
+        // Mark unsaved changes
+        markUnsavedChanges();
 
         // Check if still hovering over overlay
         const canvasCoords = mouseToCanvasCoords(event);
@@ -6596,7 +6744,8 @@
       editorState.overlay.startFrame = Math.max(0, value);
       timingStartFrameInput.value = editorState.overlay.startFrame;
       validateTimingInputs();
-      updateLayerDurationBar();
+      // Sync to selected overlay in overlays array
+      applyPropertiesToSelectedOverlay();
       updatePreview();
       markUnsavedChanges();
     });
@@ -6606,7 +6755,8 @@
       editorState.overlay.endFrame = Math.max(0, value);
       timingEndFrameInput.value = editorState.overlay.endFrame;
       validateTimingInputs();
-      updateLayerDurationBar();
+      // Sync to selected overlay in overlays array
+      applyPropertiesToSelectedOverlay();
       updatePreview();
       markUnsavedChanges();
     });
@@ -7276,6 +7426,12 @@
       timingStartFrameInput.value = 0;
       timingEndFrameInput.value = 0;
       timingValidationMsg.style.display = 'none';
+
+      // Update properties panel to show disabled state (no overlay selected)
+      updatePropertiesPanel();
+
+      // Clear layer rows
+      renderLayerRows();
 
       clearUnsavedChanges();
       updateStatusBar();

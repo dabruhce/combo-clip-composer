@@ -1088,16 +1088,16 @@ Transform the editor from supporting a single combo overlay to supporting multip
 **Description:** As a user, I want to click a layer to select it so that I can edit its properties in the Properties panel.
 
 **Acceptance Criteria:**
-- [ ] Clicking layer row selects that overlay (updates `selectedOverlayId`)
-- [ ] Selected layer has visual highlight (existing `.selected` class)
-- [ ] Properties panel inputs bind to selected overlay's values
-- [ ] Changing properties updates the selected overlay in the array
-- [ ] Create `selectOverlay(id)` function
-- [ ] Create `updatePropertiesPanel()` function to sync inputs with selected overlay
-- [ ] Create `applyPropertiesToSelectedOverlay()` function for input changes
-- [ ] If no overlay selected, Properties panel shows disabled state or message
-- [ ] Typecheck passes
-- [ ] Verify selection and property editing works in browser
+- [x] Clicking layer row selects that overlay (updates `selectedOverlayId`)
+- [x] Selected layer has visual highlight (existing `.selected` class)
+- [x] Properties panel inputs bind to selected overlay's values
+- [x] Changing properties updates the selected overlay in the array
+- [x] Create `selectOverlay(id)` function
+- [x] Create `updatePropertiesPanel()` function to sync inputs with selected overlay
+- [x] Create `applyPropertiesToSelectedOverlay()` function for input changes
+- [x] If no overlay selected, Properties panel shows disabled state or message
+- [x] Typecheck passes
+- [x] Verify selection and property editing works in browser
 
 ---
 

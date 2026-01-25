@@ -1470,3 +1470,79 @@
   - Export composites multiple overlays per frame
   - Backward compatibility: migrate old single overlay to array on project load
 ---
+
+## Iteration 60 - US-060: Refactor Data Model for Multiple Overlays
+- What was implemented:
+  - Added `editorState.overlays` array to hold multiple independent overlays
+  - Added `editorState.selectedOverlayId` to track current selection
+  - Added `generateOverlayId()` function using timestamp + counter for uniqueness
+  - Added `getSelectedOverlay()` helper function
+  - Added `getOverlayById(id)` helper function
+  - Added `createOverlayObject(name)` to create new overlays with default values
+  - Added `migrateOverlayToArrayFormat(oldOverlay)` for backward compatibility
+  - Added `syncSelectedOverlayToLegacy()` and `syncLegacyToSelectedOverlay()` for transitional compatibility
+  - Updated `createProjectData()` to serialize overlays array (without inputImages runtime data)
+  - Updated `applyProjectData()` to load overlays array or migrate legacy single overlay format
+  - Updated `newProject()` to reset overlays array and selectedOverlayId
+  - Kept legacy `editorState.overlay` during transition for backward compatibility
+- Files changed:
+  - editor/index.html (added overlays state, helper functions, updated save/load logic)
+  - PRD.md (marked US-060 as complete)
+- Learnings for future iterations:
+  - Legacy state (editorState.overlay) kept during transition allows existing code to work unchanged
+  - Overlay object structure: { id, name, comboText, xOffset, yOffset, startFrame, endFrame, visible, config, inputImages }
+  - inputImages is runtime data (not serialized) - regenerated when overlay is applied
+  - generateOverlayId uses Date.now() + counter for collision-free unique IDs
+  - Project save includes both new overlays array and legacy fields for backward compatibility
+  - Migration function handles old projects automatically on load
+---
+
+## Iteration 61 - US-061: Add "Add Overlay" Button and Creation Logic
+- What was implemented:
+  - Added "+" button in layers panel header with CSS styling (blue accent color #4fc3f7)
+  - Button disabled until video loads (enabled in showTimeline/showTimelineForVideo, disabled in hideTimeline)
+  - Created addOverlay() function that creates overlay with default values and auto-selects it
+  - Created renderLayerRows() to dynamically generate layer rows from editorState.overlays
+  - Created createLayerRowElement() to build individual layer row DOM elements
+  - Created selectOverlay() to handle layer selection and sync with legacy state
+  - Created toggleOverlayVisibility() to toggle layer visibility via eye icon
+  - Created updateAllDurationBars() and updateOverlayDurationBar() for timing display per overlay
+  - New overlay gets auto-generated name: "Overlay 1", "Overlay 2", etc.
+  - Clicking button adds overlay, selects it, renders new layer row, and marks unsaved changes
+- Files changed:
+  - editor/index.html (CSS styles for add-overlay-btn, HTML button, JS functions, enable/disable logic)
+  - PRD.md (marked US-061 as complete)
+- Learnings for future iterations:
+  - Layers panel header has toggle-icon and panel-title with onclick="toggleLayersPanel()", button uses stopPropagation
+  - Button uses margin-left: auto to push it to the right side of flex header
+  - renderLayerRows() clears and rebuilds all rows - appropriate for small number of overlays
+  - updateOverlayDurationBar() calculates bar position based on overlay's individual timing
+  - Keep old updateLayerDurationBar() during transition for backward compatibility with legacy comboDurationBar
+---
+
+## Iteration 62 - US-062: Implement Layer Selection and Properties Binding
+- What was implemented:
+  - Modified selectOverlay() to call updatePropertiesPanel() after syncing to legacy state
+  - Created updatePropertiesPanel() function to populate all input fields from selected overlay
+  - Created disablePropertiesPanel() to disable all inputs when no overlay selected
+  - Created enablePropertiesPanel() to re-enable inputs when overlay is selected
+  - Created applyPropertiesToSelectedOverlay() to sync legacy state back to overlays array
+  - Modified updateOverlay() to call applyPropertiesToSelectedOverlay() after updating legacy state
+  - Modified timing input handlers to call applyPropertiesToSelectedOverlay() after changes
+  - Modified onCanvasMouseUp() (drag end) to sync position changes to selected overlay
+  - Modified onCanvasMouseMove() (drag) to sync position during drag via syncLegacyToSelectedOverlay()
+  - Modified addOverlay() to call selectOverlay() instead of manual selection (triggers updatePropertiesPanel)
+  - Modified newProject() to call updatePropertiesPanel() and renderLayerRows() on reset
+  - Properties panel shows disabled state with "Select an overlay to edit" placeholder when nothing selected
+  - 512 tests pass (2 pre-existing failures: canvas binding, fixtures directory cleanup)
+- Files changed:
+  - editor/index.html (added updatePropertiesPanel, disablePropertiesPanel, enablePropertiesPanel, applyPropertiesToSelectedOverlay, updated selectOverlay, updateOverlay, timing handlers, drag handlers, addOverlay, newProject)
+  - PRD.md (marked US-062 as complete)
+- Learnings for future iterations:
+  - The legacy editorState.overlay acts as a "working copy" - changes flow from inputs → legacy → overlays array
+  - syncLegacyToSelectedOverlay() copies from legacy to array, syncSelectedOverlayToLegacy() copies from array to legacy
+  - applyPropertiesToSelectedOverlay() wraps syncLegacyToSelectedOverlay() + duration bar update
+  - When selection changes, must update all Properties panel inputs via updatePropertiesPanel()
+  - Drag handlers need both real-time sync (during drag) and final sync (on drag end) for responsive UX
+  - The placeholder text changes to "Select an overlay to edit" when disabled
+---
