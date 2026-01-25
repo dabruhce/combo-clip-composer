@@ -932,3 +932,101 @@ Move the Layers panel from the right sidebar to a full-width horizontal panel po
 - Consider using CSS custom properties for shared dimensions (e.g., `--layer-label-width: 120px`)
 - The existing "No layers yet" placeholder is sufficient for now; actual layer functionality is future work
 - Panel collapse state could be persisted to localStorage (optional, not required)
+
+---
+
+## Phase 16: Combo Overlay Timing (In/Out Points)
+
+### Introduction
+
+Add the ability to control when the combo notation overlay appears and disappears in the video by setting start and end frame numbers. This allows users to time the overlay to match specific moments in their gameplay footage, such as showing inputs only during the combo execution.
+
+### Goals
+
+- Add start frame and end frame input fields to the Properties panel
+- Display a visual bar on the combo layer track showing the overlay's visible duration
+- Update the preview to show/hide the overlay based on current frame position
+- Ensure the timing is respected during video export
+
+---
+
+#### US-056: Add Timing Input Fields to Properties Panel
+
+**Description:** As a user, I want to enter start and end frame numbers so that I can control when the combo overlay appears and disappears.
+
+**Acceptance Criteria:**
+- [x] Add "Timing" section to Properties panel (collapsible, below existing sections)
+- [x] Add "Start Frame" number input with min=0, default=0
+- [x] Add "End Frame" number input with min=0, default=0 (0 means "end of video")
+- [x] Store timing values in `editorState.overlay.startFrame` and `editorState.overlay.endFrame`
+- [x] Input fields update state on change
+- [x] Validate that startFrame <= endFrame (show error if invalid)
+- [x] Disable inputs until video is loaded
+- [x] Typecheck passes
+- [x] Verify inputs display and work correctly in browser
+
+---
+
+#### US-057: Display Duration Bar on Combo Layer Track
+
+**Description:** As a user, I want to see a visual bar on the combo layer track so that I can easily see when the overlay will be visible.
+
+**Acceptance Criteria:**
+- [ ] Add duration bar element to the combo overlay layer track area
+- [ ] Bar starts at position corresponding to startFrame
+- [ ] Bar ends at position corresponding to endFrame (or video end if endFrame=0)
+- [ ] Bar uses distinct color (e.g., blue/teal) to stand out
+- [ ] Bar position and width update when timing inputs change
+- [ ] Bar position and width update when timeline zoom changes
+- [ ] Create `updateLayerDurationBar()` function to sync bar with state
+- [ ] Typecheck passes
+- [ ] Verify bar displays correctly and updates in browser
+
+---
+
+#### US-058: Update Preview Based on Current Frame Timing
+
+**Description:** As a user, I want the overlay to appear/disappear in the preview as I scrub through the timeline so that I can see exactly how it will look in the final video.
+
+**Acceptance Criteria:**
+- [ ] Modify `drawOverlay()` to check if current frame is within timing range
+- [ ] Overlay draws only when: `startFrame <= currentFrame <= endFrame`
+- [ ] If endFrame is 0, treat as "until end of video" (endFrame = frameCount - 1)
+- [ ] Preview updates correctly when scrubbing timeline
+- [ ] Preview updates correctly when stepping frame-by-frame
+- [ ] Preview updates correctly during playback
+- [ ] Typecheck passes
+- [ ] Verify overlay visibility changes based on timing in browser
+
+---
+
+#### US-059: Include Timing in Project Save/Export
+
+**Description:** As a user, I want my timing settings saved with the project and respected during export so that my final video has the correct overlay timing.
+
+**Acceptance Criteria:**
+- [ ] Add `startFrame` and `endFrame` to project save data (`createProjectData()`)
+- [ ] Load timing values when opening project (`applyProjectData()`)
+- [ ] Pass timing values to export process
+- [ ] Update `processComboVideo` or rendering logic to respect start/end frames
+- [ ] Overlay only renders on frames within the timing range during export
+- [ ] Typecheck passes
+- [ ] Verify timing persists after save/load cycle
+
+---
+
+### Non-Goals (Phase 16)
+
+- Draggable handles to resize the duration bar (future enhancement)
+- Multiple timing ranges for the same overlay (split appearances)
+- Per-input timing (each notation appears at different times)
+- Fade in/out at timing boundaries (use existing animation system if needed)
+
+### Technical Considerations (Phase 16)
+
+- Duration bar position formula: `left = (startFrame / (frameCount - 1)) * trackWidth`
+- Duration bar width formula: `width = ((endFrame - startFrame) / (frameCount - 1)) * trackWidth`
+- Must sync with timeline zoom: multiply by `editorState.timelineZoom`
+- The existing "Combo Overlay" sample layer row should become the actual combo layer
+- Consider showing frame numbers on hover over the duration bar
+- Default endFrame=0 is a sentinel value meaning "end of video" for simpler UX
