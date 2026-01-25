@@ -6561,7 +6561,9 @@
           xOffset: editorState.overlay.xOffset,
           yOffset: editorState.overlay.yOffset,
           snapToGrid: editorState.overlay.snapToGrid,
-          gridSize: editorState.overlay.gridSize
+          gridSize: editorState.overlay.gridSize,
+          startFrame: editorState.overlay.startFrame,
+          endFrame: editorState.overlay.endFrame
         },
         currentFrame: editorState.currentFrame
       };
@@ -6616,6 +6618,14 @@
         editorState.overlay.gridSize = projectData.overlay.gridSize || 10;
         snapToGridCheckbox.checked = editorState.overlay.snapToGrid;
         gridSizeInput.value = editorState.overlay.gridSize;
+
+        // Apply timing values
+        editorState.overlay.startFrame = projectData.overlay.startFrame || 0;
+        editorState.overlay.endFrame = projectData.overlay.endFrame || 0;
+        timingStartFrameInput.value = editorState.overlay.startFrame;
+        timingEndFrameInput.value = editorState.overlay.endFrame;
+        validateTimingInputs();
+        updateLayerDurationBar();
       }
 
       // Apply keyframes
@@ -6977,7 +6987,9 @@
           comboText: comboText,
           xOffset: editorState.overlay.xOffset || parseInt(overlayXInput.value) || 10,
           yOffset: editorState.overlay.yOffset || parseInt(overlayYInput.value) || 10,
-          config: config
+          config: config,
+          startFrame: editorState.overlay.startFrame || 0,
+          endFrame: editorState.overlay.endFrame || 0
         });
 
         if (result.success) {

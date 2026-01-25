@@ -52,6 +52,13 @@ const configSchema = {
       fadeOutStart: { type: 'number', minimum: 0, description: 'When fade-out starts (frame number if > 1, percentage of duration if 0-1)' },
       fadeOutDuration: { type: 'number', minimum: 0, description: 'Fade-out duration in milliseconds (defaults to duration if not set)' }
     }
+  },
+  timing: {
+    type: 'object',
+    properties: {
+      startFrame: { type: 'number', minimum: 0, description: 'Frame number when overlay appears' },
+      endFrame: { type: 'number', minimum: 0, description: 'Frame number when overlay disappears (0 = end of video)' }
+    }
   }
 };
 

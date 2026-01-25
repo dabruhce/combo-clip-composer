@@ -648,7 +648,7 @@ function handleMarkUnsavedChanges(event, { hasChanges }) {
 /**
  * Handle video export request from renderer
  */
-async function handleExportVideo(event, { comboText, xOffset, yOffset, config }) {
+async function handleExportVideo(event, { comboText, xOffset, yOffset, config, startFrame = 0, endFrame = 0 }) {
   try {
     // Validate we have a video loaded
     if (!currentVideoPath || !fs.existsSync(currentVideoPath)) {
@@ -676,8 +676,16 @@ async function handleExportVideo(event, { comboText, xOffset, yOffset, config })
     event.sender.send('export-started', { outputPath });
 
     // Create a temporary config file for the export
+    // Add timing to config
+    const configWithTiming = {
+      ...config,
+      timing: {
+        startFrame: startFrame,
+        endFrame: endFrame
+      }
+    };
     const tempConfigPath = path.join(os.tmpdir(), `combo-clip-config-${Date.now()}.json`);
-    fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2), 'utf-8');
+    fs.writeFileSync(tempConfigPath, JSON.stringify(configWithTiming, null, 2), 'utf-8');
 
     try {
       // Import processComboVideo dynamically to avoid issues with module loading

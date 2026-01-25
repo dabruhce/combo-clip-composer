@@ -1005,13 +1005,13 @@ Add the ability to control when the combo notation overlay appears and disappear
 **Description:** As a user, I want my timing settings saved with the project and respected during export so that my final video has the correct overlay timing.
 
 **Acceptance Criteria:**
-- [ ] Add `startFrame` and `endFrame` to project save data (`createProjectData()`)
-- [ ] Load timing values when opening project (`applyProjectData()`)
-- [ ] Pass timing values to export process
-- [ ] Update `processComboVideo` or rendering logic to respect start/end frames
-- [ ] Overlay only renders on frames within the timing range during export
-- [ ] Typecheck passes
-- [ ] Verify timing persists after save/load cycle
+- [x] Add `startFrame` and `endFrame` to project save data (`createProjectData()`)
+- [x] Load timing values when opening project (`applyProjectData()`)
+- [x] Pass timing values to export process
+- [x] Update `processComboVideo` or rendering logic to respect start/end frames
+- [x] Overlay only renders on frames within the timing range during export
+- [x] Typecheck passes
+- [x] Verify timing persists after save/load cycle
 
 ---
 

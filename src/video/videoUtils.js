@@ -90,9 +90,19 @@ ffmpeg.setFfprobePath(ffprobePath);
     // Create animation state for consistent animation across all frames
     const animationState = createAnimationState(config.animation, fps, totalFrames);
 
+    // Get timing configuration (startFrame and endFrame)
+    const startFrame = config.timing && config.timing.startFrame !== undefined ? config.timing.startFrame : 0;
+    const endFrame = config.timing && config.timing.endFrame !== undefined ? config.timing.endFrame : 0;
+    // endFrame of 0 means "until end of video"
+    const effectiveEndFrame = endFrame === 0 ? totalFrames - 1 : endFrame;
+
     for (let frameIndex = 0; frameIndex < filePaths.length; frameIndex++) {
       const filePath = filePaths[frameIndex];
-      await redrawFrameWithComboImages(filePath, updatedFramesDirectory, text, x, y, imagesDirectory, config, frameIndex, totalFrames, animationState)
+      // Check if current frame is within timing range
+      const isWithinTimingRange = frameIndex >= startFrame && frameIndex <= effectiveEndFrame;
+      // Only render overlay if within timing range, otherwise pass empty text to skip overlay
+      const frameText = isWithinTimingRange ? text : '';
+      await redrawFrameWithComboImages(filePath, updatedFramesDirectory, frameText, x, y, imagesDirectory, config, frameIndex, totalFrames, animationState)
     }
 
     // Stitch frames into video
