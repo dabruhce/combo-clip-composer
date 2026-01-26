@@ -928,6 +928,51 @@
       opacity: 0.6;
     }
 
+    /* Drag handles for duration bar - visual indicators */
+    .layer-duration-bar::before,
+    .layer-duration-bar::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      width: 4px;
+      background-color: rgba(255, 255, 255, 0.25);
+      opacity: 0;
+      transition: opacity 0.15s;
+      border-radius: 2px;
+    }
+
+    .layer-duration-bar::before {
+      left: 1px;
+    }
+
+    .layer-duration-bar::after {
+      right: 1px;
+    }
+
+    .layer-duration-bar:hover::before,
+    .layer-duration-bar:hover::after {
+      opacity: 1;
+    }
+
+    /* Duration bar cursor states - controlled by JS based on hover position */
+    .layer-duration-bar.cursor-grab {
+      cursor: grab;
+    }
+
+    .layer-duration-bar.cursor-grabbing {
+      cursor: grabbing;
+    }
+
+    .layer-duration-bar.cursor-ew-resize {
+      cursor: ew-resize;
+    }
+
+    /* Duration bar dragging state */
+    .layer-duration-bar.dragging {
+      opacity: 1;
+    }
+
     /* Timeline at bottom */
     .timeline {
       height: 150px;
@@ -3923,8 +3968,23 @@
 
       // Create duration bar
       const durationBar = document.createElement('div');
-      durationBar.className = 'layer-duration-bar';
+      durationBar.className = 'layer-duration-bar cursor-grab';
       durationBar.id = `durationBar-${overlay.id}`;
+      durationBar.dataset.overlayId = overlay.id;
+
+      // Add mousemove handler to update cursor based on position
+      durationBar.addEventListener('mousemove', (e) => {
+        updateDurationBarCursor(durationBar, e);
+      });
+
+      // Reset cursor when mouse leaves
+      durationBar.addEventListener('mouseleave', () => {
+        if (!durationBar.classList.contains('dragging')) {
+          durationBar.classList.remove('cursor-ew-resize', 'cursor-grabbing');
+          durationBar.classList.add('cursor-grab');
+        }
+      });
+
       track.appendChild(durationBar);
 
       row.appendChild(label);
@@ -4192,6 +4252,44 @@
       bar.style.left = `${leftPx}px`;
       bar.style.width = `${Math.max(4, widthPx)}px`;
       bar.title = `Overlay visible: frame ${startFrame} to ${effectiveEndFrame}`;
+    }
+
+    /**
+     * Determines the drag type based on mouse position within the duration bar
+     * @param {number} mouseX - Mouse X position relative to bar
+     * @param {DOMRect} barRect - The bar's bounding rectangle
+     * @returns {string} 'start', 'end', or 'move'
+     */
+    function getDragType(mouseX, barRect) {
+      const edgeThreshold = 8; // pixels from edge to trigger resize
+      const relativeX = mouseX - barRect.left;
+
+      if (relativeX < edgeThreshold) return 'start';
+      if (relativeX > barRect.width - edgeThreshold) return 'end';
+      return 'move';
+    }
+
+    /**
+     * Updates the cursor on a duration bar based on mouse position
+     * @param {HTMLElement} bar - The duration bar element
+     * @param {MouseEvent} event - The mouse event
+     */
+    function updateDurationBarCursor(bar, event) {
+      // Don't update cursor while dragging
+      if (bar.classList.contains('dragging')) return;
+
+      const barRect = bar.getBoundingClientRect();
+      const dragType = getDragType(event.clientX, barRect);
+
+      // Remove all cursor classes
+      bar.classList.remove('cursor-grab', 'cursor-grabbing', 'cursor-ew-resize');
+
+      // Add appropriate cursor class
+      if (dragType === 'start' || dragType === 'end') {
+        bar.classList.add('cursor-ew-resize');
+      } else {
+        bar.classList.add('cursor-grab');
+      }
     }
 
     /**

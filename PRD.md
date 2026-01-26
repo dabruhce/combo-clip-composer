@@ -1232,13 +1232,13 @@ This phase enhances the layers panel by making overlay duration bars draggable, 
 **Description:** As a user, I want to see visual drag handles on duration bars so that I know I can interact with them.
 
 **Acceptance Criteria:**
-- [ ] Duration bars show a left edge handle (for start frame) when hovered
-- [ ] Duration bars show a right edge handle (for end frame) when hovered
-- [ ] Cursor changes to `ew-resize` when hovering over left/right edges
-- [ ] Cursor changes to `grab` when hovering over the middle of the bar
-- [ ] Handles are subtle but visible (e.g., slightly different shade or thin line)
-- [ ] Typecheck passes (if applicable)
-- [ ] Verify changes work in browser
+- [x] Duration bars show a left edge handle (for start frame) when hovered
+- [x] Duration bars show a right edge handle (for end frame) when hovered
+- [x] Cursor changes to `ew-resize` when hovering over left/right edges
+- [x] Cursor changes to `grab` when hovering over the middle of the bar
+- [x] Handles are subtle but visible (e.g., slightly different shade or thin line)
+- [x] Typecheck passes (if applicable)
+- [x] Verify changes work in browser
 
 ---
 
