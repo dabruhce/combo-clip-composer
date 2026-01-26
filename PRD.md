@@ -1247,15 +1247,15 @@ This phase enhances the layers panel by making overlay duration bars draggable, 
 **Description:** As a user, I want to drag the left edge of a duration bar so that I can adjust when the overlay starts appearing.
 
 **Acceptance Criteria:**
-- [ ] Dragging the left edge updates the overlay's `startFrame` property
-- [ ] The duration bar visually updates in real-time while dragging
-- [ ] Start frame cannot be dragged past the end frame (minimum 1 frame duration)
-- [ ] Start frame cannot be dragged below frame 0
-- [ ] Releasing the mouse finalizes the change
-- [ ] The properties panel "Start Frame" input updates to reflect the new value
-- [ ] Project is marked as having unsaved changes after drag completes
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] Dragging the left edge updates the overlay's `startFrame` property
+- [x] The duration bar visually updates in real-time while dragging
+- [x] Start frame cannot be dragged past the end frame (minimum 1 frame duration)
+- [x] Start frame cannot be dragged below frame 0
+- [x] Releasing the mouse finalizes the change
+- [x] The properties panel "Start Frame" input updates to reflect the new value
+- [x] Project is marked as having unsaved changes after drag completes
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ---
 

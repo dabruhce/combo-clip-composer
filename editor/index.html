@@ -2552,6 +2552,16 @@
         dragStartFrame: 0,
         dragProperty: null
       },
+      // Duration bar drag state
+      durationBarDrag: {
+        isDragging: false,
+        dragType: null, // 'start', 'end', or 'move'
+        overlayId: null,
+        initialMouseX: 0,
+        initialStartFrame: 0,
+        initialEndFrame: 0,
+        trackRect: null // Cached track bounding rect
+      },
       // Project state
       project: {
         path: null,
@@ -3985,6 +3995,12 @@
         }
       });
 
+      // Add mousedown handler for dragging
+      durationBar.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        onDurationBarDragStart(e, overlay.id);
+      });
+
       track.appendChild(durationBar);
 
       row.appendChild(label);
@@ -4290,6 +4306,127 @@
       } else {
         bar.classList.add('cursor-grab');
       }
+    }
+
+    /**
+     * Converts a pixel position within a track to a frame number
+     * @param {number} pixelX - Pixel position relative to track
+     * @param {DOMRect} trackRect - The track's bounding rectangle
+     * @returns {number} Frame number
+     */
+    function pixelToFrame(pixelX, trackRect) {
+      const zoom = editorState.timelineZoom || 1;
+      const contentWidth = trackRect.width * zoom;
+      const percent = pixelX / contentWidth;
+      return Math.round(percent * (editorState.frameCount - 1));
+    }
+
+    /**
+     * Handles mousedown on a duration bar to start dragging
+     * @param {MouseEvent} event - The mouse event
+     * @param {string} overlayId - The overlay ID
+     */
+    function onDurationBarDragStart(event, overlayId) {
+      const overlay = getOverlayById(overlayId);
+      if (!overlay) return;
+
+      const bar = document.getElementById(`durationBar-${overlayId}`);
+      const track = document.getElementById(`layerTrack-${overlayId}`);
+      if (!bar || !track) return;
+
+      const barRect = bar.getBoundingClientRect();
+      const trackRect = track.getBoundingClientRect();
+      const dragType = getDragType(event.clientX, barRect);
+
+      // Select this overlay
+      selectOverlay(overlayId);
+
+      // Store drag state
+      editorState.durationBarDrag.isDragging = true;
+      editorState.durationBarDrag.dragType = dragType;
+      editorState.durationBarDrag.overlayId = overlayId;
+      editorState.durationBarDrag.initialMouseX = event.clientX;
+      editorState.durationBarDrag.initialStartFrame = overlay.startFrame;
+      editorState.durationBarDrag.initialEndFrame = overlay.endFrame === 0 ? editorState.frameCount - 1 : overlay.endFrame;
+      editorState.durationBarDrag.trackRect = trackRect;
+
+      // Add dragging class
+      bar.classList.add('dragging');
+      bar.classList.remove('cursor-grab', 'cursor-ew-resize');
+      bar.classList.add(dragType === 'move' ? 'cursor-grabbing' : 'cursor-ew-resize');
+
+      // Prevent text selection during drag
+      event.preventDefault();
+    }
+
+    /**
+     * Handles mousemove during duration bar dragging
+     * @param {MouseEvent} event - The mouse event
+     */
+    function onDurationBarDrag(event) {
+      if (!editorState.durationBarDrag.isDragging) return;
+
+      const drag = editorState.durationBarDrag;
+      const overlay = getOverlayById(drag.overlayId);
+      if (!overlay) return;
+
+      // Calculate frame from mouse position relative to track
+      const relativeX = event.clientX - drag.trackRect.left;
+      const targetFrame = pixelToFrame(relativeX, drag.trackRect);
+
+      // Handle based on drag type
+      if (drag.dragType === 'start') {
+        // Dragging start frame (left edge)
+        // Clamp: cannot go below 0, cannot go past endFrame - 1 (min 1 frame duration)
+        const maxStartFrame = drag.initialEndFrame - 1;
+        const newStartFrame = Math.max(0, Math.min(targetFrame, maxStartFrame));
+
+        overlay.startFrame = newStartFrame;
+
+        // Update legacy state if this is selected
+        if (drag.overlayId === editorState.selectedOverlayId) {
+          editorState.overlay.startFrame = newStartFrame;
+        }
+      }
+      // Note: 'end' and 'move' drag types will be implemented in US-070 and US-071
+
+      // Update the duration bar visually
+      updateOverlayDurationBar(drag.overlayId);
+
+      // Update properties panel inputs
+      updatePropertiesPanel();
+
+      // Update preview
+      updatePreview();
+    }
+
+    /**
+     * Handles mouseup to end duration bar dragging
+     * @param {MouseEvent} event - The mouse event
+     */
+    function onDurationBarDragEnd(event) {
+      if (!editorState.durationBarDrag.isDragging) return;
+
+      const drag = editorState.durationBarDrag;
+      const bar = document.getElementById(`durationBar-${drag.overlayId}`);
+
+      // Remove dragging class
+      if (bar) {
+        bar.classList.remove('dragging', 'cursor-grabbing');
+        bar.classList.add('cursor-grab');
+      }
+
+      // Mark unsaved changes
+      markUnsavedChanges();
+
+      // Reset drag state
+      editorState.durationBarDrag.isDragging = false;
+      editorState.durationBarDrag.dragType = null;
+      editorState.durationBarDrag.overlayId = null;
+      editorState.durationBarDrag.initialMouseX = 0;
+      editorState.durationBarDrag.initialStartFrame = 0;
+      editorState.durationBarDrag.initialEndFrame = 0;
+      editorState.durationBarDrag.trackRect = null;
     }
 
     /**
@@ -7142,6 +7279,10 @@
     // Keyframe drag listeners
     document.addEventListener('mousemove', onKeyframeDrag);
     document.addEventListener('mouseup', onKeyframeDragEnd);
+
+    // Duration bar drag listeners
+    document.addEventListener('mousemove', onDurationBarDrag);
+    document.addEventListener('mouseup', onDurationBarDragEnd);
 
     // Control button listeners
     btnJumpStart.addEventListener('click', jumpToStart);
