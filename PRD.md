@@ -1489,14 +1489,14 @@ Currently, the timing controls (Start Frame, End Frame) are located in the Prope
 **Description:** As a developer, I want to remove all special handling for `endFrame = 0` so that the codebase is simpler and uses actual frame numbers.
 
 **Acceptance Criteria:**
-- [ ] Remove `endFrame === 0` checks in `updateOverlayDurationBar()` / `updateLayerDurationBar()`
-- [ ] Remove `endFrame === 0` check in `validateTimingInputs()` (or its replacement)
-- [ ] Remove `endFrame === 0` check in preview rendering (`drawOverlay()`)
-- [ ] Remove `endFrame === 0` check in export process
-- [ ] Update any tooltip text that references "0 = end of video"
-- [ ] Search for all `endFrame === 0` or `endFrame == 0` and remove/update
-- [ ] Typecheck passes
-- [ ] Verify all timing logic works with actual frame numbers
+- [x] Remove `endFrame === 0` checks in `updateOverlayDurationBar()` / `updateLayerDurationBar()`
+- [x] Remove `endFrame === 0` check in `validateTimingInputs()` (or its replacement)
+- [x] Remove `endFrame === 0` check in preview rendering (`drawOverlay()`)
+- [x] Remove `endFrame === 0` check in export process
+- [x] Update any tooltip text that references "0 = end of video"
+- [x] Search for all `endFrame === 0` or `endFrame == 0` and remove/update
+- [x] Typecheck passes
+- [x] Verify all timing logic works with actual frame numbers
 
 ---
 

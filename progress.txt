@@ -372,3 +372,48 @@
   - Placeholder value of 1 ensures endFrame >= startFrame (startFrame is now 1 by default from US-077)
   - US-079 will update existing overlays with placeholder endFrame when video loads
 ---
+
+## Iteration 79 - US-079: Update Existing Overlay Defaults on Video Load
+- What was implemented:
+  - Created updateOverlayDefaultsForVideo() function in editor/index.html
+  - Function iterates through all overlays and updates placeholder endFrame values (<=1) to frameCount-1
+  - Also updates legacy editorState.overlay.endFrame if it has placeholder value
+  - Called in onVideoLoaded() after frameCount is set, before updateLayerTimingInputs()
+  - Added updateAllDurationBars() call to visually reflect new timing values
+  - startFrame = 0 is left as-is (valid for 0-indexed frame system, not a placeholder)
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (added updateOverlayDefaultsForVideo function, integrated into onVideoLoaded)
+  - PRD.md (marked US-079 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - updateOverlayDefaultsForVideo must run after frameCount is set but before UI updates
+  - Placeholder detection uses endFrame <= 1 since startFrame defaults to 1 now
+  - Legacy overlay state also needs updating for backward compatibility
+  - updateAllDurationBars() called to immediately reflect changes visually
+---
+
+## Iteration 80 - US-080: Remove endFrame = 0 Sentinel Logic
+- What was implemented:
+  - Removed all endFrame === 0 sentinel checks throughout the codebase
+  - Updated updateLayerDurationBar() to use endFrame directly instead of effectiveEndFrame
+  - Updated onLayerTimingInputChange() to use overlay.endFrame directly for clamping
+  - Updated updateOverlayDurationBar() to use endFrame directly
+  - Updated onDurationBarDragStart() to use overlay.endFrame directly (2 places)
+  - Updated drawOverlay() to use endFrame directly for timing range check
+  - Updated videoUtils.js processComboVideo() - both multiple overlays and legacy single overlay modes
+  - Changed legacy fallback from 0 to totalFrames-1 in videoUtils.js for undefined endFrame
+  - Removed all "0 = end of video" comment references
+  - Tooltip now shows actual endFrame number instead of "end"
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (removed sentinel logic in 6 locations)
+  - src/video/videoUtils.js (removed sentinel logic in 2 locations)
+  - PRD.md (marked US-080 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Sentinel values add unnecessary complexity - using actual frame numbers is cleaner
+  - US-078 and US-079 set up the defaults correctly, making sentinel removal straightforward
+  - Default endFrame now comes from frameCount-1 when video loads (US-079)
+  - Legacy backwards compatibility: undefined endFrame now defaults to totalFrames-1 instead of 0
+---

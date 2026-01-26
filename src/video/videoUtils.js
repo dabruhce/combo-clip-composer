@@ -113,9 +113,8 @@ ffmpeg.setFfprobePath(ffprobePath);
         // Determine which overlays should be rendered on this frame
         const overlaysForFrame = overlays.filter(overlay => {
           const startFrame = overlay.startFrame !== undefined ? overlay.startFrame : 0;
-          const endFrame = overlay.endFrame !== undefined ? overlay.endFrame : 0;
-          const effectiveEndFrame = endFrame === 0 ? totalFrames - 1 : endFrame;
-          return frameIndex >= startFrame && frameIndex <= effectiveEndFrame;
+          const endFrame = overlay.endFrame !== undefined ? overlay.endFrame : totalFrames - 1;
+          return frameIndex >= startFrame && frameIndex <= endFrame;
         });
 
         // Render frame with multiple overlays
@@ -125,14 +124,12 @@ ffmpeg.setFfprobePath(ffprobePath);
       // Legacy single overlay mode
       // Get timing configuration (startFrame and endFrame)
       const startFrame = config.timing && config.timing.startFrame !== undefined ? config.timing.startFrame : 0;
-      const endFrame = config.timing && config.timing.endFrame !== undefined ? config.timing.endFrame : 0;
-      // endFrame of 0 means "until end of video"
-      const effectiveEndFrame = endFrame === 0 ? totalFrames - 1 : endFrame;
+      const endFrame = config.timing && config.timing.endFrame !== undefined ? config.timing.endFrame : totalFrames - 1;
 
       for (let frameIndex = 0; frameIndex < filePaths.length; frameIndex++) {
         const filePath = filePaths[frameIndex];
         // Check if current frame is within timing range
-        const isWithinTimingRange = frameIndex >= startFrame && frameIndex <= effectiveEndFrame;
+        const isWithinTimingRange = frameIndex >= startFrame && frameIndex <= endFrame;
         // Only render overlay if within timing range, otherwise pass empty text to skip overlay
         const frameText = isWithinTimingRange ? text : '';
         await redrawFrameWithComboImages(filePath, updatedFramesDirectory, frameText, x, y, imagesDirectory, config, frameIndex, totalFrames, animationState)

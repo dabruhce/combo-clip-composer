@@ -3670,11 +3670,8 @@
       const endFrame = editorState.overlay.endFrame;
       const frameCount = editorState.frameCount;
 
-      // Calculate effective end frame (0 means "end of video")
-      const effectiveEndFrame = endFrame === 0 ? frameCount - 1 : endFrame;
-
       // Check if timing is valid
-      const isValid = endFrame === 0 || startFrame <= endFrame;
+      const isValid = startFrame <= endFrame;
 
       // Get the layer track element to calculate width
       const layerTrack = document.getElementById('layerTrack-combo-overlay');
@@ -3689,7 +3686,7 @@
       // Calculate bar position and width as percentage of track
       const maxFrameIndex = Math.max(1, frameCount - 1); // Avoid divide by zero
       const left = (startFrame / maxFrameIndex) * trackWidth;
-      const right = (effectiveEndFrame / maxFrameIndex) * trackWidth;
+      const right = (endFrame / maxFrameIndex) * trackWidth;
       const width = Math.max(4, right - left); // Minimum width of 4px
 
       // Apply styles
@@ -3705,8 +3702,7 @@
       }
 
       // Update tooltip
-      const endLabel = endFrame === 0 ? 'end' : effectiveEndFrame;
-      comboDurationBar.title = `Overlay visible: frame ${startFrame} to ${endLabel}`;
+      comboDurationBar.title = `Overlay visible: frame ${startFrame} to ${endFrame}`;
     }
 
     /**
@@ -4088,8 +4084,7 @@
 
       if (type === 'start') {
         // Clamp start frame: cannot exceed end frame - 1 (minimum 1 frame duration)
-        const effectiveEndFrame = overlay.endFrame === 0 ? maxFrame : overlay.endFrame;
-        overlay.startFrame = Math.min(value, Math.max(0, effectiveEndFrame - 1));
+        overlay.startFrame = Math.min(value, Math.max(0, overlay.endFrame - 1));
       } else if (type === 'end') {
         // Clamp end frame: cannot be less than start frame + 1
         const minEndFrame = overlay.startFrame + 1;
@@ -4380,10 +4375,10 @@
       bar.style.display = '';
 
       const startFrame = overlay.startFrame;
-      const effectiveEndFrame = overlay.endFrame === 0 ? frameCount - 1 : overlay.endFrame;
+      const endFrame = overlay.endFrame;
 
       // Check for invalid timing
-      if (startFrame > effectiveEndFrame) {
+      if (startFrame > endFrame) {
         bar.classList.add('invalid');
       } else {
         bar.classList.remove('invalid');
@@ -4395,7 +4390,7 @@
       const contentWidth = trackWidth * zoom;
 
       const startPercent = startFrame / (frameCount - 1);
-      const endPercent = effectiveEndFrame / (frameCount - 1);
+      const endPercent = endFrame / (frameCount - 1);
 
       const leftPx = startPercent * contentWidth;
       const widthPx = (endPercent - startPercent) * contentWidth;
@@ -4552,7 +4547,7 @@
       editorState.durationBarDrag.overlayId = overlayId;
       editorState.durationBarDrag.initialMouseX = event.clientX;
       editorState.durationBarDrag.initialStartFrame = overlay.startFrame;
-      editorState.durationBarDrag.initialEndFrame = overlay.endFrame === 0 ? editorState.frameCount - 1 : overlay.endFrame;
+      editorState.durationBarDrag.initialEndFrame = overlay.endFrame;
       editorState.durationBarDrag.trackRect = trackRect;
 
       // Add dragging class
@@ -4561,8 +4556,7 @@
       bar.classList.add(dragType === 'move' ? 'cursor-grabbing' : 'cursor-ew-resize');
 
       // Show drag tooltip
-      const effectiveEndFrame = overlay.endFrame === 0 ? editorState.frameCount - 1 : overlay.endFrame;
-      const tooltipText = getDragTooltipText(dragType, overlay.startFrame, effectiveEndFrame);
+      const tooltipText = getDragTooltipText(dragType, overlay.startFrame, overlay.endFrame);
       showDragTooltip(event, tooltipText);
 
       // Prevent text selection during drag
@@ -6387,11 +6381,8 @@
         const startFrame = overlay.startFrame || 0;
         const endFrame = overlay.endFrame;
 
-        // endFrame = 0 means "until end of video"
-        const effectiveEndFrame = endFrame === 0 ? (editorState.frameCount - 1) : endFrame;
-
         // Skip if outside timing range
-        if (currentFrame < startFrame || currentFrame > effectiveEndFrame) {
+        if (currentFrame < startFrame || currentFrame > endFrame) {
           return;
         }
 
