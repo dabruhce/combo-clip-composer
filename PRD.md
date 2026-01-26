@@ -1448,11 +1448,11 @@ Currently, the timing controls (Start Frame, End Frame) are located in the Prope
 **Description:** As a user, I want new overlays to start at frame 1 by default so that they appear from the beginning of the video.
 
 **Acceptance Criteria:**
-- [ ] Update `createOverlayObject()` to set `startFrame: 1` instead of `startFrame: 0`
-- [ ] New overlays created via "Add Overlay" button have startFrame = 1
-- [ ] Backward compatibility: loading old projects with startFrame = 0 should work (keep as 0 or migrate to 1)
-- [ ] Typecheck passes
-- [ ] Verify new overlays have startFrame = 1
+- [x] Update `createOverlayObject()` to set `startFrame: 1` instead of `startFrame: 0`
+- [x] New overlays created via "Add Overlay" button have startFrame = 1
+- [x] Backward compatibility: loading old projects with startFrame = 0 should work (keep as 0 or migrate to 1)
+- [x] Typecheck passes
+- [x] Verify new overlays have startFrame = 1
 
 ---
 
