@@ -225,3 +225,71 @@
   - Clamping must adjust both frames when hitting boundaries to preserve duration
   - When hitting left boundary: set start=0, end=duration; when hitting right: set end=max, start=max-duration
 ---
+
+## Iteration 72 - US-072: Add Drag Tooltip Feedback
+- What was implemented:
+  - Added CSS styles for `.drag-tooltip` class (fixed position, dark background #1e1e1e, white text, z-index 10000)
+  - Added `<div class="drag-tooltip" id="dragTooltip">` HTML element after layer context menu
+  - Added `showDragTooltip(event, text)` function to display tooltip near cursor
+  - Added `updateDragTooltip(event, text)` function to update tooltip content and position during drag
+  - Added `positionDragTooltip(event)` function to position tooltip above and slightly right of cursor
+  - Added `hideDragTooltip()` function to hide tooltip when drag ends
+  - Added `getDragTooltipText(dragType, startFrame, endFrame)` helper that returns contextual text:
+    - "Start: Frame X" for left edge drag
+    - "End: Frame X" for right edge drag
+    - "Frames X - Y" for middle/move drag
+  - Integrated tooltip into drag lifecycle: show in onDurationBarDragStart, update in onDurationBarDrag, hide in onDurationBarDragEnd
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (CSS for tooltip, HTML element, JS functions, integration into drag handlers)
+  - PRD.md (marked US-072 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Tooltip positioned above cursor (offsetY = -28) to avoid occlusion while dragging
+  - Use `pointer-events: none` on tooltip to prevent it from interfering with mouse events
+  - Tooltip follows mouse via positionDragTooltip called in both show and update functions
+  - `visible` class pattern consistent with other context menus (display: none by default, display: block when visible)
+---
+
+## Iteration 73 - US-073: Verify Add Overlay Creates Layer Row
+- What was implemented:
+  - This was a verification task - confirmed existing implementation satisfies all acceptance criteria
+  - addOverlay() in editor/index.html line 3833 pushes new overlay to editorState.overlays
+  - renderLayerRows() called at line 3836 to show new layer row immediately
+  - createLayerRowElement() creates .layer-duration-bar element at lines 4003-4006
+  - selectOverlay(newOverlay.id) called at line 3839 to auto-select new overlay
+  - updateAllDurationBars() called at line 3842 handles endFrame=0 sentinel for full video duration
+  - No code changes needed - all functionality already existed from US-061 implementation
+  - 512 tests still pass
+- Files changed:
+  - PRD.md (marked US-073 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Some user stories are verification tasks - check existing code before implementing
+  - US-061 (Add "Add Overlay" Button) already implemented all US-073 criteria
+  - addOverlay -> createOverlayObject -> push -> renderLayerRows -> selectOverlay -> updateAllDurationBars is the full flow
+---
+
+## Iteration 74 - US-074: Add Timing Inputs to Layer Row UI
+- What was implemented:
+  - Added CSS styles for .layer-row-timing container (130px width, flexbox)
+  - Added CSS styles for .timing-input inputs (55px width, 20px height, dark theme styling)
+  - Updated createLayerRowElement() to add timing inputs between label and track
+  - Start Frame input with min=0, placeholder="Start", title="Start Frame"
+  - End Frame input with min=0, placeholder="End", title="End Frame"
+  - Added onLayerTimingInputChange(overlayId, type, value) handler with validation and clamping
+  - Added updateLayerTimingInputs() to sync all inputs with overlay values and set max attribute
+  - Timing inputs disabled until video is loaded
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (CSS for .layer-row-timing and .timing-input, createLayerRowElement updates, new handler functions)
+  - PRD.md (marked US-074 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Layer row structure: label -> timing -> track (timing between name and duration bar)
+  - Each overlay gets unique input IDs: timingStart-{overlayId}, timingEnd-{overlayId}
+  - Input click handler should call e.stopPropagation() to prevent row selection
+  - onLayerTimingInputChange handles validation: NaN check, clamping to valid ranges
+  - updateLayerTimingInputs called after video loads to enable inputs and set max values
+  - endFrame=0 sentinel still exists - will be removed in US-080
+---

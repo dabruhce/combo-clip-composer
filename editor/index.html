@@ -887,6 +887,48 @@
       display: block;
     }
 
+    /* Layer row timing inputs */
+    .layer-row-timing {
+      width: 130px;
+      min-width: 130px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .timing-input {
+      width: 55px;
+      height: 20px;
+      padding: 0 4px;
+      background-color: #3c3c3c;
+      border: 1px solid #555555;
+      border-radius: 2px;
+      color: #cccccc;
+      font-size: 11px;
+      font-family: inherit;
+    }
+
+    .timing-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .timing-input:hover {
+      border-color: #666666;
+    }
+
+    .timing-input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .timing-input::placeholder {
+      color: #808080;
+      font-size: 10px;
+    }
+
     .layer-row-track {
       flex: 1;
       height: 100%;
@@ -3542,6 +3584,9 @@
       // Update timing inputs max value based on frame count
       updateTimingInputsMax();
 
+      // Update layer row timing inputs
+      updateLayerTimingInputs();
+
       console.log('Video frames extracted, ready for editing:', editorState);
     }
 
@@ -4027,7 +4072,43 @@
 
       track.appendChild(durationBar);
 
+      // Create timing inputs area
+      const timing = document.createElement('div');
+      timing.className = 'layer-row-timing';
+
+      // Start frame input
+      const startInput = document.createElement('input');
+      startInput.type = 'number';
+      startInput.className = 'timing-input timing-start';
+      startInput.id = `timingStart-${overlay.id}`;
+      startInput.min = '0';
+      startInput.value = overlay.startFrame || 0;
+      startInput.placeholder = 'Start';
+      startInput.title = 'Start Frame';
+      startInput.addEventListener('click', (e) => e.stopPropagation());
+      startInput.addEventListener('change', (e) => {
+        onLayerTimingInputChange(overlay.id, 'start', parseInt(e.target.value, 10));
+      });
+
+      // End frame input
+      const endInput = document.createElement('input');
+      endInput.type = 'number';
+      endInput.className = 'timing-input timing-end';
+      endInput.id = `timingEnd-${overlay.id}`;
+      endInput.min = '0';
+      endInput.value = overlay.endFrame || 0;
+      endInput.placeholder = 'End';
+      endInput.title = 'End Frame';
+      endInput.addEventListener('click', (e) => e.stopPropagation());
+      endInput.addEventListener('change', (e) => {
+        onLayerTimingInputChange(overlay.id, 'end', parseInt(e.target.value, 10));
+      });
+
+      timing.appendChild(startInput);
+      timing.appendChild(endInput);
+
       row.appendChild(label);
+      row.appendChild(timing);
       row.appendChild(track);
 
       // Add click handler for selection
@@ -4044,6 +4125,89 @@
       });
 
       return row;
+    }
+
+    /**
+     * Handles changes to timing inputs in layer rows
+     * @param {string} overlayId - The overlay ID
+     * @param {string} type - 'start' or 'end'
+     * @param {number} value - The new frame value
+     */
+    function onLayerTimingInputChange(overlayId, type, value) {
+      const overlay = getOverlayById(overlayId);
+      if (!overlay) return;
+
+      // Ensure value is a valid number
+      if (isNaN(value) || value < 0) {
+        value = 0;
+      }
+
+      const frameCount = editorState.frameCount || 1;
+      const maxFrame = frameCount - 1;
+
+      if (type === 'start') {
+        // Clamp start frame: cannot exceed end frame - 1 (minimum 1 frame duration)
+        const effectiveEndFrame = overlay.endFrame === 0 ? maxFrame : overlay.endFrame;
+        overlay.startFrame = Math.min(value, Math.max(0, effectiveEndFrame - 1));
+      } else if (type === 'end') {
+        // Clamp end frame: cannot be less than start frame + 1
+        const minEndFrame = overlay.startFrame + 1;
+        overlay.endFrame = Math.max(value, minEndFrame);
+        // Also clamp to max frame
+        if (overlay.endFrame > maxFrame) {
+          overlay.endFrame = maxFrame;
+        }
+      }
+
+      // Update the input to reflect clamped value
+      const inputId = type === 'start' ? `timingStart-${overlayId}` : `timingEnd-${overlayId}`;
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.value = type === 'start' ? overlay.startFrame : overlay.endFrame;
+      }
+
+      // Sync to legacy state if this is the selected overlay
+      if (overlayId === editorState.selectedOverlayId) {
+        syncSelectedOverlayToLegacy();
+        // Also update Properties panel timing inputs if they exist
+        updatePropertiesPanel();
+      }
+
+      // Update the duration bar
+      updateOverlayDurationBar(overlayId);
+
+      // Update preview
+      updatePreview();
+
+      // Mark unsaved changes
+      if (typeof markUnsavedChanges === 'function') {
+        markUnsavedChanges();
+      }
+    }
+
+    /**
+     * Updates timing inputs in all layer rows with current overlay values
+     * Also updates max attribute based on frame count
+     */
+    function updateLayerTimingInputs() {
+      const maxFrame = Math.max(0, editorState.frameCount - 1);
+      const hasVideo = editorState.frameCount > 0;
+
+      editorState.overlays.forEach(overlay => {
+        const startInput = document.getElementById(`timingStart-${overlay.id}`);
+        const endInput = document.getElementById(`timingEnd-${overlay.id}`);
+
+        if (startInput) {
+          startInput.value = overlay.startFrame || 0;
+          startInput.max = maxFrame;
+          startInput.disabled = !hasVideo;
+        }
+        if (endInput) {
+          endInput.value = overlay.endFrame || 0;
+          endInput.max = maxFrame;
+          endInput.disabled = !hasVideo;
+        }
+      });
     }
 
     /**

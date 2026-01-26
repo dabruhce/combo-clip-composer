@@ -1378,3 +1378,183 @@ function pixelToFrame(pixelX, trackRect) {
 #### File to Modify
 
 - `editor/index.html` - all UI and interaction logic is in this file
+
+---
+
+## Phase 19: Move Timing to Layer Rows and Fix Defaults
+
+### Introduction
+
+Currently, the timing controls (Start Frame, End Frame) are located in the Properties panel's "Timing" section, separate from where the duration bar is displayed in the layers panel. This phase moves those timing inputs directly into each layer row, placing them next to the duration bar for a more intuitive editing experience. Additionally, the default values are changed: start frame defaults to 1 (first frame) and end frame defaults to the actual last frame of the video, removing the confusing `endFrame = 0` sentinel value.
+
+### Goals
+
+- Move timing inputs from Properties panel into layer rows (next to duration bars)
+- Change default start frame from 0 to 1
+- Change default end frame from 0 (sentinel) to actual last frame number
+- Remove all `endFrame = 0` sentinel logic throughout the codebase
+- Update defaults when video is loaded (for existing overlays)
+
+---
+
+#### US-074: Add Timing Inputs to Layer Row UI
+
+**Description:** As a user, I want timing inputs directly in the layer row so that I can edit start/end frames without switching to the Properties panel.
+
+**Acceptance Criteria:**
+- [x] Each layer row displays Start Frame and End Frame number inputs
+- [x] Inputs are positioned between the layer name and the duration bar (or to the right of duration bar)
+- [x] Inputs are compact (small width, ~60px each) to fit in the layer row
+- [x] Inputs have labels or placeholders ("Start", "End" or icons)
+- [x] Inputs are styled consistently with the dark theme
+- [x] Typecheck passes
+- [x] Verify inputs display correctly in browser
+
+---
+
+#### US-075: Wire Layer Row Timing Inputs to Overlay Data
+
+**Description:** As a user, I want changes to the layer row timing inputs to update the overlay so that my edits are saved.
+
+**Acceptance Criteria:**
+- [ ] Changing Start Frame input updates `overlay.startFrame` for that layer's overlay
+- [ ] Changing End Frame input updates `overlay.endFrame` for that layer's overlay
+- [ ] Duration bar updates in real-time when inputs change
+- [ ] Project is marked as having unsaved changes
+- [ ] Preview updates to reflect new timing
+- [ ] Inputs update when selecting different layers (show selected overlay's values)
+- [ ] Typecheck passes
+- [ ] Verify input changes work correctly in browser
+
+---
+
+#### US-076: Remove Timing Section from Properties Panel
+
+**Description:** As a user, I want a cleaner Properties panel without the redundant Timing section since timing is now in layer rows.
+
+**Acceptance Criteria:**
+- [ ] Remove the "Timing" collapsible section from Properties panel (`#sectionTiming`)
+- [ ] Remove associated HTML elements (start/end frame inputs, validation message)
+- [ ] Remove or repurpose `validateTimingInputs()` function (may still be needed for layer row validation)
+- [ ] Remove `updateTimingInputsMax()` or update it for layer row inputs
+- [ ] Properties panel layout adjusts properly without the Timing section
+- [ ] Typecheck passes
+- [ ] Verify Properties panel displays correctly without Timing section
+
+---
+
+#### US-077: Change Default Start Frame to 1
+
+**Description:** As a user, I want new overlays to start at frame 1 by default so that they appear from the beginning of the video.
+
+**Acceptance Criteria:**
+- [ ] Update `createOverlayObject()` to set `startFrame: 1` instead of `startFrame: 0`
+- [ ] New overlays created via "Add Overlay" button have startFrame = 1
+- [ ] Backward compatibility: loading old projects with startFrame = 0 should work (keep as 0 or migrate to 1)
+- [ ] Typecheck passes
+- [ ] Verify new overlays have startFrame = 1
+
+---
+
+#### US-078: Change Default End Frame to Last Frame
+
+**Description:** As a user, I want new overlays to end at the last frame by default so that they appear for the entire video.
+
+**Acceptance Criteria:**
+- [ ] Update `createOverlayObject()` to set `endFrame` to `editorState.frameCount - 1` (or frameCount if 1-indexed)
+- [ ] If no video loaded yet, set endFrame to 1 as placeholder (will be updated when video loads)
+- [ ] New overlays have endFrame set to actual last frame number
+- [ ] Typecheck passes
+- [ ] Verify new overlays have endFrame = last frame
+
+---
+
+#### US-079: Update Existing Overlay Defaults on Video Load
+
+**Description:** As a user, I want existing overlays with placeholder end frames to be updated when I load a video so that they span the full video by default.
+
+**Acceptance Criteria:**
+- [ ] When video loads, iterate through all overlays
+- [ ] If an overlay has `endFrame <= 1` (placeholder), set it to `frameCount - 1`
+- [ ] If an overlay has `startFrame = 0`, optionally migrate to 1 (or leave as 0 if intentional)
+- [ ] Duration bars update to reflect new values
+- [ ] This happens after frame extraction completes and frameCount is known
+- [ ] Typecheck passes
+- [ ] Verify overlay defaults update when video is loaded
+
+---
+
+#### US-080: Remove endFrame = 0 Sentinel Logic
+
+**Description:** As a developer, I want to remove all special handling for `endFrame = 0` so that the codebase is simpler and uses actual frame numbers.
+
+**Acceptance Criteria:**
+- [ ] Remove `endFrame === 0` checks in `updateOverlayDurationBar()` / `updateLayerDurationBar()`
+- [ ] Remove `endFrame === 0` check in `validateTimingInputs()` (or its replacement)
+- [ ] Remove `endFrame === 0` check in preview rendering (`drawOverlay()`)
+- [ ] Remove `endFrame === 0` check in export process
+- [ ] Update any tooltip text that references "0 = end of video"
+- [ ] Search for all `endFrame === 0` or `endFrame == 0` and remove/update
+- [ ] Typecheck passes
+- [ ] Verify all timing logic works with actual frame numbers
+
+---
+
+### Non-Goals (Phase 19)
+
+- Inline editing of layer names in layer rows (future enhancement)
+- Drag-and-drop reordering of layers
+- Time-based input (timecode) instead of frame numbers
+- Removing the duration bar (it remains for visual feedback)
+
+### Technical Considerations (Phase 19)
+
+#### Layer Row Structure Update
+
+Current structure:
+```html
+<div class="layer-row">
+  <div class="layer-row-label">
+    <span class="layer-visibility-toggle">👁</span>
+    <span class="layer-name">Overlay 1</span>
+  </div>
+  <div class="layer-row-track">
+    <div class="layer-duration-bar"></div>
+  </div>
+</div>
+```
+
+New structure with timing inputs:
+```html
+<div class="layer-row">
+  <div class="layer-row-label">
+    <span class="layer-visibility-toggle">👁</span>
+    <span class="layer-name">Overlay 1</span>
+  </div>
+  <div class="layer-row-timing">
+    <input type="number" class="timing-input timing-start" min="1" value="1" title="Start Frame">
+    <input type="number" class="timing-input timing-end" min="1" value="100" title="End Frame">
+  </div>
+  <div class="layer-row-track">
+    <div class="layer-duration-bar"></div>
+  </div>
+</div>
+```
+
+#### CSS Considerations
+
+- `.layer-row-timing` should have fixed width (~130px) for two inputs
+- `.timing-input` should be compact: `width: 55px`, small font, minimal padding
+- Consider using flexbox for layer row layout with `flex-shrink: 0` on fixed-width sections
+
+#### Functions to Update
+
+- `createLayerRowElement(overlay)` - add timing inputs to generated HTML
+- `createOverlayObject()` - change default values
+- `updateOverlayDurationBar()` - remove sentinel logic
+- `drawOverlay()` - remove sentinel logic
+- Video load handler - update overlay defaults when frameCount is known
+
+#### File to Modify
+
+- `editor/index.html` - all UI and interaction logic is in this file
