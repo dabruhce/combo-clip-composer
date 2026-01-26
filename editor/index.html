@@ -1496,17 +1496,6 @@
       transform: rotate(-90deg);
     }
 
-    /* Timing validation message styling */
-    .timing-validation-msg {
-      color: #f48771;
-      font-size: 11px;
-      padding: 6px 8px;
-      margin-top: 4px;
-      background-color: rgba(244, 135, 113, 0.1);
-      border-radius: 3px;
-      border-left: 2px solid #f48771;
-    }
-
     /* Font dropdown styling */
     .property-select {
       width: 100%;
@@ -2262,37 +2251,6 @@
             </div>
           </div>
 
-          <!-- Timing Section -->
-          <div class="property-section" id="sectionTiming">
-            <div class="property-section-header" onclick="toggleSection('sectionTiming')">
-              <span class="toggle-icon">▼</span>
-              Timing
-            </div>
-            <div class="property-section-content">
-              <!-- Start Frame -->
-              <div class="property-group">
-                <label class="property-label" for="timingStartFrame">Start Frame</label>
-                <div class="property-row">
-                  <input type="number" id="timingStartFrame" class="property-input-small" value="0" min="0" disabled>
-                  <span class="timing-hint" style="font-size: 11px; color: #666666;">0 = video start</span>
-                </div>
-              </div>
-
-              <!-- End Frame -->
-              <div class="property-group">
-                <label class="property-label" for="timingEndFrame">End Frame</label>
-                <div class="property-row">
-                  <input type="number" id="timingEndFrame" class="property-input-small" value="0" min="0" disabled>
-                  <span class="timing-hint" style="font-size: 11px; color: #666666;">0 = video end</span>
-                </div>
-              </div>
-
-              <!-- Timing validation message -->
-              <div id="timingValidationMsg" class="timing-validation-msg" style="display: none;">
-                Start frame must be less than or equal to end frame.
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -2837,11 +2795,6 @@
     const dropshadowBlurInput = document.getElementById('dropshadowBlur');
     const dropshadowOffsetXInput = document.getElementById('dropshadowOffsetX');
     const dropshadowOffsetYInput = document.getElementById('dropshadowOffsetY');
-
-    // Timing DOM elements
-    const timingStartFrameInput = document.getElementById('timingStartFrame');
-    const timingEndFrameInput = document.getElementById('timingEndFrame');
-    const timingValidationMsg = document.getElementById('timingValidationMsg');
 
     // Timeline DOM elements
     const timelinePlaceholder = document.getElementById('timelinePlaceholder');
@@ -3581,9 +3534,6 @@
       // Show overlay controls (only enabled after extraction completes)
       showOverlayControls();
 
-      // Update timing inputs max value based on frame count
-      updateTimingInputsMax();
-
       // Update layer row timing inputs
       updateLayerTimingInputs();
 
@@ -3627,10 +3577,6 @@
       imgPaddingInput.disabled = false;
       imgMarginInput.disabled = false;
 
-      // Enable timing section inputs
-      timingStartFrameInput.disabled = false;
-      timingEndFrameInput.disabled = false;
-
       // Initialize inputs with default values
       initializePropertyInputs();
     }
@@ -3672,43 +3618,6 @@
       imgPaddingInput.disabled = true;
       imgMarginInput.disabled = true;
 
-      // Disable timing section inputs
-      timingStartFrameInput.disabled = true;
-      timingEndFrameInput.disabled = true;
-    }
-
-    /**
-     * Validates timing inputs and shows/hides error message
-     * @returns {boolean} True if timing is valid, false otherwise
-     */
-    function validateTimingInputs() {
-      const startFrame = editorState.overlay.startFrame;
-      const endFrame = editorState.overlay.endFrame;
-
-      // endFrame = 0 means "end of video", so it's always valid
-      // Otherwise, startFrame must be <= endFrame
-      const isValid = endFrame === 0 || startFrame <= endFrame;
-
-      if (isValid) {
-        timingValidationMsg.style.display = 'none';
-        timingStartFrameInput.style.borderColor = '';
-        timingEndFrameInput.style.borderColor = '';
-      } else {
-        timingValidationMsg.style.display = 'block';
-        timingStartFrameInput.style.borderColor = '#f48771';
-        timingEndFrameInput.style.borderColor = '#f48771';
-      }
-
-      return isValid;
-    }
-
-    /**
-     * Updates timing inputs max values based on frame count
-     */
-    function updateTimingInputsMax() {
-      const maxFrame = Math.max(0, editorState.frameCount - 1);
-      timingStartFrameInput.max = maxFrame;
-      timingEndFrameInput.max = maxFrame;
     }
 
     /**
@@ -4309,10 +4218,6 @@
       overlayXInput.value = selected.xOffset;
       overlayYInput.value = selected.yOffset;
 
-      // Update timing inputs
-      timingStartFrameInput.value = selected.startFrame;
-      timingEndFrameInput.value = selected.endFrame;
-
       // Update image config inputs
       const config = selected.config || defaultConfig;
       const imgConfig = config.images || defaultConfig.images;
@@ -4337,9 +4242,6 @@
       dropshadowBlurInput.value = dropshadowConfig.blur || 0;
       dropshadowOffsetXInput.value = dropshadowConfig.offsetX || -2;
       dropshadowOffsetYInput.value = dropshadowConfig.offsetY || 3;
-
-      // Validate timing inputs
-      validateTimingInputs();
     }
 
     /**
@@ -4352,9 +4254,6 @@
 
       overlayXInput.disabled = true;
       overlayYInput.disabled = true;
-
-      timingStartFrameInput.disabled = true;
-      timingEndFrameInput.disabled = true;
 
       imgWidthInput.disabled = true;
       imgHeightInput.disabled = true;
@@ -4384,9 +4283,6 @@
 
       overlayXInput.disabled = false;
       overlayYInput.disabled = false;
-
-      timingStartFrameInput.disabled = false;
-      timingEndFrameInput.disabled = false;
 
       imgWidthInput.disabled = false;
       imgHeightInput.disabled = false;
@@ -7482,29 +7378,6 @@
       }
     });
 
-    // Timing input change listeners
-    timingStartFrameInput.addEventListener('change', (e) => {
-      const value = parseInt(e.target.value) || 0;
-      editorState.overlay.startFrame = Math.max(0, value);
-      timingStartFrameInput.value = editorState.overlay.startFrame;
-      validateTimingInputs();
-      // Sync to selected overlay in overlays array
-      applyPropertiesToSelectedOverlay();
-      updatePreview();
-      markUnsavedChanges();
-    });
-
-    timingEndFrameInput.addEventListener('change', (e) => {
-      const value = parseInt(e.target.value) || 0;
-      editorState.overlay.endFrame = Math.max(0, value);
-      timingEndFrameInput.value = editorState.overlay.endFrame;
-      validateTimingInputs();
-      // Sync to selected overlay in overlays array
-      applyPropertiesToSelectedOverlay();
-      updatePreview();
-      markUnsavedChanges();
-    });
-
     // Text config change listeners - update preview in real-time
     textFontSelect.addEventListener('change', () => {
       if (overlayEnabledCheckbox.checked) {
@@ -7964,8 +7837,6 @@
           comboTextInput.value = selected.comboText || '';
           overlayXInput.value = selected.xOffset;
           overlayYInput.value = selected.yOffset;
-          timingStartFrameInput.value = selected.startFrame;
-          timingEndFrameInput.value = selected.endFrame;
         }
       } else if (projectData.overlay) {
         // Legacy format: migrate single overlay to array
@@ -7996,11 +7867,8 @@
         // Apply timing values
         editorState.overlay.startFrame = projectData.overlay.startFrame || 0;
         editorState.overlay.endFrame = projectData.overlay.endFrame || 0;
-        timingStartFrameInput.value = editorState.overlay.startFrame;
-        timingEndFrameInput.value = editorState.overlay.endFrame;
       }
 
-      validateTimingInputs();
       updateLayerDurationBar();
 
       // Apply keyframes
@@ -8192,9 +8060,6 @@
       overlayEnabledCheckbox.checked = false;
       snapToGridCheckbox.checked = false;
       gridSizeInput.value = 10;
-      timingStartFrameInput.value = 0;
-      timingEndFrameInput.value = 0;
-      timingValidationMsg.style.display = 'none';
 
       // Update properties panel to show disabled state (no overlay selected)
       updatePropertiesPanel();
@@ -8220,8 +8085,6 @@
       snapToGridCheckbox.disabled = true;
       gridSizeInput.disabled = true;
       applyOverlayBtn.disabled = true;
-      timingStartFrameInput.disabled = true;
-      timingEndFrameInput.disabled = true;
     }
 
     /**

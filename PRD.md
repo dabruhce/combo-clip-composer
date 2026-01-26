@@ -1433,13 +1433,13 @@ Currently, the timing controls (Start Frame, End Frame) are located in the Prope
 **Description:** As a user, I want a cleaner Properties panel without the redundant Timing section since timing is now in layer rows.
 
 **Acceptance Criteria:**
-- [ ] Remove the "Timing" collapsible section from Properties panel (`#sectionTiming`)
-- [ ] Remove associated HTML elements (start/end frame inputs, validation message)
-- [ ] Remove or repurpose `validateTimingInputs()` function (may still be needed for layer row validation)
-- [ ] Remove `updateTimingInputsMax()` or update it for layer row inputs
-- [ ] Properties panel layout adjusts properly without the Timing section
-- [ ] Typecheck passes
-- [ ] Verify Properties panel displays correctly without Timing section
+- [x] Remove the "Timing" collapsible section from Properties panel (`#sectionTiming`)
+- [x] Remove associated HTML elements (start/end frame inputs, validation message)
+- [x] Remove or repurpose `validateTimingInputs()` function (may still be needed for layer row validation)
+- [x] Remove `updateTimingInputsMax()` or update it for layer row inputs
+- [x] Properties panel layout adjusts properly without the Timing section
+- [x] Typecheck passes
+- [x] Verify Properties panel displays correctly without Timing section
 
 ---
 

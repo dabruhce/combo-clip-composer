@@ -293,3 +293,45 @@
   - updateLayerTimingInputs called after video loads to enable inputs and set max values
   - endFrame=0 sentinel still exists - will be removed in US-080
 ---
+
+## Iteration 75 - US-075: Wire Layer Row Timing Inputs to Overlay Data
+- What was implemented:
+  - Added updateSingleLayerTimingInputs(overlayId) function to update one overlay's timing inputs
+  - Integrated call to updateSingleLayerTimingInputs in onDurationBarDrag() during bar dragging
+  - Layer row timing inputs now stay synced when dragging duration bars
+  - Verified existing onLayerTimingInputChange() properly updates overlay data
+  - All acceptance criteria were already partially implemented in US-074, just needed sync during drag
+  - 512 tests pass (2 pre-existing failures: canvas binding, config cleanup)
+- Files changed:
+  - editor/index.html (added updateSingleLayerTimingInputs function, integrated into drag handler)
+  - PRD.md (marked US-075 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Two sets of timing inputs exist: layer row inputs (per-overlay) and Properties panel inputs (selected overlay)
+  - updateSingleLayerTimingInputs is more efficient than updateLayerTimingInputs for single-overlay updates
+  - Duration bar drag needs to sync layer row inputs in addition to Properties panel inputs
+  - Each layer row has its own timing inputs bound to its overlay ID
+---
+
+## Iteration 76 - US-076: Remove Timing Section from Properties Panel
+- What was implemented:
+  - Removed Timing collapsible section HTML from Properties panel (#sectionTiming)
+  - Removed .timing-validation-msg CSS styling
+  - Removed timingStartFrameInput, timingEndFrameInput, timingValidationMsg DOM element declarations
+  - Removed validateTimingInputs() function (no longer needed - layer rows have own validation)
+  - Removed updateTimingInputsMax() function (no longer needed - layer rows use updateLayerTimingInputs)
+  - Removed timing input references from showOverlayControls(), hideOverlayControls()
+  - Removed timing input references from updatePropertiesPanel(), enablePropertiesPanel(), disablePropertiesPanel()
+  - Removed timing input event listeners
+  - Removed timing input references from newProject reset and applyProjectData
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (removed ~137 lines of timing-related code)
+  - PRD.md (marked US-076 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Timing is now fully managed in layer rows (US-074, US-075), making Properties panel Timing section redundant
+  - Layer row validation via onLayerTimingInputChange() handles all validation needs
+  - Layer row inputs have their max values set via updateLayerTimingInputs() when video loads
+  - Cleanup of old code requires checking all usages: DOM declarations, event listeners, function calls in various UI states
+---
