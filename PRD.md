@@ -1316,13 +1316,13 @@ This phase enhances the layers panel by making overlay duration bars draggable, 
 **Description:** As a user, I want the "Add Overlay" button to create both an overlay and its corresponding layer row so that I can immediately see and interact with it in the layers panel.
 
 **Acceptance Criteria:**
-- [ ] Clicking "Add Overlay" creates a new overlay in `editorState.overlays`
-- [ ] A new layer row appears in the layers panel immediately
-- [ ] The new layer row includes a duration bar
-- [ ] The new overlay is automatically selected after creation
-- [ ] The duration bar reflects the default timing (full video duration when endFrame=0)
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] Clicking "Add Overlay" creates a new overlay in `editorState.overlays`
+- [x] A new layer row appears in the layers panel immediately
+- [x] The new layer row includes a duration bar
+- [x] The new overlay is automatically selected after creation
+- [x] The duration bar reflects the default timing (full video duration when endFrame=0)
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ---
 
