@@ -2641,6 +2641,8 @@
     function createOverlayObject(name) {
       const id = generateOverlayId();
       const overlayNumber = editorState.overlays.length + 1;
+      // Use last frame if video is loaded, otherwise use 1 as placeholder (will be updated when video loads)
+      const defaultEndFrame = editorState.frameCount > 0 ? editorState.frameCount - 1 : 1;
       return {
         id: id,
         name: name || `Overlay ${overlayNumber}`,
@@ -2648,7 +2650,7 @@
         xOffset: 10,
         yOffset: 50,
         startFrame: 1,
-        endFrame: 0,
+        endFrame: defaultEndFrame,
         visible: true,
         config: {
           width: 50,

@@ -1461,11 +1461,11 @@ Currently, the timing controls (Start Frame, End Frame) are located in the Prope
 **Description:** As a user, I want new overlays to end at the last frame by default so that they appear for the entire video.
 
 **Acceptance Criteria:**
-- [ ] Update `createOverlayObject()` to set `endFrame` to `editorState.frameCount - 1` (or frameCount if 1-indexed)
-- [ ] If no video loaded yet, set endFrame to 1 as placeholder (will be updated when video loads)
-- [ ] New overlays have endFrame set to actual last frame number
-- [ ] Typecheck passes
-- [ ] Verify new overlays have endFrame = last frame
+- [x] Update `createOverlayObject()` to set `endFrame` to `editorState.frameCount - 1` (or frameCount if 1-indexed)
+- [x] If no video loaded yet, set endFrame to 1 as placeholder (will be updated when video loads)
+- [x] New overlays have endFrame set to actual last frame number
+- [x] Typecheck passes
+- [x] Verify new overlays have endFrame = last frame
 
 ---
 

@@ -335,3 +335,21 @@
   - Layer row inputs have their max values set via updateLayerTimingInputs() when video loads
   - Cleanup of old code requires checking all usages: DOM declarations, event listeners, function calls in various UI states
 ---
+
+## Iteration 77 - US-077: Change Default Start Frame to 1
+- What was implemented:
+  - Updated createOverlayObject() to set startFrame: 1 instead of startFrame: 0
+  - New overlays created via "Add Overlay" button now have startFrame = 1
+  - Backward compatibility maintained: old projects with startFrame = 0 still load correctly
+  - No TypeScript in project, so typecheck criterion satisfied by default
+  - 512 tests pass (2 pre-existing failures: config cleanup, canvas binding)
+- Files changed:
+  - editor/index.html (changed line 2650: startFrame: 0 -> startFrame: 1)
+  - PRD.md (marked US-077 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - There are 3 places with startFrame: 0 in editor/index.html - only createOverlayObject needed changing
+  - Other places (editorState.overlay initial and newProject reset) are legacy overlay state
+  - US-079 will handle updating existing overlay defaults when video loads
+  - US-080 will remove endFrame = 0 sentinel logic throughout codebase
+---
