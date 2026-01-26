@@ -1299,15 +1299,15 @@ This phase enhances the layers panel by making overlay duration bars draggable, 
 **Description:** As a user, I want to see a tooltip showing the frame number while dragging so that I can precisely position my overlay timing.
 
 **Acceptance Criteria:**
-- [ ] Tooltip appears near the cursor when dragging begins
-- [ ] Tooltip shows "Start: Frame X" when dragging the left edge
-- [ ] Tooltip shows "End: Frame X" when dragging the right edge
-- [ ] Tooltip shows "Frames X - Y" when dragging the middle (moving entire bar)
-- [ ] Tooltip follows the cursor position during drag
-- [ ] Tooltip disappears when drag ends
-- [ ] Tooltip has clear, readable styling (e.g., dark background, light text)
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] Tooltip appears near the cursor when dragging begins
+- [x] Tooltip shows "Start: Frame X" when dragging the left edge
+- [x] Tooltip shows "End: Frame X" when dragging the right edge
+- [x] Tooltip shows "Frames X - Y" when dragging the middle (moving entire bar)
+- [x] Tooltip follows the cursor position during drag
+- [x] Tooltip disappears when drag ends
+- [x] Tooltip has clear, readable styling (e.g., dark background, light text)
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ---
 

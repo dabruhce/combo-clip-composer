@@ -973,6 +973,27 @@
       opacity: 1;
     }
 
+    /* Drag tooltip for duration bar */
+    .drag-tooltip {
+      display: none;
+      position: fixed;
+      background: #1e1e1e;
+      color: #ffffff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 10000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      border: 1px solid #3d3d3d;
+    }
+
+    .drag-tooltip.visible {
+      display: block;
+    }
+
     /* Timeline at bottom */
     .timeline {
       height: 150px;
@@ -2424,6 +2445,9 @@
   <div class="layer-context-menu" id="layerContextMenu">
     <div class="context-menu-item" id="layerContextMenuDelete">Delete Overlay</div>
   </div>
+
+  <!-- Drag Tooltip for Duration Bar -->
+  <div class="drag-tooltip" id="dragTooltip"></div>
 
   <!-- Export Dialog -->
   <div class="export-dialog-overlay hidden" id="exportDialogOverlay">
@@ -4322,6 +4346,76 @@
     }
 
     /**
+     * Shows the drag tooltip near the cursor
+     * @param {MouseEvent} event - The mouse event
+     * @param {string} text - The tooltip text
+     */
+    function showDragTooltip(event, text) {
+      const tooltip = document.getElementById('dragTooltip');
+      if (!tooltip) return;
+
+      tooltip.textContent = text;
+      tooltip.classList.add('visible');
+      positionDragTooltip(event);
+    }
+
+    /**
+     * Updates the drag tooltip position and text
+     * @param {MouseEvent} event - The mouse event
+     * @param {string} text - The tooltip text
+     */
+    function updateDragTooltip(event, text) {
+      const tooltip = document.getElementById('dragTooltip');
+      if (!tooltip) return;
+
+      tooltip.textContent = text;
+      positionDragTooltip(event);
+    }
+
+    /**
+     * Positions the drag tooltip near the cursor
+     * @param {MouseEvent} event - The mouse event
+     */
+    function positionDragTooltip(event) {
+      const tooltip = document.getElementById('dragTooltip');
+      if (!tooltip) return;
+
+      // Position above and slightly to the right of the cursor
+      const offsetX = 12;
+      const offsetY = -28;
+
+      tooltip.style.left = (event.clientX + offsetX) + 'px';
+      tooltip.style.top = (event.clientY + offsetY) + 'px';
+    }
+
+    /**
+     * Hides the drag tooltip
+     */
+    function hideDragTooltip() {
+      const tooltip = document.getElementById('dragTooltip');
+      if (tooltip) {
+        tooltip.classList.remove('visible');
+      }
+    }
+
+    /**
+     * Gets the tooltip text based on drag type and frame values
+     * @param {string} dragType - 'start', 'end', or 'move'
+     * @param {number} startFrame - The start frame
+     * @param {number} endFrame - The end frame
+     * @returns {string} Tooltip text
+     */
+    function getDragTooltipText(dragType, startFrame, endFrame) {
+      if (dragType === 'start') {
+        return `Start: Frame ${startFrame}`;
+      } else if (dragType === 'end') {
+        return `End: Frame ${endFrame}`;
+      } else {
+        return `Frames ${startFrame} - ${endFrame}`;
+      }
+    }
+
+    /**
      * Handles mousedown on a duration bar to start dragging
      * @param {MouseEvent} event - The mouse event
      * @param {string} overlayId - The overlay ID
@@ -4354,6 +4448,11 @@
       bar.classList.add('dragging');
       bar.classList.remove('cursor-grab', 'cursor-ew-resize');
       bar.classList.add(dragType === 'move' ? 'cursor-grabbing' : 'cursor-ew-resize');
+
+      // Show drag tooltip
+      const effectiveEndFrame = overlay.endFrame === 0 ? editorState.frameCount - 1 : overlay.endFrame;
+      const tooltipText = getDragTooltipText(dragType, overlay.startFrame, effectiveEndFrame);
+      showDragTooltip(event, tooltipText);
 
       // Prevent text selection during drag
       event.preventDefault();
@@ -4445,6 +4544,10 @@
 
       // Update preview
       updatePreview();
+
+      // Update drag tooltip
+      const tooltipText = getDragTooltipText(drag.dragType, overlay.startFrame, overlay.endFrame);
+      updateDragTooltip(event, tooltipText);
     }
 
     /**
@@ -4462,6 +4565,9 @@
         bar.classList.remove('dragging', 'cursor-grabbing');
         bar.classList.add('cursor-grab');
       }
+
+      // Hide drag tooltip
+      hideDragTooltip();
 
       // Mark unsaved changes
       markUnsavedChanges();
