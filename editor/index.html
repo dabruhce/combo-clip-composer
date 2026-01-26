@@ -4211,6 +4211,25 @@
     }
 
     /**
+     * Updates timing inputs for a single overlay in its layer row
+     * @param {string} overlayId - The overlay ID
+     */
+    function updateSingleLayerTimingInputs(overlayId) {
+      const overlay = getOverlayById(overlayId);
+      if (!overlay) return;
+
+      const startInput = document.getElementById(`timingStart-${overlayId}`);
+      const endInput = document.getElementById(`timingEnd-${overlayId}`);
+
+      if (startInput) {
+        startInput.value = overlay.startFrame || 0;
+      }
+      if (endInput) {
+        endInput.value = overlay.endFrame || 0;
+      }
+    }
+
+    /**
      * Toggles visibility of an overlay by ID
      * @param {string} overlayId - The overlay ID
      */
@@ -4702,6 +4721,9 @@
 
       // Update the duration bar visually
       updateOverlayDurationBar(drag.overlayId);
+
+      // Update layer row timing inputs for this overlay
+      updateSingleLayerTimingInputs(drag.overlayId);
 
       // Update properties panel inputs
       updatePropertiesPanel();

@@ -1417,14 +1417,14 @@ Currently, the timing controls (Start Frame, End Frame) are located in the Prope
 **Description:** As a user, I want changes to the layer row timing inputs to update the overlay so that my edits are saved.
 
 **Acceptance Criteria:**
-- [ ] Changing Start Frame input updates `overlay.startFrame` for that layer's overlay
-- [ ] Changing End Frame input updates `overlay.endFrame` for that layer's overlay
-- [ ] Duration bar updates in real-time when inputs change
-- [ ] Project is marked as having unsaved changes
-- [ ] Preview updates to reflect new timing
-- [ ] Inputs update when selecting different layers (show selected overlay's values)
-- [ ] Typecheck passes
-- [ ] Verify input changes work correctly in browser
+- [x] Changing Start Frame input updates `overlay.startFrame` for that layer's overlay
+- [x] Changing End Frame input updates `overlay.endFrame` for that layer's overlay
+- [x] Duration bar updates in real-time when inputs change
+- [x] Project is marked as having unsaved changes
+- [x] Preview updates to reflect new timing
+- [x] Inputs update when selecting different layers (show selected overlay's values)
+- [x] Typecheck passes
+- [x] Verify input changes work correctly in browser
 
 ---
 
