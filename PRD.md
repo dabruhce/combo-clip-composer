@@ -1474,13 +1474,13 @@ Currently, the timing controls (Start Frame, End Frame) are located in the Prope
 **Description:** As a user, I want existing overlays with placeholder end frames to be updated when I load a video so that they span the full video by default.
 
 **Acceptance Criteria:**
-- [ ] When video loads, iterate through all overlays
-- [ ] If an overlay has `endFrame <= 1` (placeholder), set it to `frameCount - 1`
-- [ ] If an overlay has `startFrame = 0`, optionally migrate to 1 (or leave as 0 if intentional)
-- [ ] Duration bars update to reflect new values
-- [ ] This happens after frame extraction completes and frameCount is known
-- [ ] Typecheck passes
-- [ ] Verify overlay defaults update when video is loaded
+- [x] When video loads, iterate through all overlays
+- [x] If an overlay has `endFrame <= 1` (placeholder), set it to `frameCount - 1`
+- [x] If an overlay has `startFrame = 0`, optionally migrate to 1 (or leave as 0 if intentional)
+- [x] Duration bars update to reflect new values
+- [x] This happens after frame extraction completes and frameCount is known
+- [x] Typecheck passes
+- [x] Verify overlay defaults update when video is loaded
 
 ---
 

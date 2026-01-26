@@ -353,3 +353,22 @@
   - US-079 will handle updating existing overlay defaults when video loads
   - US-080 will remove endFrame = 0 sentinel logic throughout codebase
 ---
+
+## Iteration 78 - US-078: Change Default End Frame to Last Frame
+- What was implemented:
+  - Updated createOverlayObject() to use editorState.frameCount - 1 as default endFrame when video is loaded
+  - When no video loaded (frameCount=0), endFrame defaults to 1 as placeholder
+  - Added comment explaining the logic: "Use last frame if video is loaded, otherwise use 1 as placeholder"
+  - New overlays created after video load will have endFrame = actual last frame number
+  - No TypeScript in project, so typecheck criterion satisfied by default
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (added defaultEndFrame calculation in createOverlayObject)
+  - PRD.md (marked US-078 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - createOverlayObject now dynamically determines endFrame based on whether video is loaded
+  - editorState.frameCount is 0 when no video loaded, positive when video is loaded
+  - Placeholder value of 1 ensures endFrame >= startFrame (startFrame is now 1 by default from US-077)
+  - US-079 will update existing overlays with placeholder endFrame when video loads
+---

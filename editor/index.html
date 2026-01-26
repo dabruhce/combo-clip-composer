@@ -2692,6 +2692,30 @@
     }
 
     /**
+     * Updates existing overlay defaults when video loads.
+     * Overlays created before video load have placeholder endFrame values.
+     * This function updates them to the actual last frame of the video.
+     */
+    function updateOverlayDefaultsForVideo() {
+      const lastFrame = editorState.frameCount - 1;
+      if (lastFrame <= 0) return; // No valid frame count yet
+
+      editorState.overlays.forEach(overlay => {
+        // If endFrame is a placeholder (<=1), update to last frame
+        if (overlay.endFrame <= 1) {
+          overlay.endFrame = lastFrame;
+        }
+        // Optionally migrate startFrame = 0 to 1 (keep as 0 if intentional)
+        // For now, leave startFrame as-is since 0 is still valid for frame-based indexing
+      });
+
+      // Also update the legacy overlay state if needed
+      if (editorState.overlay.endFrame <= 1) {
+        editorState.overlay.endFrame = lastFrame;
+      }
+    }
+
+    /**
      * Syncs the selected overlay's data to the legacy editorState.overlay for backward compatibility
      * This allows existing code that reads from editorState.overlay to continue working
      */
@@ -3535,6 +3559,12 @@
 
       // Show overlay controls (only enabled after extraction completes)
       showOverlayControls();
+
+      // Update existing overlay defaults now that frameCount is known
+      updateOverlayDefaultsForVideo();
+
+      // Update duration bars to reflect the new timing values
+      updateAllDurationBars();
 
       // Update layer row timing inputs
       updateLayerTimingInputs();
