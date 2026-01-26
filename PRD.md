@@ -1281,16 +1281,16 @@ This phase enhances the layers panel by making overlay duration bars draggable, 
 **Description:** As a user, I want to drag the middle of a duration bar so that I can shift the entire overlay timing while keeping the same duration.
 
 **Acceptance Criteria:**
-- [ ] Dragging the middle of the bar moves both start and end frames together
-- [ ] The duration (difference between end and start) remains constant during move
-- [ ] Movement stops at frame 0 (cannot move start frame below 0)
-- [ ] Movement stops at last video frame (cannot move end frame past video length)
-- [ ] The duration bar visually updates in real-time while dragging
-- [ ] Both "Start Frame" and "End Frame" inputs in properties panel update after drag
-- [ ] Project is marked as having unsaved changes after drag completes
-- [ ] Cursor changes to `grabbing` while actively dragging
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] Dragging the middle of the bar moves both start and end frames together
+- [x] The duration (difference between end and start) remains constant during move
+- [x] Movement stops at frame 0 (cannot move start frame below 0)
+- [x] Movement stops at last video frame (cannot move end frame past video length)
+- [x] The duration bar visually updates in real-time while dragging
+- [x] Both "Start Frame" and "End Frame" inputs in properties panel update after drag
+- [x] Project is marked as having unsaved changes after drag completes
+- [x] Cursor changes to `grabbing` while actively dragging
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ---
 

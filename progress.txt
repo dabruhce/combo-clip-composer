@@ -157,3 +157,71 @@
   - Cursor classes (cursor-grab, cursor-ew-resize) allow JS to control cursor state cleanly
   - getDragType function pattern will be reused for actual drag implementation (US-069, US-070, US-071)
 ---
+
+## Iteration 69 - US-069: Implement Start Frame Dragging (Left Edge)
+- What was implemented:
+  - Added `durationBarDrag` state object to editorState with: isDragging, dragType, overlayId, initialMouseX, initialStartFrame, initialEndFrame, trackRect
+  - Added mousedown handler on duration bars that calls `onDurationBarDragStart(event, overlayId)`
+  - Implemented `pixelToFrame(pixelX, trackRect)` helper to convert pixel position to frame number
+  - Implemented `onDurationBarDragStart(event, overlayId)` to initialize drag state, select overlay, apply dragging class
+  - Implemented `onDurationBarDrag(event)` to update startFrame during drag with clamping (0 to endFrame-1)
+  - Implemented `onDurationBarDragEnd(event)` to finalize drag, mark unsaved changes, reset state
+  - Added document-level mousemove and mouseup listeners for drag continuation outside the bar
+  - Drag updates both overlay object and legacy state, calls updateOverlayDurationBar(), updatePropertiesPanel(), updatePreview()
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (added durationBarDrag state, mousedown handler, drag functions, document listeners)
+  - PRD.md (marked US-069 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - pixelToFrame calculation: percent = pixelX / (trackWidth * zoom), frame = Math.round(percent * (frameCount - 1))
+  - Must handle endFrame=0 sentinel value by converting to frameCount-1 in initialEndFrame
+  - Document-level listeners are essential for drag continuation when mouse leaves the bar
+  - Drag updates both overlay in array AND legacy editorState.overlay if selected
+  - Future US-070 and US-071 will extend onDurationBarDrag to handle 'end' and 'move' dragType cases
+---
+
+## Iteration 70 - US-070: Implement End Frame Dragging (Right Edge)
+- What was implemented:
+  - Added 'end' drag type handling in `onDurationBarDrag()` function
+  - End frame clamping: minEndFrame = startFrame + 1 (ensures minimum 1 frame duration)
+  - End frame clamping: maxEndFrame = frameCount - 1 (cannot exceed video length)
+  - Updates both overlay object and legacy state when dragging
+  - Duration bar visually updates in real-time via existing `updateOverlayDurationBar()` call
+  - Properties panel "End Frame" input updates via existing `updatePropertiesPanel()` call
+  - Project marked unsaved via existing `markUnsavedChanges()` call in `onDurationBarDragEnd()`
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (added else if branch for 'end' drag type in onDurationBarDrag)
+  - PRD.md (marked US-070 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - End frame uses overlay.startFrame directly (not initialStartFrame) to clamp against current start position
+  - The 'end' drag implementation mirrors 'start' drag with swapped min/max logic
+  - Start uses initialEndFrame for max (so end doesn't move), end uses current startFrame for min
+  - US-071 'move' drag will need to move both frames together, preserving the duration
+---
+
+## Iteration 71 - US-071: Implement Duration Bar Move (Middle Drag)
+- What was implemented:
+  - Added 'move' drag type handling in `onDurationBarDrag()` function
+  - Calculates duration (initialEndFrame - initialStartFrame) and preserves it during drag
+  - Calculates frame delta by converting initial and current mouse positions to frames
+  - New positions: newStartFrame = initialStartFrame + frameDelta, newEndFrame = initialEndFrame + frameDelta
+  - Clamping at left edge: if newStartFrame < 0, set newStartFrame=0 and newEndFrame=duration
+  - Clamping at right edge: if newEndFrame > maxFrame, set newEndFrame=maxFrame and newStartFrame=maxFrame-duration
+  - Updates both overlay object and legacy state when dragging
+  - Duration bar visually updates in real-time via existing `updateOverlayDurationBar()` call
+  - Both Start/End Frame inputs update via existing `updatePropertiesPanel()` call
+  - Cursor changes to 'grabbing' already handled in `onDurationBarDragStart()` (line 4356)
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (added else if branch for 'move' drag type in onDurationBarDrag)
+  - PRD.md (marked US-071 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Move drag preserves duration by applying same delta to both start and end frames
+  - Use initialStartFrame and initialEndFrame (from drag start) for calculations, not current overlay values
+  - Clamping must adjust both frames when hitting boundaries to preserve duration
+  - When hitting left boundary: set start=0, end=duration; when hitting right: set end=max, start=max-duration
+---

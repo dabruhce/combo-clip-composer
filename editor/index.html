@@ -4400,8 +4400,42 @@
         if (drag.overlayId === editorState.selectedOverlayId) {
           editorState.overlay.endFrame = newEndFrame;
         }
+      } else if (drag.dragType === 'move') {
+        // Dragging middle of bar - move both start and end frames together
+        // Calculate the duration (must be preserved)
+        const duration = drag.initialEndFrame - drag.initialStartFrame;
+
+        // Calculate frame delta from initial position
+        const initialRelativeX = drag.initialMouseX - drag.trackRect.left;
+        const initialFrame = pixelToFrame(initialRelativeX, drag.trackRect);
+        const frameDelta = targetFrame - initialFrame;
+
+        // Calculate new positions
+        let newStartFrame = drag.initialStartFrame + frameDelta;
+        let newEndFrame = drag.initialEndFrame + frameDelta;
+
+        // Clamp: cannot move start frame below 0
+        if (newStartFrame < 0) {
+          newStartFrame = 0;
+          newEndFrame = duration;
+        }
+
+        // Clamp: cannot move end frame past last frame
+        const maxFrame = editorState.frameCount - 1;
+        if (newEndFrame > maxFrame) {
+          newEndFrame = maxFrame;
+          newStartFrame = maxFrame - duration;
+        }
+
+        overlay.startFrame = newStartFrame;
+        overlay.endFrame = newEndFrame;
+
+        // Update legacy state if this is selected
+        if (drag.overlayId === editorState.selectedOverlayId) {
+          editorState.overlay.startFrame = newStartFrame;
+          editorState.overlay.endFrame = newEndFrame;
+        }
       }
-      // Note: 'move' drag type will be implemented in US-071
 
       // Update the duration bar visually
       updateOverlayDurationBar(drag.overlayId);
