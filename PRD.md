@@ -1209,3 +1209,172 @@ Transform the editor from supporting a single combo overlay to supporting multip
 - Consider debouncing property changes to avoid excessive re-renders
 - The `inputImages` cache may need to be per-overlay or shared with cache key
 - Export process needs to composite multiple overlays per frame
+
+---
+
+## Phase 18: Draggable Timeline Duration Bars
+
+### Introduction
+
+This phase enhances the layers panel by making overlay duration bars draggable, allowing users to visually adjust when overlays appear and disappear in the video timeline. Currently, users must manually enter start/end frame numbers in the properties panel. This feature provides a more intuitive, visual way to set overlay timing by directly manipulating the duration bars in the layers panel.
+
+### Goals
+
+- Enable drag-to-resize duration bars to adjust start and end frames
+- Enable drag-to-move entire duration bars to shift timing while preserving duration
+- Provide real-time visual feedback (tooltip) showing frame numbers during drag operations
+- Verify that "Add Overlay" correctly creates a layer row (existing behavior confirmation)
+
+---
+
+#### US-068: Add Drag Handles to Duration Bars
+
+**Description:** As a user, I want to see visual drag handles on duration bars so that I know I can interact with them.
+
+**Acceptance Criteria:**
+- [ ] Duration bars show a left edge handle (for start frame) when hovered
+- [ ] Duration bars show a right edge handle (for end frame) when hovered
+- [ ] Cursor changes to `ew-resize` when hovering over left/right edges
+- [ ] Cursor changes to `grab` when hovering over the middle of the bar
+- [ ] Handles are subtle but visible (e.g., slightly different shade or thin line)
+- [ ] Typecheck passes (if applicable)
+- [ ] Verify changes work in browser
+
+---
+
+#### US-069: Implement Start Frame Dragging (Left Edge)
+
+**Description:** As a user, I want to drag the left edge of a duration bar so that I can adjust when the overlay starts appearing.
+
+**Acceptance Criteria:**
+- [ ] Dragging the left edge updates the overlay's `startFrame` property
+- [ ] The duration bar visually updates in real-time while dragging
+- [ ] Start frame cannot be dragged past the end frame (minimum 1 frame duration)
+- [ ] Start frame cannot be dragged below frame 0
+- [ ] Releasing the mouse finalizes the change
+- [ ] The properties panel "Start Frame" input updates to reflect the new value
+- [ ] Project is marked as having unsaved changes after drag completes
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
+
+---
+
+#### US-070: Implement End Frame Dragging (Right Edge)
+
+**Description:** As a user, I want to drag the right edge of a duration bar so that I can adjust when the overlay stops appearing.
+
+**Acceptance Criteria:**
+- [ ] Dragging the right edge updates the overlay's `endFrame` property
+- [ ] The duration bar visually updates in real-time while dragging
+- [ ] End frame cannot be dragged before the start frame (minimum 1 frame duration)
+- [ ] End frame cannot be dragged past the last frame of the video
+- [ ] Releasing the mouse finalizes the change
+- [ ] The properties panel "End Frame" input updates to reflect the new value
+- [ ] Project is marked as having unsaved changes after drag completes
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
+
+---
+
+#### US-071: Implement Duration Bar Move (Middle Drag)
+
+**Description:** As a user, I want to drag the middle of a duration bar so that I can shift the entire overlay timing while keeping the same duration.
+
+**Acceptance Criteria:**
+- [ ] Dragging the middle of the bar moves both start and end frames together
+- [ ] The duration (difference between end and start) remains constant during move
+- [ ] Movement stops at frame 0 (cannot move start frame below 0)
+- [ ] Movement stops at last video frame (cannot move end frame past video length)
+- [ ] The duration bar visually updates in real-time while dragging
+- [ ] Both "Start Frame" and "End Frame" inputs in properties panel update after drag
+- [ ] Project is marked as having unsaved changes after drag completes
+- [ ] Cursor changes to `grabbing` while actively dragging
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
+
+---
+
+#### US-072: Add Drag Tooltip Feedback
+
+**Description:** As a user, I want to see a tooltip showing the frame number while dragging so that I can precisely position my overlay timing.
+
+**Acceptance Criteria:**
+- [ ] Tooltip appears near the cursor when dragging begins
+- [ ] Tooltip shows "Start: Frame X" when dragging the left edge
+- [ ] Tooltip shows "End: Frame X" when dragging the right edge
+- [ ] Tooltip shows "Frames X - Y" when dragging the middle (moving entire bar)
+- [ ] Tooltip follows the cursor position during drag
+- [ ] Tooltip disappears when drag ends
+- [ ] Tooltip has clear, readable styling (e.g., dark background, light text)
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
+
+---
+
+#### US-073: Verify Add Overlay Creates Layer Row
+
+**Description:** As a user, I want the "Add Overlay" button to create both an overlay and its corresponding layer row so that I can immediately see and interact with it in the layers panel.
+
+**Acceptance Criteria:**
+- [ ] Clicking "Add Overlay" creates a new overlay in `editorState.overlays`
+- [ ] A new layer row appears in the layers panel immediately
+- [ ] The new layer row includes a duration bar
+- [ ] The new overlay is automatically selected after creation
+- [ ] The duration bar reflects the default timing (full video duration when endFrame=0)
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
+
+---
+
+### Non-Goals (Phase 18)
+
+- Snapping to playhead or other overlay boundaries (explicitly excluded per requirements)
+- Keyboard modifiers for constrained dragging
+- Multi-select and dragging multiple duration bars at once
+- Undo/redo for drag operations (future enhancement)
+- Touch/mobile drag support
+
+### Technical Considerations (Phase 18)
+
+#### Existing Code to Leverage
+
+- `updateOverlayDurationBar(overlayId)` in `editor/index.html` - already calculates bar position/width from frames
+- `editorState.timelineZoom` - must account for zoom level when calculating frame from pixel position
+- `markUnsavedChanges()` - call after drag completes
+- `updatePropertiesPanel()` - call to sync UI after drag
+
+#### Implementation Notes
+
+- Duration bars are in `.layer-row-track` containers with class `.layer-duration-bar`
+- Bar positioning uses absolute pixels based on zoom level and track width
+- Must handle edge case where `endFrame=0` means "end of video"
+- Mouse events should be attached to document during drag to handle cursor leaving the bar
+- Consider using a shared drag state object to track: `isDragging`, `dragType` (start/end/move), `overlayId`, `initialMouseX`, `initialStartFrame`, `initialEndFrame`
+
+#### Drag Hit Zone Detection
+
+```javascript
+// Determine drag type based on mouse position within bar
+function getDragType(mouseX, barRect) {
+  const edgeThreshold = 8; // pixels
+  if (mouseX < barRect.left + edgeThreshold) return 'start';
+  if (mouseX > barRect.right - edgeThreshold) return 'end';
+  return 'move';
+}
+```
+
+#### Frame Calculation from Pixel Position
+
+```javascript
+// Convert pixel position to frame number
+function pixelToFrame(pixelX, trackRect) {
+  const zoom = editorState.timelineZoom || 1;
+  const contentWidth = trackRect.width * zoom;
+  const percent = pixelX / contentWidth;
+  return Math.round(percent * (editorState.frameCount - 1));
+}
+```
+
+#### File to Modify
+
+- `editor/index.html` - all UI and interaction logic is in this file
