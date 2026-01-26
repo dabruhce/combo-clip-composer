@@ -4387,8 +4387,21 @@
         if (drag.overlayId === editorState.selectedOverlayId) {
           editorState.overlay.startFrame = newStartFrame;
         }
+      } else if (drag.dragType === 'end') {
+        // Dragging end frame (right edge)
+        // Clamp: cannot go before startFrame + 1 (min 1 frame duration), cannot go past last frame
+        const minEndFrame = overlay.startFrame + 1;
+        const maxEndFrame = editorState.frameCount - 1;
+        const newEndFrame = Math.max(minEndFrame, Math.min(targetFrame, maxEndFrame));
+
+        overlay.endFrame = newEndFrame;
+
+        // Update legacy state if this is selected
+        if (drag.overlayId === editorState.selectedOverlayId) {
+          editorState.overlay.endFrame = newEndFrame;
+        }
       }
-      // Note: 'end' and 'move' drag types will be implemented in US-070 and US-071
+      // Note: 'move' drag type will be implemented in US-071
 
       // Update the duration bar visually
       updateOverlayDurationBar(drag.overlayId);

@@ -1264,15 +1264,15 @@ This phase enhances the layers panel by making overlay duration bars draggable, 
 **Description:** As a user, I want to drag the right edge of a duration bar so that I can adjust when the overlay stops appearing.
 
 **Acceptance Criteria:**
-- [ ] Dragging the right edge updates the overlay's `endFrame` property
-- [ ] The duration bar visually updates in real-time while dragging
-- [ ] End frame cannot be dragged before the start frame (minimum 1 frame duration)
-- [ ] End frame cannot be dragged past the last frame of the video
-- [ ] Releasing the mouse finalizes the change
-- [ ] The properties panel "End Frame" input updates to reflect the new value
-- [ ] Project is marked as having unsaved changes after drag completes
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] Dragging the right edge updates the overlay's `endFrame` property
+- [x] The duration bar visually updates in real-time while dragging
+- [x] End frame cannot be dragged before the start frame (minimum 1 frame duration)
+- [x] End frame cannot be dragged past the last frame of the video
+- [x] Releasing the mouse finalizes the change
+- [x] The properties panel "End Frame" input updates to reflect the new value
+- [x] Project is marked as having unsaved changes after drag completes
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ---
 
