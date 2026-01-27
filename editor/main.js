@@ -792,6 +792,8 @@ function handleCancelExport() {
  * Exports to same directory as source video with overlay_ prefix
  */
 async function handleQuickExportVideo(event, { overlays, comboText, xOffset, yOffset, config, startFrame = 0, endFrame = 0 }) {
+  const { spawn } = require('child_process');
+
   try {
     // Validate we have a video loaded
     if (!currentVideoPath || !fs.existsSync(currentVideoPath)) {
@@ -836,57 +838,68 @@ async function handleQuickExportVideo(event, { overlays, comboText, xOffset, yOf
     fs.writeFileSync(tempConfigPath, JSON.stringify(configWithOverlays, null, 2), 'utf-8');
 
     try {
-      // Import processComboVideo dynamically to avoid issues with module loading
-      const { processComboVideo } = require('../src/video/videoUtils');
-
-      // Track progress by watching the output directory
-      let lastProgress = 0;
-
-      // Send periodic progress updates
-      const progressInterval = setInterval(() => {
-        if (exportCancelled) {
-          clearInterval(progressInterval);
-          return;
-        }
-        // Send a heartbeat progress update
-        if (isExporting) {
-          event.sender.send('export-progress', { progress: lastProgress, status: 'Processing...' });
-        }
-      }, 500);
-
-      // Run the video processing
-      // Use first overlay for legacy parameters, overlays array is in config
+      // Use first overlay for legacy parameters
       const firstOverlay = (overlays && overlays[0]) || { comboText, xOffset, yOffset };
-      const result = await processComboVideo(
-        currentVideoPath,
-        firstOverlay.comboText,
-        firstOverlay.xOffset,
-        firstOverlay.yOffset,
-        './artifacts/out/', // Default job directory
-        ['./assets/games/Tekken7/images', './assets/games/common/images'], // Default asset directories
-        config.images ? config.images.width : null,
-        config.images ? config.images.height : null,
-        tempConfigPath
-      );
 
-      clearInterval(progressInterval);
+      // Prepare arguments for the worker script
+      const workerArgs = {
+        videoPath: currentVideoPath,
+        comboText: firstOverlay.comboText,
+        xOffset: firstOverlay.xOffset,
+        yOffset: firstOverlay.yOffset,
+        jobDir: './artifacts/out/',
+        assetDirs: ['./assets/games/Tekken7/images', './assets/games/common/images'],
+        imageWidth: config.images ? config.images.width : null,
+        imageHeight: config.images ? config.images.height : null,
+        configPath: tempConfigPath,
+        outputPath: outputPath
+      };
 
-      // Check if cancelled
-      if (exportCancelled) {
-        // Clean up temp config
-        if (fs.existsSync(tempConfigPath)) {
-          fs.unlinkSync(tempConfigPath);
-        }
-        return {
-          success: false,
-          canceled: true
-        };
-      }
+      // Run the export in a child Node.js process (uses system Node.js with correct canvas binary)
+      const workerPath = path.join(__dirname, 'export-worker.js');
 
-      // Copy the result to the output path (overwrites if exists)
-      if (result && fs.existsSync(result)) {
-        fs.copyFileSync(result, outputPath);
-      }
+      const result = await new Promise((resolve, reject) => {
+        const child = spawn('node', [workerPath, JSON.stringify(workerArgs)], {
+          cwd: path.join(__dirname, '..'),
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout.on('data', (data) => {
+          stdout += data.toString();
+          // Send progress updates
+          if (isExporting) {
+            event.sender.send('export-progress', { progress: 0, status: 'Processing...' });
+          }
+        });
+
+        child.stderr.on('data', (data) => {
+          stderr += data.toString();
+          console.error('Export worker stderr:', data.toString());
+        });
+
+        child.on('close', (code) => {
+          if (code === 0) {
+            // Parse the last line of stdout for the result
+            const lines = stdout.trim().split('\n');
+            const lastLine = lines[lines.length - 1];
+            try {
+              const result = JSON.parse(lastLine);
+              resolve(result);
+            } catch (e) {
+              resolve({ success: true, outputPath });
+            }
+          } else {
+            reject(new Error(stderr || `Export process exited with code ${code}`));
+          }
+        });
+
+        child.on('error', (err) => {
+          reject(err);
+        });
+      });
 
       // Clean up temp config
       if (fs.existsSync(tempConfigPath)) {
@@ -895,10 +908,7 @@ async function handleQuickExportVideo(event, { overlays, comboText, xOffset, yOf
 
       isExporting = false;
 
-      return {
-        success: true,
-        outputPath: outputPath
-      };
+      return result;
     } catch (processError) {
       // Clean up temp config on error
       if (fs.existsSync(tempConfigPath)) {

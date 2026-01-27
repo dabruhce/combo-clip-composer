@@ -11,7 +11,11 @@
       "Bash(timeout:*)",
       "Bash(cat:*)",
       "Bash(\"D:\\\\repos\\\\combo-clip-composer\\\\dist\\\\win-unpacked\\\\resources\\\\app.asar.unpacked\\\\node_modules\\\\@ffmpeg-installer\\\\win32-x64\\\\ffmpeg.exe\" -version)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(npm rebuild:*)",
+      "Bash(npx electron-rebuild:*)",
+      "Bash(npm install:*)",
+      "Bash(npx electron-rebuild@3.2.9:*)"
     ]
   }
 }

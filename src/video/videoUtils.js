@@ -84,8 +84,11 @@ ffmpeg.setFfprobePath(ffprobePath);
       await searchAndCopyFiles(text, directories, imagesDirectory);
     }
 
-    // Extract audio from video
-    await extractAudioFromVideo(inputFile, audioOutputFile);
+    // Extract audio from video (only if audio stream exists)
+    const hasAudio = !!audio;
+    if (hasAudio) {
+      await extractAudioFromVideo(inputFile, audioOutputFile);
+    }
 
     // Extract frames from video
     const outputFile = path.join(initialFramesDirectory, 'allframes-%04d.png');
@@ -140,11 +143,15 @@ ffmpeg.setFfprobePath(ffprobePath);
     const finalVideoOutput = path.join(targetDirectory, filename);
     await createVideoFromFrames(path.join(updatedFramesDirectory, 'allframes-%04d.png'), finalVideoOutput, duration, fps);
 
-    // Add audio to final video
-    const finalVideoOutputWithAudio = path.join(targetDirectory, completedFilename);
-    await addAudioToVideo(finalVideoOutput, audioOutputFile, finalVideoOutputWithAudio);
-
-    return finalVideoOutputWithAudio;
+    // Add audio to final video (only if source had audio)
+    if (hasAudio) {
+      const finalVideoOutputWithAudio = path.join(targetDirectory, completedFilename);
+      await addAudioToVideo(finalVideoOutput, audioOutputFile, finalVideoOutputWithAudio);
+      return finalVideoOutputWithAudio;
+    } else {
+      // No audio - return video without audio
+      return finalVideoOutput;
+    }
   }
 
   async function processVideo(inputFile, text, x, y) {
@@ -169,10 +176,13 @@ ffmpeg.setFfprobePath(ffprobePath);
     await recreateDirectory(initialFramesDirectory);
     await recreateDirectory(updatedFramesDirectory);
     await recreateDirectory(audioOutputDirectory);
-  
-    // Extract audio from video
-    await extractAudioFromVideo(inputFile, audioOutputFile);
-  
+
+    // Extract audio from video (only if audio stream exists)
+    const hasAudio = !!audio;
+    if (hasAudio) {
+      await extractAudioFromVideo(inputFile, audioOutputFile);
+    }
+
     // Extract frames from video
     const outputFile = path.join(initialFramesDirectory, 'allframes-%04d.png');
     await extractFrames({
@@ -191,13 +201,16 @@ ffmpeg.setFfprobePath(ffprobePath);
     // Stitch frames into video
     const finalVideoOutput = path.join(targetDirectory, filename);
     await createVideoFromFrames(path.join(updatedFramesDirectory, 'allframes-%04d.png'), finalVideoOutput, duration, fps);
-  
-    // Add audio to final video
-    const finalVideoOutputWithAudio = path.join(targetDirectory, completedFilename);
-    await addAudioToVideo(finalVideoOutput, audioOutputFile, finalVideoOutputWithAudio);
-   
-    //console.log('text returning ' + finalVideoOutputWithAudio)
-    return finalVideoOutputWithAudio;
+
+    // Add audio to final video (only if source had audio)
+    if (hasAudio) {
+      const finalVideoOutputWithAudio = path.join(targetDirectory, completedFilename);
+      await addAudioToVideo(finalVideoOutput, audioOutputFile, finalVideoOutputWithAudio);
+      return finalVideoOutputWithAudio;
+    } else {
+      // No audio - return video without audio
+      return finalVideoOutput;
+    }
   }
 
 async function redrawFrameWithTextAndCoords(initialFrames, updatedFramesPath, text, x, y) {

@@ -2043,6 +2043,40 @@
       word-break: break-all;
       margin-bottom: 16px;
     }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 4px;
+      color: white;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      pointer-events: auto;
+      max-width: 350px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .toast-success { background: #2e7d32; }
+    .toast-error { background: #c62828; }
+    .toast-info { background: #1565c0; }
   </style>
 </head>
 <body>
@@ -2529,6 +2563,9 @@
     </div>
   </div>
 
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
   <script>
     const { ipcRenderer } = require('electron');
     const path = require('path');
@@ -2654,7 +2691,7 @@
         comboText: '',
         xOffset: 10,
         yOffset: 50,
-        startFrame: 1,
+        startFrame: 0,
         endFrame: defaultEndFrame,
         visible: true,
         config: {
@@ -8347,6 +8384,107 @@
         hideExportDialog();
       }
     }
+
+    // ============================================================
+    // Toast Notifications
+    // ============================================================
+
+    const toastContainer = document.getElementById('toastContainer');
+
+    /**
+     * Shows a toast notification
+     * @param {string} message - Message to display
+     * @param {string} type - 'success', 'error', or 'info'
+     * @param {number} duration - Duration in ms (default 4000)
+     */
+    function showToast(message, type = 'info', duration = 4000) {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+
+      // Trigger animation
+      requestAnimationFrame(() => toast.classList.add('show'));
+
+      // Auto-dismiss
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // ============================================================
+    // Quick Export Functionality
+    // ============================================================
+
+    let isQuickExportInProgress = false;
+
+    /**
+     * Performs quick export to same directory with overlay_ prefix
+     */
+    async function quickExport() {
+      // Validate we have a video loaded
+      if (!editorState.videoPath) {
+        showToast('Please load a video first before exporting.', 'error');
+        return;
+      }
+
+      // Validate we have at least one overlay with combo text
+      const overlaysWithContent = editorState.overlays.filter(o => o.visible && o.comboText && o.comboText.trim());
+      if (overlaysWithContent.length === 0) {
+        showToast('Please enter combo notation in at least one overlay.', 'error');
+        return;
+      }
+
+      // Update button state
+      isQuickExportInProgress = true;
+      exportVideoBtn.disabled = true;
+      exportVideoBtn.textContent = 'Exporting...';
+
+      try {
+        const config = getFullConfigFromInputs();
+
+        // Prepare overlays array for export
+        const overlaysForExport = editorState.overlays
+          .filter(o => o.visible && o.comboText && o.comboText.trim())
+          .map(o => ({
+            comboText: o.comboText,
+            xOffset: o.xOffset,
+            yOffset: o.yOffset,
+            startFrame: o.startFrame || 1,
+            endFrame: o.endFrame || editorState.frameCount - 1,
+            config: o.config || config
+          }));
+
+        const result = await ipcRenderer.invoke('quick-export-video', {
+          overlays: overlaysForExport,
+          comboText: overlaysForExport[0]?.comboText || '',
+          xOffset: overlaysForExport[0]?.xOffset || 10,
+          yOffset: overlaysForExport[0]?.yOffset || 10,
+          config: config,
+          startFrame: overlaysForExport[0]?.startFrame || 1,
+          endFrame: overlaysForExport[0]?.endFrame || editorState.frameCount - 1
+        });
+
+        if (result.success) {
+          // Extract just the filename for the toast
+          const filename = result.outputPath.split(/[/\\]/).pop();
+          showToast(`Exported to ${filename}`, 'success');
+        } else if (result.error) {
+          showToast(`Export failed: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        showToast(`Export failed: ${error.message || 'Unknown error'}`, 'error');
+      } finally {
+        isQuickExportInProgress = false;
+        exportVideoBtn.disabled = false;
+        exportVideoBtn.textContent = 'Export Video';
+        updateExportButtonState();
+      }
+    }
+
+    // Quick export button event listener
+    exportVideoBtn.addEventListener('click', quickExport);
 
     // Export dialog button event listeners
     exportCancelBtn.addEventListener('click', cancelExport);

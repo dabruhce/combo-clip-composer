@@ -437,3 +437,25 @@
   - Call updateExportButtonState() whenever video state, overlay content, or visibility changes
   - US-082-086 will implement the actual quick export IPC handler and toast notifications
 ---
+
+## Iteration 82 - US-082: Implement Quick Export IPC Handler
+- What was implemented:
+  - Added handleQuickExportVideo() function in editor/main.js
+  - Handler generates output path: `{sourceDir}/overlay_{originalFilename}.mp4`
+  - Uses path.dirname() and path.basename() to extract source directory and original filename
+  - Overwrites existing file if present (no confirmation dialog)
+  - Reuses same processComboVideo logic as handleExportVideo
+  - Returns `{ success: true, outputPath }` on success or `{ success: false, error }` on failure
+  - Registered IPC handler with ipcMain.handle('quick-export-video', handleQuickExportVideo)
+  - Added handleQuickExportVideo to module.exports for testing
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/main.js (added handleQuickExportVideo function, IPC registration, module export)
+  - PRD.md (marked US-082 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Quick export follows same pattern as handleExportVideo but skips dialog
+  - Output path formula: path.join(sourceDir, `overlay_${originalName}.mp4`)
+  - fs.copyFileSync overwrites existing files by default (no special handling needed)
+  - US-083 will wire the Export Video button to call this handler
+---
