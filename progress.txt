@@ -25,7 +25,7 @@
 - Files changed:
   - editor/index.html (CSS styles for delete button and context menu, HTML context menu, JS functions, event listeners)
   - PRD.md (marked US-063 as complete)
-- Learnings for future iterations:
+- Learnings for future iterations:62
   - Delete button uses opacity: 0 by default, shows opacity: 0.6 on row hover for clean UX
   - Layer context menu follows same pattern as keyframe context menu (showLayerContextMenu, hideLayerContextMenu)
   - Track layerContextMenuOverlayId to know which overlay the context menu was opened for

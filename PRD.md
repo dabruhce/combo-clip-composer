@@ -1558,3 +1558,189 @@ New structure with timing inputs:
 #### File to Modify
 
 - `editor/index.html` - all UI and interaction logic is in this file
+
+---
+
+## Phase 20: Quick Export Button
+
+### Introduction
+
+Add a convenient "Export Video" button directly in the toolbar below "Open Video" that exports the video with overlays to the same directory as the source video, automatically naming it `overlay_originalfilename.mp4`. This provides a fast one-click export workflow without needing to navigate save dialogs.
+
+### Goals
+
+- Add "Export Video" button to toolbar for quick one-click export
+- Auto-generate output path: same directory as source, prefixed with `overlay_`
+- Overwrite existing files without confirmation
+- Show simple "Exporting..." state during export
+- Display auto-dismissing toast notification on completion
+
+---
+
+#### US-081: Add Export Video Button to Toolbar
+
+**Description:** As a user, I want an "Export Video" button in the toolbar so that I can quickly export my video with overlays.
+
+**Acceptance Criteria:**
+- [ ] Add "Export Video" button below/after "Open Video" button in toolbar
+- [ ] Button uses consistent styling with "Open Video" button
+- [ ] Button is disabled when no video is loaded
+- [ ] Button is disabled when no overlays have combo text
+- [ ] Button has id `exportVideoBtn` for JavaScript access
+- [ ] Typecheck passes
+- [ ] Verify button displays correctly in browser
+
+---
+
+#### US-082: Implement Quick Export IPC Handler
+
+**Description:** As a developer, I want a new IPC handler for quick export so that it bypasses the save dialog and uses auto-generated path.
+
+**Acceptance Criteria:**
+- [ ] Add new IPC handler `quick-export-video` in main.js
+- [ ] Handler generates output path: `{sourceDir}/overlay_{originalFilename}.mp4`
+- [ ] Handler overwrites existing file if present (no confirmation)
+- [ ] Handler reuses existing `processComboVideo` logic
+- [ ] Handler returns `{ success: true, outputPath }` or `{ success: false, error }`
+- [ ] Typecheck passes
+
+---
+
+#### US-083: Wire Export Button to Quick Export
+
+**Description:** As a user, I want clicking the Export Video button to start the export process so that my video is processed with overlays.
+
+**Acceptance Criteria:**
+- [ ] Clicking button calls `quickExport()` function
+- [ ] Function validates video is loaded and at least one overlay has content
+- [ ] Function invokes `quick-export-video` IPC handler with overlay data
+- [ ] Function passes same overlay data format as existing `startExport()`
+- [ ] Typecheck passes
+- [ ] Verify clicking button triggers export
+
+---
+
+#### US-084: Add Exporting State to Button
+
+**Description:** As a user, I want the button to show "Exporting..." while export is in progress so that I know the process is running.
+
+**Acceptance Criteria:**
+- [ ] Button text changes to "Exporting..." when export starts
+- [ ] Button is disabled during export (prevents double-click)
+- [ ] Button text reverts to "Export Video" when export completes (success or error)
+- [ ] Consider adding a simple spinner or loading indicator (optional)
+- [ ] Typecheck passes
+- [ ] Verify button state changes during export
+
+---
+
+#### US-085: Add Toast Notification Component
+
+**Description:** As a user, I want a toast notification system so that I can see non-intrusive feedback messages.
+
+**Acceptance Criteria:**
+- [ ] Create toast container element (fixed position, bottom-right or top-right)
+- [ ] Create `showToast(message, type, duration)` function
+- [ ] Toast types: 'success' (green), 'error' (red), 'info' (blue)
+- [ ] Default duration: 4000ms (4 seconds)
+- [ ] Toast slides in, displays, then auto-dismisses with fade out
+- [ ] Multiple toasts can stack if needed
+- [ ] Toast styling matches dark theme
+- [ ] Typecheck passes
+- [ ] Verify toast displays and auto-dismisses in browser
+
+---
+
+#### US-086: Show Toast on Export Complete
+
+**Description:** As a user, I want to see a toast notification when export finishes so that I know it succeeded and where the file was saved.
+
+**Acceptance Criteria:**
+- [ ] On successful export, show success toast: "Exported to overlay_filename.mp4"
+- [ ] On export error, show error toast with error message
+- [ ] Toast shows the filename (not full path) to keep it concise
+- [ ] Toast auto-dismisses after 4 seconds
+- [ ] Typecheck passes
+- [ ] Verify toast appears after export completes
+
+---
+
+### Non-Goals (Phase 20)
+
+- Customizing the output filename or location (use existing Export menu for that)
+- Export progress percentage (kept simple with just "Exporting..." state)
+- Cancel button for quick export (it's meant to be fast)
+- Export format options (always MP4)
+
+### Technical Considerations (Phase 20)
+
+#### Output Path Generation
+
+```javascript
+// In main.js
+const sourceDir = path.dirname(currentVideoPath);
+const originalName = path.basename(currentVideoPath, path.extname(currentVideoPath));
+const outputPath = path.join(sourceDir, `overlay_${originalName}.mp4`);
+```
+
+#### Toast HTML Structure
+
+```html
+<div id="toastContainer" class="toast-container"></div>
+```
+
+```javascript
+function showToast(message, type = 'info', duration = 4000) {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  toastContainer.appendChild(toast);
+
+  // Trigger animation
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  // Auto-dismiss
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+```
+
+#### CSS for Toast
+
+```css
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 12px 20px;
+  border-radius: 4px;
+  color: white;
+  font-size: 13px;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-success { background: #2e7d32; }
+.toast-error { background: #c62828; }
+.toast-info { background: #1565c0; }
+```
+
+#### Files to Modify
+
+- `editor/index.html` - button UI, toast component, quickExport function
+- `editor/main.js` - new `quick-export-video` IPC handler
