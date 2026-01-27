@@ -788,6 +788,134 @@ function handleCancelExport() {
 }
 
 /**
+ * Handle quick video export request from renderer
+ * Exports to same directory as source video with overlay_ prefix
+ */
+async function handleQuickExportVideo(event, { overlays, comboText, xOffset, yOffset, config, startFrame = 0, endFrame = 0 }) {
+  try {
+    // Validate we have a video loaded
+    if (!currentVideoPath || !fs.existsSync(currentVideoPath)) {
+      return {
+        success: false,
+        error: 'No video loaded or video file not found'
+      };
+    }
+
+    // Generate output path: same directory as source, prefixed with overlay_
+    const sourceDir = path.dirname(currentVideoPath);
+    const originalName = path.basename(currentVideoPath, path.extname(currentVideoPath));
+    const outputPath = path.join(sourceDir, `overlay_${originalName}.mp4`);
+
+    // Reset export state
+    isExporting = true;
+    exportCancelled = false;
+
+    // Notify renderer that export is starting
+    event.sender.send('export-started', { outputPath });
+
+    // Create a temporary config file for the export
+    // Include overlays array for multiple overlay support
+    const configWithOverlays = {
+      ...config,
+      // Legacy timing for single overlay backward compatibility
+      timing: {
+        startFrame: startFrame,
+        endFrame: endFrame
+      },
+      // New overlays array for multiple overlays
+      overlays: overlays || [{
+        comboText: comboText,
+        xOffset: xOffset,
+        yOffset: yOffset,
+        startFrame: startFrame,
+        endFrame: endFrame,
+        config: config
+      }]
+    };
+    const tempConfigPath = path.join(os.tmpdir(), `combo-clip-config-${Date.now()}.json`);
+    fs.writeFileSync(tempConfigPath, JSON.stringify(configWithOverlays, null, 2), 'utf-8');
+
+    try {
+      // Import processComboVideo dynamically to avoid issues with module loading
+      const { processComboVideo } = require('../src/video/videoUtils');
+
+      // Track progress by watching the output directory
+      let lastProgress = 0;
+
+      // Send periodic progress updates
+      const progressInterval = setInterval(() => {
+        if (exportCancelled) {
+          clearInterval(progressInterval);
+          return;
+        }
+        // Send a heartbeat progress update
+        if (isExporting) {
+          event.sender.send('export-progress', { progress: lastProgress, status: 'Processing...' });
+        }
+      }, 500);
+
+      // Run the video processing
+      // Use first overlay for legacy parameters, overlays array is in config
+      const firstOverlay = (overlays && overlays[0]) || { comboText, xOffset, yOffset };
+      const result = await processComboVideo(
+        currentVideoPath,
+        firstOverlay.comboText,
+        firstOverlay.xOffset,
+        firstOverlay.yOffset,
+        './artifacts/out/', // Default job directory
+        ['./assets/games/Tekken7/images', './assets/games/common/images'], // Default asset directories
+        config.images ? config.images.width : null,
+        config.images ? config.images.height : null,
+        tempConfigPath
+      );
+
+      clearInterval(progressInterval);
+
+      // Check if cancelled
+      if (exportCancelled) {
+        // Clean up temp config
+        if (fs.existsSync(tempConfigPath)) {
+          fs.unlinkSync(tempConfigPath);
+        }
+        return {
+          success: false,
+          canceled: true
+        };
+      }
+
+      // Copy the result to the output path (overwrites if exists)
+      if (result && fs.existsSync(result)) {
+        fs.copyFileSync(result, outputPath);
+      }
+
+      // Clean up temp config
+      if (fs.existsSync(tempConfigPath)) {
+        fs.unlinkSync(tempConfigPath);
+      }
+
+      isExporting = false;
+
+      return {
+        success: true,
+        outputPath: outputPath
+      };
+    } catch (processError) {
+      // Clean up temp config on error
+      if (fs.existsSync(tempConfigPath)) {
+        fs.unlinkSync(tempConfigPath);
+      }
+      throw processError;
+    }
+  } catch (error) {
+    isExporting = false;
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Updates the window title to reflect project state
  */
 function updateWindowTitle() {
@@ -1194,6 +1322,7 @@ app.whenReady().then(() => {
 
   // Export IPC handlers
   ipcMain.handle('export-video', handleExportVideo);
+  ipcMain.handle('quick-export-video', handleQuickExportVideo);
   ipcMain.handle('cancel-export', handleCancelExport);
   ipcMain.handle('export-config', handleExportConfig);
 
@@ -1243,6 +1372,7 @@ module.exports = {
   handleSaveProject,
   handleLoadVideoByPath,
   handleExportVideo,
+  handleQuickExportVideo,
   handleCancelExport,
   handleExportConfig,
   handleSelectAssetFile,

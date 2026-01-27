@@ -417,3 +417,23 @@
   - Default endFrame now comes from frameCount-1 when video loads (US-079)
   - Legacy backwards compatibility: undefined endFrame now defaults to totalFrames-1 instead of 0
 ---
+
+## Iteration 81 - US-081: Add Export Video Button to Toolbar
+- What was implemented:
+  - Added "Export Video" button to toolbar after "Open Video" button
+  - Button styled with .btn and .btn-export classes (margin-left: 8px for spacing)
+  - Button starts disabled (no video loaded)
+  - Created updateExportButtonState() function to manage enabled/disabled state
+  - Button enabled when: hasVideo && hasOverlayContent (visible overlays with non-empty comboText)
+  - Added DOM reference: const exportVideoBtn = document.getElementById('exportVideoBtn')
+  - updateExportButtonState() called in: onVideoLoaded, applyOverlayFromInputs, addOverlay, deleteOverlay, toggleOverlayVisibility, newProject, project load
+  - 512 tests pass (1 pre-existing canvas native binding failure is environment issue)
+- Files changed:
+  - editor/index.html (CSS, HTML button, JS function and integrations)
+  - PRD.md (marked US-081 as complete)
+  - progress.txt (added iteration notes)
+- Learnings for future iterations:
+  - Export button needs to track multiple conditions: video loaded AND overlays with content
+  - Call updateExportButtonState() whenever video state, overlay content, or visibility changes
+  - US-082-086 will implement the actual quick export IPC handler and toast notifications
+---

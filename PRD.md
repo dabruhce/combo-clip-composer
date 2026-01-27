@@ -1597,12 +1597,12 @@ Add a convenient "Export Video" button directly in the toolbar below "Open Video
 **Description:** As a developer, I want a new IPC handler for quick export so that it bypasses the save dialog and uses auto-generated path.
 
 **Acceptance Criteria:**
-- [ ] Add new IPC handler `quick-export-video` in main.js
-- [ ] Handler generates output path: `{sourceDir}/overlay_{originalFilename}.mp4`
-- [ ] Handler overwrites existing file if present (no confirmation)
-- [ ] Handler reuses existing `processComboVideo` logic
-- [ ] Handler returns `{ success: true, outputPath }` or `{ success: false, error }`
-- [ ] Typecheck passes
+- [x] Add new IPC handler `quick-export-video` in main.js
+- [x] Handler generates output path: `{sourceDir}/overlay_{originalFilename}.mp4`
+- [x] Handler overwrites existing file if present (no confirmation)
+- [x] Handler reuses existing `processComboVideo` logic
+- [x] Handler returns `{ success: true, outputPath }` or `{ success: false, error }`
+- [x] Typecheck passes
 
 ---
 
