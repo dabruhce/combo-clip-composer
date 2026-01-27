@@ -1582,13 +1582,13 @@ Add a convenient "Export Video" button directly in the toolbar below "Open Video
 **Description:** As a user, I want an "Export Video" button in the toolbar so that I can quickly export my video with overlays.
 
 **Acceptance Criteria:**
-- [ ] Add "Export Video" button below/after "Open Video" button in toolbar
-- [ ] Button uses consistent styling with "Open Video" button
-- [ ] Button is disabled when no video is loaded
-- [ ] Button is disabled when no overlays have combo text
-- [ ] Button has id `exportVideoBtn` for JavaScript access
-- [ ] Typecheck passes
-- [ ] Verify button displays correctly in browser
+- [x] Add "Export Video" button below/after "Open Video" button in toolbar
+- [x] Button uses consistent styling with "Open Video" button
+- [x] Button is disabled when no video is loaded
+- [x] Button is disabled when no overlays have combo text
+- [x] Button has id `exportVideoBtn` for JavaScript access
+- [x] Typecheck passes
+- [x] Verify button displays correctly in browser
 
 ---
 

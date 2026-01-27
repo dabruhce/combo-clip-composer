@@ -1317,6 +1317,10 @@
       margin-left: auto;
     }
 
+    .btn-export {
+      margin-left: 8px;
+    }
+
     /* Loading overlay */
     .loading-overlay {
       position: absolute;
@@ -2046,6 +2050,7 @@
   <div class="toolbar">
     <h1>Combo Clip Composer Editor</h1>
     <button class="btn btn-open" id="openVideoBtn">Open Video</button>
+    <button class="btn btn-export" id="exportVideoBtn" disabled>Export Video</button>
   </div>
 
   <!-- Main Content -->
@@ -2763,6 +2768,7 @@
 
     // DOM elements
     const openVideoBtn = document.getElementById('openVideoBtn');
+    const exportVideoBtn = document.getElementById('exportVideoBtn');
     const previewPlaceholder = document.getElementById('previewPlaceholder');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingSubtext = document.getElementById('loadingSubtext');
@@ -3570,6 +3576,20 @@
       updateLayerTimingInputs();
 
       console.log('Video frames extracted, ready for editing:', editorState);
+
+      // Update export button state now that video is loaded
+      updateExportButtonState();
+    }
+
+    /**
+     * Updates the export video button enabled/disabled state
+     * Button is enabled when: video is loaded AND at least one overlay has combo text
+     */
+    function updateExportButtonState() {
+      const hasVideo = editorState.videoPath && editorState.framePaths && editorState.framePaths.length > 0;
+      const hasOverlayContent = editorState.overlays.some(o => o.visible && o.comboText && o.comboText.trim());
+
+      exportVideoBtn.disabled = !(hasVideo && hasOverlayContent);
     }
 
     /**
@@ -3828,6 +3848,9 @@
         markUnsavedChanges();
       }
 
+      // Update export button state
+      updateExportButtonState();
+
       console.log('Added new overlay:', newOverlay.name, newOverlay.id);
     }
 
@@ -3884,6 +3907,9 @@
       if (typeof markUnsavedChanges === 'function') {
         markUnsavedChanges();
       }
+
+      // Update export button state (may no longer have content)
+      updateExportButtonState();
 
       console.log('Deleted overlay:', deletedOverlay.name, overlayId);
     }
@@ -4196,6 +4222,9 @@
       if (typeof markUnsavedChanges === 'function') {
         markUnsavedChanges();
       }
+
+      // Update export button state (visible overlays may have changed)
+      updateExportButtonState();
     }
 
     /**
@@ -5347,6 +5376,9 @@
       if (typeof markUnsavedChanges === 'function') {
         markUnsavedChanges();
       }
+
+      // Update export button state (may have content now)
+      updateExportButtonState();
     }
 
     /**
@@ -8011,6 +8043,9 @@
         clearUnsavedChanges();
         updateStatusBar();
 
+        // Update export button state for loaded project
+        updateExportButtonState();
+
         console.log('Project loaded:', projectPath);
       } catch (error) {
         hideLoading();
@@ -8092,6 +8127,9 @@
 
       clearUnsavedChanges();
       updateStatusBar();
+
+      // Disable export button (no video loaded)
+      updateExportButtonState();
     }
 
     /**
